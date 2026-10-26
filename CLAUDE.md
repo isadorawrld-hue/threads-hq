@@ -45,6 +45,11 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Un compte qui saute : ses posts programmés sont annulés sur Metricool, et le prochain compte créé prend sa place (même groupe, même lien, `replaces`).
 - Un compte n'a jamais deux fois le même texte. Les posts sont planifiés aux créneaux de la cible (fuseau `Asia/Taipei`), avec un décalage aléatoire.
 - Les groupes (textes, photos, villes) sont configurables dans Réglages. Un groupe avec photos a `withPhoto = oui`.
+- Chaque compte a une **stratégie** de setup, répartie selon les cibles (Contenu > Les 3 stratégies) :
+  - `epingle` : pas de lien dans la bio, le lien est dans la réponse au post épinglé (2 parties).
+  - `lien` : le lien est dans le champ lien du profil.
+  - `relais` : aucun lien ; le compte cite le post épinglé du compte pivot (`settings.hub`) et épingle la citation.
+  Un compte remplaçant garde la stratégie du compte sauté. Les bios viennent de `settings.bioBank[strategie]`.
 
 ## Metricool (faits vérifiés)
 - Base : `https://app.metricool.com/api`. Auth : header `X-Mc-Auth` avec le token, plus `userId` et `blogId` en paramètres.
@@ -68,7 +73,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Le post épinglé a 2 parties : le post (avec `{pseudo}`) et la réponse avec le lien (`{lien}`). Les placeholders sont remplacés par compte.
 
 ## En attente (demandé à Awen)
-- Le prénom de la modèle, pour les bios.
+- La modèle Threads en cours est Chloé (marché Taïwan / HK / Singapour, bios en chinois traditionnel). Son lien n'est pas encore donné.
+- Le pseudo du compte pivot (stratégie relais).
 - Les liens TinyURL, les bios, les photos de profil et les photos de contenu, à ajouter dans Contenu.
 - Les réglages SMS (smspool) et le tuto de la VA.
 
