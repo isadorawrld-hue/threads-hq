@@ -181,6 +181,7 @@ const ICONS = {
   accounts: '<path d="M4 6h16M4 12h16M4 18h10"/>',
   sop: '<path d="M5 4h10l4 4v12H5z"/><path d="M14 4v5h5"/>',
   dash: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  stats: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
   content: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>',
   rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
@@ -202,6 +203,7 @@ function render() {
     ]],
     ["Suivi", [
       ["accounts", "Comptes", 0],
+      ["stats", "Stats", 0],
       ["sop", "Guides (SOP)", 0],
     ]],
   ];
@@ -384,6 +386,26 @@ const VIEWS = {
         <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button><button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}"></button></div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
   },
 
+  stats() {
+    const ls = S.data.linkStats;
+    const now = Date.now();
+    const rows = S.data.accounts.filter((a) => a.status !== "saute").map((a) => {
+      const l = ls?.links?.[a.link];
+      const up = S.data.posts.filter((p) => p.accountId === a.id && p.status === "programme" && new Date(p.at).getTime() > now).length;
+      const done = S.data.posts.filter((p) => p.accountId === a.id && p.status === "programme" && new Date(p.at).getTime() <= now).length;
+      return { a, l, up, done };
+    });
+    const sum = (k) => rows.reduce((n, r) => n + (r.l?.[k] || 0), 0);
+    const totalFollowers = rows.reduce((n, r) => n + (Number(r.a.followers) || 0), 0);
+    return `<h2>Stats</h2><p class="lead">Clics des liens, followers et posts, compte par compte.</p>
+      ${!S.data.configured.tiny ? '<div class="alert c-yellow">TinyURL pas encore branché : les clics restent vides. Colle le token TinyURL dans Réglages, puis clique « Mettre à jour les clics ».</div>' : ""}
+      <div class="stats">${stat("c-blue", sum("clicks7"), "clics (7 j)")}${stat("c-blue", sum("clicks30"), "clics (30 j)")}${stat("c-green", totalFollowers, "followers")}${stat("c-violet", rows.reduce((n, r) => n + r.up, 0), "posts à venir")}</div>
+      <div class="row" style="margin-bottom:12px"><span class="muted">${ls ? "Clics relevés " + ago(ls.at) : "Clics jamais relevés"}</span><div class="spacer"></div>${isAdmin() ? '<button class="btn sm" data-act="linkStats" data-wait="Relevé...">Mettre à jour les clics</button>' : ""}</div>
+      ${ls?.errors?.length ? `<div class="alert c-red">${esc(ls.errors[0])}${ls.errors.length > 1 ? ` (+${ls.errors.length - 1})` : ""}</div>` : ""}
+      <div class="card" style="overflow:auto"><table class="tbl"><tr><th>Compte</th><th>Groupe</th><th>Statut</th><th>Lien</th><th>Clics 7 j</th><th>Clics 30 j</th><th>Followers</th><th>Posts publiés</th><th>À venir</th></tr>
+      ${rows.map(({ a, l, up, done }) => `<tr><td>@${esc(a.pseudo)}</td><td>${gpill(a.group)}</td><td>${pill(a.status)}</td><td class="muted">${esc(a.link || "")}</td><td>${l ? l.clicks7 : ""}</td><td>${l ? l.clicks30 : ""}</td><td>${a.followers ?? ""}</td><td>${done}</td><td>${up}</td></tr>`).join("") || '<tr><td colspan="9" class="muted">Aucun compte.</td></tr>'}</table></div>`;
+  },
+
   sop() {
     return `<h2>SOP</h2><p class="lead">Tout ce qu'il faut savoir. Regarde la vidéo, suis les étapes.</p>${Object.keys(SOP).map((k, i) => sopBlock(k, i === 0)).join("")}
       ${S.data.settings.sopExtra ? `<div class="card sop"><b>Règles en plus</b><div style="white-space:pre-wrap;margin-top:8px">${esc(S.data.settings.sopExtra)}</div></div>` : ""}`;
@@ -443,6 +465,7 @@ const VIEWS = {
         <label class="f">2. Token API Metricool ${c.mcToken ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(dans Metricool : Paramètres du compte, onglet API, Copier)</small></label><input type="password" data-sec="mcToken" placeholder="${c.mcToken ? "enregistré (colle un autre token pour le remplacer)" : "colle le token"}" autocomplete="off" />
         <label class="f">3. userId Metricool ${c.mcUserId ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(le nombre, ou colle simplement l'adresse de Metricool)</small></label><input data-sec="mcUserId" placeholder="${c.mcUserId ? "enregistré" : "ex : 5978155 ou https://app.metricool.com/...userId=..."}" autocomplete="off" />
         <label class="f">4. Proxy ${c.proxy ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxy" placeholder="${c.proxy ? "enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
+        <label class="f">5. Token TinyURL ${c.tiny ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(TinyURL : Account, API tokens)</small></label><input type="password" data-sec="tinyToken" placeholder="${c.tiny ? "enregistré (colle un autre token pour le remplacer)" : "facultatif, pour les clics dans Stats"}" autocomplete="off" />
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester le proxy</button></div></div>
       <div class="card"><h3 style="margin-top:0">Liens</h3>
         <label class="f">Site SMS</label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
@@ -805,6 +828,13 @@ const ACT = {
       await api(`accounts/${b.dataset.id}/delete`, {});
       closeModal();
       toast("Supprimé");
+      await refresh();
+    });
+  },
+  async linkStats(b) {
+    await run(b, async () => {
+      const r = await api("links/stats", {});
+      toast(`${Object.keys(r.links).length} lien(s) relevé(s)` + (r.errors.length ? ` · ${r.errors.length} souci(s)` : ""), !!r.errors.length);
       await refresh();
     });
   },

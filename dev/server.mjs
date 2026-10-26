@@ -32,6 +32,11 @@ async function fakeFetch(url, opts = {}) {
     ipN++;
     return new Response("ok", { status: 200 });
   }
+  if (u.hostname === "api.tinyurl.com") {
+    if (opts.headers?.Authorization !== "Bearer TINY_TEST") return new Response(JSON.stringify({ errors: ["Unauthenticated"] }), { status: 401 });
+    const from = u.searchParams.get("from"); const days = Math.round((Date.now() - new Date(from).getTime()) / 864e5);
+    return Response.json({ data: [{ date: from, count: days >= 20 ? 42 : 9 }] });
+  }
   if (u.hostname === "app.metricool.com" || u.hostname === "mc.test") {
     if (opts.headers?.["X-Mc-Auth"] !== "TOKEN_TEST") return new Response(JSON.stringify({ error: "denied" }), { status: 401 });
     mcCalls.push({ method: opts.method || "GET", path: u.pathname, query: u.search, body: opts.body ? JSON.parse(opts.body) : null });

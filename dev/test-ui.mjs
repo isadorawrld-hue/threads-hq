@@ -156,6 +156,8 @@ await shot(v, "14-today-after-dead");
 await tab(v, "accounts");
 await v.click('[data-filter="tous"]');
 await shot(v, "15-accounts");
+await tab(v, "stats");
+await shot(v, "15b-stats");
 await tab(v, "sop");
 await shot(v, "16-sop");
 
