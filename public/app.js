@@ -264,8 +264,9 @@ const VIEWS = {
     const t = S.data.tasks;
     const cards = [];
     const conf = S.data.configured;
-    if (isAdmin() && (!conf.rotation || !conf.metricool || !conf.proxy))
-      cards.push(task("", "c-red", "Réglages à finir", `${!conf.proxy ? "Proxy · " : ""}${!conf.rotation ? "Lien de rotation · " : ""}${!conf.metricool ? "Metricool" : ""}`, "settings", "Ouvrir"));
+    const stt = S.data.settings;
+    const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Hero SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)"].filter(Boolean);
+    if (isAdmin() && miss.length) cards.push(task("", "c-red", "Réglages à finir", miss.join(" · "), "settings", "Ouvrir"));
     if (t.toCheck.length) cards.push(task("", "c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Regarde si chaque compte marche encore.", "check", "Commencer"));
     if (t.toReplace.length) cards.push(task("", "c-red", `${t.toReplace.length} compte(s) sauté(s) à remplacer`, "Crée un nouveau compte : il prend la place du mort.", "create", "Remplacer"));
     if (t.warmup.length) cards.push(task("", "c-yellow", `${t.warmup.length} compte(s) créé(s) : warm-up puis setup`, "10 min de warm-up, puis le setup dans la foulée.", "warmup", "Ouvrir"));
@@ -512,6 +513,9 @@ const VIEWS = {
         <label class="f">5. Token TinyURL ${c.tiny ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(TinyURL : Account, API tokens)</small></label><input type="password" data-sec="tinyToken" placeholder="${c.tiny ? "enregistré (colle un autre token pour le remplacer)" : "facultatif, pour les clics dans Stats"}" autocomplete="off" />
         <label class="f">6. Clé API Hero SMS ${c.sms ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(hero-sms.com : Obtenir la clé API)</small></label><input type="password" data-sec="heroToken" placeholder="${c.sms ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API"}" autocomplete="off" />
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester le proxy</button></div></div>
+      ${c.tiny ? `<div class="card"><h3 style="margin-top:0">Ménage TinyURL</h3><p class="muted">Supprime les vieux liens du domaine ${esc(st.tinyDomain || "")}. Les liens des comptes du CRM ne sont jamais touchés.</p>
+        <div class="row"><button class="btn light" data-act="tinyScan" data-wait="Comptage...">Compter les vieux liens</button>${S.tinyScan ? `<span class="muted">${S.tinyScan.count} lien(s) à supprimer · ${S.tinyScan.kept} gardé(s) (comptes du CRM)</span>` : ""}</div>
+        ${S.tinyScan && S.tinyScan.count ? `<p class="muted">Ex : ${S.tinyScan.sample.map(esc).join(", ")}</p><button class="btn bad" data-act="tinyClean" data-wait="Suppression...">Supprimer ces ${S.tinyScan.count} liens (définitif)</button>` : ""}</div>` : ""}
       <div class="card"><h3 style="margin-top:0">Liens</h3>
         <label class="f">Site SMS <small>(secours, si Hero SMS n'est pas branché)</small></label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
         <label class="f">Lien GeeLark</label><input data-st="geelarkUrl" value="${esc(st.geelarkUrl)}" />
@@ -543,7 +547,7 @@ const VIEWS = {
 const LOGS = {
   premier_acces: "Premier accès", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
-  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
+  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
   secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
 };
@@ -895,6 +899,26 @@ const ACT = {
       if (!act.code) toast("Toujours rien. Patiente, ça arrive en général sous 1 à 2 minutes.", true);
       else toast("Code reçu : " + act.code);
       await refresh();
+    });
+  },
+  async tinyScan(b) {
+    await run(b, async () => {
+      S.tinyScan = await api("tiny/cleanup");
+      render();
+    });
+  },
+  tinyClean() {
+    const n = S.tinyScan.count;
+    modal(`<h3>Supprimer ${n} liens ${esc(S.tinyScan.domain)} ?</h3><p>C'est définitif : ces liens ne marcheront plus jamais. Les liens des comptes du CRM sont gardés.</p>
+      <button class="btn big bad" style="margin-top:14px" data-act="tinyCleanGo" data-wait="Suppression en cours...">Oui, supprimer les ${n} liens</button>`);
+  },
+  async tinyCleanGo(b) {
+    await run(b, async () => {
+      const r = await api("tiny/cleanup", { confirm: S.tinyScan.domain });
+      closeModal();
+      S.tinyScan = null;
+      toast(`${r.deleted} lien(s) supprimé(s)` + (r.failedCount ? ` · ${r.failedCount} échec(s) : ${r.failed[0]}` : ""), !!r.failedCount);
+      render();
     });
   },
   async smsDone(b) {

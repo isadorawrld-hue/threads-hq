@@ -254,6 +254,23 @@ const alerts = ok(await call("metricool/health", {}), "santé");
 assert.equal(alerts.length, 1);
 assert.match(alerts[0].msg, /Threads déconnecté/);
 step("santé Metricool : alerte Threads déconnecté");
+
+// menage TinyURL : vieux liens du domaine supprimes, jamais ceux des comptes
+tok = va;
+assert.equal((await call("tiny/cleanup")).s, 403, "VA : interdit");
+tok = admin;
+const scan = ok(await call("tiny/cleanup"), "scan");
+const crmLinks = ok(await call("state"), "state").accounts.filter((a) => a.link.startsWith("https://chauna.live/")).length;
+assert.ok(crmLinks >= 1);
+assert.equal(scan.kept >= crmLinks, true);
+assert.equal(scan.count, 31, "30 vieux + 1 archivé, sans les liens du CRM");
+assert.equal((await call("tiny/cleanup", { confirm: "autre.com" })).s, 400, "confirmation obligatoire");
+const clean = ok(await call("tiny/cleanup", { confirm: "chauna.live" }), "ménage");
+assert.equal(clean.deleted, 31);
+const tz = await (await fetch(B + "/__tiny")).json();
+assert.ok(!tz.deleted.includes("taipeilily_2"), "lien d'un compte jamais supprimé");
+assert.equal(ok(await call("tiny/cleanup"), "rescan").count, 1, "reste seulement l'archivé du mock");
+step("ménage TinyURL : 31 vieux liens supprimés, liens des comptes gardés");
 st = ok(await call("state"), "state admin");
 const actions = new Set(st.logs.map((l) => l.action));
 for (const a of ["premier_acces", "connexion", "ip_changee", "compte_cree", "creation_ratee", "warmup_fait", "setup_fait", "metricool_relie", "marque_creee", "lien_metricool", "planif", "check", "compte_saute"]) assert.ok(actions.has(a), "log manquant " + a);

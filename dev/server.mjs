@@ -20,6 +20,9 @@ const store = {
 // --- faux reseau
 let ipN = 10;
 let tinyTaken = null;
+const tinyDom = {};
+let oldTiny = Array.from({ length: 30 }, (_, i) => "vieux" + i);
+const tinyDeleted = [];
 const mcPosts = [];
 const mcCalls = [];
 let mcLinkFor = null;
@@ -41,7 +44,18 @@ async function fakeFetch(url, opts = {}) {
     if (u.pathname === "/create") {
       const b = JSON.parse(opts.body); tinyTaken = tinyTaken || new Set(["taipei_lily"]);
       if (tinyTaken.has(b.alias)) return new Response(JSON.stringify({ code: 5, errors: ["Alias is not available."] }), { status: 422 });
-      tinyTaken.add(b.alias); return Response.json({ code: 0, data: { tiny_url: `https://${b.domain}/${b.alias}`, alias: b.alias, domain: b.domain, url: b.url } });
+      tinyTaken.add(b.alias); tinyDom[b.alias] = b.domain; return Response.json({ code: 0, data: { tiny_url: `https://${b.domain}/${b.alias}`, alias: b.alias, domain: b.domain, url: b.url } });
+    }
+    if (u.pathname.startsWith("/urls/")) {
+      const type = u.pathname.split("/")[2]; const page = Number(u.searchParams.get("page") || 1);
+      const all = type === "available" ? [...oldTiny.map((a) => ({ domain: "chauna.live", alias: a })), ...Object.entries(tinyDom).map(([a, d]) => ({ domain: d, alias: a }))] : [{ domain: "chauna.live", alias: "vieuxarchive" }];
+      const items = all.slice((page - 1) * 25, page * 25);
+      return Response.json({ data: items.map((x) => ({ ...x, tiny_url: `https://${x.domain}/${x.alias}` })), meta: { pagination: { total_pages: Math.ceil(all.length / 25) } } });
+    }
+    if (u.pathname.startsWith("/alias/") && opts.method === "DELETE") {
+      const [, , dom, al] = u.pathname.split("/");
+      oldTiny = oldTiny.filter((a) => a !== decodeURIComponent(al)); tinyDeleted.push(decodeURIComponent(al));
+      return Response.json({ data: { domain: dom, alias: al, deleted: true }, code: 0, errors: [] });
     }
     const from = u.searchParams.get("from"); const days = Math.round((Date.now() - new Date(from).getTime()) / 864e5);
     return Response.json({ data: [{ date: from, count: days >= 20 ? 42 : 9 }] });
@@ -113,6 +127,7 @@ http
       if (smsAct) smsAct.code = url.searchParams.get("code") || "123456";
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__tiny") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ deleted: tinyDeleted, left: oldTiny })); }
     if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }
     if (url.pathname === "/__mc") {
       res.writeHead(200, { "content-type": "application/json" });
