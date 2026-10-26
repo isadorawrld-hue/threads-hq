@@ -478,6 +478,9 @@ const VIEWS = {
           ${g.withPhoto ? `<details><summary>Photos (${photos.length})</summary><input type="file" accept="image/*" multiple data-upload="${g.id}" /><div class="thumbs" style="margin-top:10px">${photos.map((m) => `<figure><img loading="lazy" src="/api/media/${m.id}" /><button class="btn sm bad" data-act="delMedia" data-id="${m.id}"></button></figure>`).join("")}</div></details>` : ""}
           <details><summary>Voir les textes</summary>${texts.map((t) => `<div class="textline ${t.off ? "off" : ""}"><div class="x">${esc(t.text)}${t.fr ? `<div class="muted">${esc(t.fr)}</div>` : ""}</div><button class="btn sm light" data-act="toggleText" data-id="${t.id}">${t.off ? "Activer" : "Pause"}</button><button class="btn sm ghost" data-act="delText" data-id="${t.id}"></button></div>`).join("") || '<p class="muted">Aucun texte.</p>'}</details></div>`;
       }).join("")}
+      <div class="card"><h3 style="margin-top:0">Importer depuis Google Drive</h3><p class="muted">Colle le lien d'un dossier partagé (« Tous ceux qui ont le lien »). Les photos déjà importées sont sautées.</p>
+        <input data-drivelink placeholder="https://drive.google.com/drive/folders/..." />
+        <div class="row" style="margin-top:8px"><select data-drivedest style="max-width:240px"><option value="__pfp">Photos de profil</option>${st.groups.filter((g) => g.withPhoto).map((g) => `<option value="${g.id}">Photos du groupe ${esc(g.name)}</option>`).join("")}</select><button class="btn" data-act="driveImport" data-wait="Import...">Importer</button></div></div>
       <div class="card"><h3 style="margin-top:0">Photos de profil (${pfps.length})</h3><input type="file" accept="image/*" multiple data-upload="__pfp" /><div class="thumbs" style="margin-top:10px">${pfps.map((m) => `<figure><img loading="lazy" src="/api/media/${m.id}" /><button class="btn sm bad" data-act="delMedia" data-id="${m.id}"></button></figure>`).join("")}</div></div>
       <div class="card"><h3 style="margin-top:0">Les 3 stratégies de setup</h3>
         <p class="muted">Chaque nouveau compte reçoit une stratégie, en équilibrant selon les cibles ci-dessous. Un compte qui remplace un compte sauté garde sa stratégie.</p>
@@ -898,6 +901,31 @@ const ACT = {
       const act = await api(`sms/${S.data.sms.id}/code`, {});
       if (!act.code) toast("Toujours rien. Patiente, ça arrive en général sous 1 à 2 minutes.", true);
       else toast("Code reçu : " + act.code);
+      await refresh();
+    });
+  },
+  async driveImport(b) {
+    const link = $("[data-drivelink]").value.trim();
+    const dest = $("[data-drivedest]").value;
+    if (!link) return toast("Colle le lien du dossier.", true);
+    await run(b, async () => {
+      const list = (await api("drive/list?folder=" + encodeURIComponent(link))).filter((f) => !f.already);
+      if (!list.length) return toast("Rien de nouveau dans ce dossier.");
+      let ok = 0;
+      const fails = [];
+      for (const f of list) {
+        b.innerHTML = `<span class="spin"></span> ${ok + fails.length + 1}/${list.length}`;
+        try {
+          const r = await fetch("/api/drive/file?id=" + f.id, { headers: { authorization: "Bearer " + S.token } });
+          if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "erreur " + r.status);
+          const dataUrl = await compress(await r.blob());
+          await api("media/upload", dest === "__pfp" ? { kind: "pfp", dataUrl, filename: f.name, driveId: f.id } : { group: dest, dataUrl, filename: f.name, driveId: f.id });
+          ok++;
+        } catch (e) {
+          fails.push(`${f.name} : ${e.message}`);
+        }
+      }
+      toast(`${ok} photo(s) importée(s)` + (fails.length ? ` · ${fails.length} échec(s) : ${fails[0]}` : ""), !!fails.length);
       await refresh();
     });
   },

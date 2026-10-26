@@ -60,6 +60,16 @@ async function fakeFetch(url, opts = {}) {
     const from = u.searchParams.get("from"); const days = Math.round((Date.now() - new Date(from).getTime()) / 864e5);
     return Response.json({ data: [{ date: from, count: days >= 20 ? 42 : 9 }] });
   }
+  if (u.hostname === "drive.google.com") {
+    if (u.pathname === "/embeddedfolderview") {
+      if (u.searchParams.get("id") !== "DOSSIERTEST123") return new Response("no", { status: 404 });
+      return new Response(["2.jpg", "1.jpg", "notes.txt"].map((n, i) => `<div class="flip-entry" id="entry-FICHIER${i}ABCDEFGH"><div class="flip-entry-title">${n}</div></div>`).join(""), { headers: { "content-type": "text/html" } });
+    }
+    if (u.pathname === "/thumbnail") {
+      const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+      return new Response(png, { headers: { "content-type": "image/png" } });
+    }
+  }
   if (u.hostname === "hero-sms.com") {
     if (u.pathname.endsWith("/handler_api.php")) return new Response(u.searchParams.get("api_key") === "HERO_TEST" ? "ACCESS_BALANCE:9.5" : "BAD_KEY", { status: 200 });
     if (opts.headers?.Authorization !== "ApiKey HERO_TEST") return new Response(JSON.stringify({ title: "Unauthenticated." }), { status: 401 });

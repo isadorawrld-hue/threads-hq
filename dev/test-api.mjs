@@ -255,6 +255,17 @@ assert.equal(alerts.length, 1);
 assert.match(alerts[0].msg, /Threads déconnecté/);
 step("santé Metricool : alerte Threads déconnecté");
 
+// import Google Drive
+const dl = ok(await call("drive/list?folder=" + encodeURIComponent("https://drive.google.com/drive/folders/DOSSIERTEST123?usp=drive_link")), "liste drive");
+assert.deepEqual(dl.map((f) => f.name), ["1.jpg", "2.jpg"], "images seulement, triées");
+const fr = await fetch(B + "/api/drive/file?id=" + dl[0].id, { headers: { authorization: "Bearer " + admin } });
+assert.equal(fr.headers.get("content-type"), "image/png");
+const du = "data:image/png;base64," + Buffer.from(await fr.arrayBuffer()).toString("base64");
+ok(await call("media/upload", { kind: "pfp", dataUrl: du, filename: "1.jpg", driveId: dl[0].id }), "import pfp");
+assert.equal((await call("media/upload", { kind: "pfp", dataUrl: du, filename: "1.jpg", driveId: dl[0].id })).s, 400, "pas de doublon");
+assert.equal(ok(await call("drive/list?folder=DOSSIERTEST123"), "re-liste").find((f) => f.name === "1.jpg").already, true);
+step("import Google Drive : liste, image, pas de doublon");
+
 // menage TinyURL : vieux liens du domaine supprimes, jamais ceux des comptes
 tok = va;
 assert.equal((await call("tiny/cleanup")).s, 403, "VA : interdit");
