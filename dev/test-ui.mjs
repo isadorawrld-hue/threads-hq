@@ -19,7 +19,7 @@ async function pin(p, code) {
   for (const d of code) await p.click(`[data-pin="${d}"]`);
   await p.click('[data-pin="go"]');
 }
-const tab = (p, id) => p.click(`.tab[data-tab="${id}"]`);
+const tab = (p, id) => p.click(`.nav[data-tab="${id}"] >> visible=true`);
 const waitToast = (p, re) => p.waitForFunction((r) => new RegExp(r).test(document.querySelector("#toast").textContent), re.source, { timeout: 15000 });
 
 // ---- admin : premier acces + reglages
@@ -28,7 +28,7 @@ await a.goto(B);
 await a.waitForSelector(".keypad");
 await shot(a, "01-login-first");
 await pin(a, "4321");
-await a.waitForSelector(".brand");
+await a.waitForSelector(".bar");
 await tab(a, "settings");
 await a.fill('[data-sec="rotationUrl"]', "https://rotate.test/x");
 await a.fill('[data-sec="mcToken"]', "TOKEN_TEST");
@@ -36,7 +36,7 @@ await a.fill('[data-sec="mcUserId"]', "https://app.metricool.com/evolution/web?b
 await a.fill('[data-sec="proxy"]', "http://user:pass@proxy.test:8000");
 await a.click('[data-act="saveSecrets"]');
 await waitToast(a, /Enregistré/);
-await a.waitForFunction(() => document.querySelector(".alert")?.textContent.includes("✅ Proxy"));
+await a.waitForFunction(() => document.querySelectorAll(".health .tag.ok").length === 3);
 await a.fill('[data-st="smsSiteUrl"]', "https://sms.test");
 await a.click('[data-act="saveSettings"]');
 await waitToast(a, /Réglages enregistrés/);
@@ -79,7 +79,7 @@ await shot(a, "03-content");
 const v = await page(390, 844);
 await v.goto(B);
 await pin(v, "1111");
-await v.waitForSelector(".brand");
+await v.waitForSelector(".bar");
 await shot(v, "04-va-today");
 await tab(v, "create");
 await v.click('main [data-act="rotate"]');
@@ -120,7 +120,7 @@ await waitToast(v, /Warm-up validé/);
 
 // ---- admin force le setup puis la VA relie Metricool
 await a.reload();
-await a.waitForSelector(".brand");
+await a.waitForSelector(".bar");
 await tab(a, "setup");
 await a.click('[data-act="startSetup"]');
 await a.waitForSelector("[data-setupbio]");
@@ -130,7 +130,7 @@ await a.click('[data-act="setupDone"]');
 await waitToast(a, /Setup fini/);
 
 await v.reload();
-await v.waitForSelector(".brand");
+await v.waitForSelector(".bar");
 await tab(v, "metricool");
 await v.click('[data-act="loadBrands"]');
 await v.waitForSelector("[data-brand]");
@@ -138,7 +138,7 @@ await v.selectOption("[data-brand]", "111");
 await shot(v, "10-metricool");
 await v.click('[data-act="link"]');
 await waitToast(v, /post\(s\) programmé/);
-await v.waitForSelector(".tab.on");
+await v.waitForSelector(".mnav .nav.on");
 await shot(v, "11-metricool-active");
 await v.click('[data-act="manual"]');
 await v.waitForSelector("#modal:not(.hidden)");
@@ -161,7 +161,7 @@ await shot(v, "16-sop");
 
 // ---- dashboard admin
 await a.reload();
-await a.waitForSelector(".brand");
+await a.waitForSelector(".bar");
 await tab(a, "dash");
 await a.click('[data-act="health"]');
 await a.waitForTimeout(800);
