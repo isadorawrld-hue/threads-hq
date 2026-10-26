@@ -406,13 +406,14 @@ const VIEWS = {
     const c = S.data.configured;
     const vids = Object.keys(SOP);
     return `<h2>⚙️ Réglages</h2>
-      <div class="card"><h3 style="margin-top:0">🔐 Secrets <small class="muted">(jamais réaffichés)</small></h3>
-        <label class="f">Lien de rotation IP ${c.rotation ? "✅" : "❌"}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotation ? "configuré, colle pour remplacer" : "https://..."}" autocomplete="off" />
-        <label class="f">Token API Metricool ${c.metricool ? "✅" : "❌"} <small>(Metricool → Paramètres du compte → API)</small></label><input type="password" data-sec="mcToken" placeholder="${c.metricool ? "configuré, colle pour remplacer" : "token"}" autocomplete="off" />
-        <label class="f">userId Metricool <small>(chiffre dans l'URL de Metricool : userId=...)</small></label><input data-sec="mcUserId" placeholder="${c.metricool ? "configuré" : "1234567"}" autocomplete="off" />
-        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">💾 Enregistrer</button><button class="btn light" data-act="testMc" data-wait="Test...">🧪 Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">🧪 Tester le proxy</button></div></div>
-      <div class="card"><h3 style="margin-top:0">🌐 Proxy & liens</h3>
-        <label class="f">Proxy <small>(ip:port:user:pass, HTTP)</small> ${c.proxy ? "✅" : "❌"}</label><input data-st="proxy" value="${esc(st.proxy)}" autocomplete="off" />
+      <div class="card"><h3 style="margin-top:0">🔐 Connexions <small class="muted">(cachées après enregistrement, c'est normal)</small></h3>
+        <div class="alert ${c.rotation && c.metricool && c.proxy ? "c-green" : "c-yellow"}">${c.rotation ? "✅" : "❌"} Rotation IP &nbsp; ${c.metricool ? "✅" : "❌"} Metricool &nbsp; ${c.proxy ? "✅" : "❌"} Proxy</div>
+        <label class="f">1. Lien de rotation IP ${c.rotation ? "✅ enregistré" : "❌"}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotation ? "✅ enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy"}" autocomplete="off" />
+        <label class="f">2. Token API Metricool ${c.metricool ? "✅ enregistré" : "❌"} <small>(Metricool → Paramètres du compte → onglet API → Copier)</small></label><input type="password" data-sec="mcToken" placeholder="${c.metricool ? "✅ enregistré (colle un autre token pour le remplacer)" : "colle le token"}" autocomplete="off" />
+        <label class="f">3. userId Metricool <small>(nombre après userId= dans l'adresse de Metricool)</small></label><input data-sec="mcUserId" placeholder="${c.metricool ? "✅ enregistré" : "1234567"}" autocomplete="off" />
+        <label class="f">4. Proxy ${c.proxy ? "✅ enregistré" : "❌"} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxy" placeholder="${c.proxy ? "✅ enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
+        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">💾 Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">🧪 Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">🧪 Tester le proxy</button></div></div>
+      <div class="card"><h3 style="margin-top:0">🌐 Liens</h3>
         <label class="f">Site SMS</label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
         <label class="f">Lien GeeLark</label><input data-st="geelarkUrl" value="${esc(st.geelarkUrl)}" />
         <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" /></div>
@@ -799,8 +800,11 @@ const ACT = {
     document.querySelectorAll("[data-sec]").forEach((el) => el.value.trim() && (body[el.dataset.sec] = el.value.trim()));
     if (!Object.keys(body).length) return toast("Rien à enregistrer.", true);
     await run(b, async () => {
-      await api("secrets", body);
-      toast("🔐 Enregistré");
+      const proxy = body.proxy;
+      delete body.proxy;
+      if (proxy) await api("settings", { proxy });
+      if (Object.keys(body).length) await api("secrets", body);
+      toast("🔐 Enregistré ✅ (caché pour la sécurité)");
       await refresh();
     });
   },
@@ -823,7 +827,6 @@ const ACT = {
     const videos = {};
     document.querySelectorAll("[data-vid]").forEach((el) => (videos[el.dataset.vid] = el.value.trim()));
     const body = {
-      proxy: v("proxy").trim(),
       smsSiteUrl: v("smsSiteUrl").trim(),
       geelarkUrl: v("geelarkUrl").trim(),
       metricoolUrl: v("metricoolUrl").trim(),
