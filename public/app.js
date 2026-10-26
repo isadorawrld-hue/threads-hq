@@ -101,6 +101,7 @@ const group = (id) => S.data.settings.groups.find((g) => g.id === id) || { name:
 const statusColor = { warmup: "c-yellow", attente_setup: "c-blue", setup_ok: "c-violet", actif: "c-green", shadowban: "c-pink", restreint: "c-pink", saute: "c-red" };
 const statusEmoji = {};
 const pill = (st) => `<span class="status st-${esc(st)}"><i></i>${esc(S.data.statusLabels[st] || st)}</span>`;
+const spill = (k) => k ? `<span class="pill">${esc((S.data.strategyLabels || {})[k] || k)}</span>` : "";
 const gpill = (g) => `<span class="grp"><i style="background:${esc(group(g).color)}"></i>${esc(group(g).name)}</span>`;
 function ago(iso) {
   if (!iso) return "jamais";
@@ -146,6 +147,10 @@ const SOP = {
   warmup: {
     t: "Warm-up (jour 0)",
     steps: ["15 à 20 min de scroll sur Instagram + Threads.", "10 à 20 likes, 5 à 10 follows dans la niche.", "ZÉRO lien, zéro post, zéro changement de profil.", "Doucement : pas de rafale, comme une vraie personne."],
+  },
+  strategies: {
+    t: "Les 3 stratégies de setup",
+    steps: ["Chaque compte a une stratégie, écrite sur sa carte. Suis celle-là, pas une autre.", "Post épinglé : pas de lien dans la bio. Le lien est dans la réponse au post épinglé.", "Lien dans la bio : le lien va dans le champ Lien du profil.", "Relais : aucun lien. Tu cites le post épinglé du compte pivot et tu épingles ta citation.", "Pourquoi : si un compte saute, on ne perd jamais le lien. Et Threads voit 3 profils différents, pas 15 clones."],
   },
   setup: {
     t: "Setup (24h après)",
@@ -330,7 +335,7 @@ const VIEWS = {
     if (S.setup && acc(S.setup.id)?.status === "attente_setup") return setupWizard(acc(S.setup.id));
     S.setup = null;
     return `<h2>Setup (24h après)</h2><p class="lead">Photo, bio, lien, post épinglé.</p>
-      ${ready.length ? `<div class="grid">${ready.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div>${gpill(a.group)}<button class="btn" data-act="startSetup" data-id="${a.id}">Faire le setup</button></div>`).join("")}</div>` : '<div class="card done-all"><b>Aucun setup prêt pour l\'instant.</b></div>'}
+      ${ready.length ? `<div class="grid">${ready.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><div class="row">${gpill(a.group)}${spill(a.strategy)}</div><button class="btn" data-act="startSetup" data-id="${a.id}">Faire le setup</button></div>`).join("")}</div>` : '<div class="card done-all"><b>Aucun setup prêt pour l\'instant.</b></div>'}
       ${waiting.length ? `<h3>Pas encore (attendre 24h)</h3><div class="grid">${waiting.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><span class="muted">Setup possible ${ago(a.setupDueAt)}</span>${isAdmin() ? `<button class="btn sm ghost" data-act="startSetup" data-id="${a.id}">Forcer (admin)</button>` : ""}</div>`).join("")}</div>` : ""}
       ${sopBlock("setup")}`;
   },
@@ -380,7 +385,7 @@ const VIEWS = {
       <div class="chips">${chips.map(([k, l]) => `<button class="chip ${f === k ? "on" : ""}" data-filter="${k}">${esc(l)} <b>${k === "vivants" ? S.data.accounts.filter((a) => a.status !== "saute").length : k === "tous" ? S.data.accounts.length : S.data.accounts.filter((a) => a.status === k).length}</b></button>`).join("")}</div>
       <input placeholder="Chercher (pseudo, numéro, IP...)" data-search value="${esc(S.search)}" style="margin-bottom:14px" />
       <div class="grid">${list.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div>
-        <div class="row">${pill(a.status)}${gpill(a.group)}</div>
+        <div class="row">${pill(a.status)}${gpill(a.group)}${spill(a.strategy)}</div>
         <span class="muted">Créé ${ago(a.createdAt)} par ${esc(a.createdBy)} · IP ${esc(a.ip || "?")}</span>
         ${a.replaces ? `<span class="muted">Remplace @${esc(acc(a.replaces)?.pseudo || "?")}</span>` : ""}${a.replacedBy ? `<span class="muted">Remplacé par @${esc(acc(a.replacedBy)?.pseudo || "?")}</span>` : ""}
         <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button><button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}"></button></div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
@@ -402,8 +407,8 @@ const VIEWS = {
       <div class="stats">${stat("c-blue", sum("clicks7"), "clics (7 j)")}${stat("c-blue", sum("clicks30"), "clics (30 j)")}${stat("c-green", totalFollowers, "followers")}${stat("c-violet", rows.reduce((n, r) => n + r.up, 0), "posts à venir")}</div>
       <div class="row" style="margin-bottom:12px"><span class="muted">${ls ? "Clics relevés " + ago(ls.at) : "Clics jamais relevés"}</span><div class="spacer"></div>${isAdmin() ? '<button class="btn sm" data-act="linkStats" data-wait="Relevé...">Mettre à jour les clics</button>' : ""}</div>
       ${ls?.errors?.length ? `<div class="alert c-red">${esc(ls.errors[0])}${ls.errors.length > 1 ? ` (+${ls.errors.length - 1})` : ""}</div>` : ""}
-      <div class="card" style="overflow:auto"><table class="tbl"><tr><th>Compte</th><th>Groupe</th><th>Statut</th><th>Lien</th><th>Clics 7 j</th><th>Clics 30 j</th><th>Followers</th><th>Posts publiés</th><th>À venir</th></tr>
-      ${rows.map(({ a, l, up, done }) => `<tr><td>@${esc(a.pseudo)}</td><td>${gpill(a.group)}</td><td>${pill(a.status)}</td><td class="muted">${esc(a.link || "")}</td><td>${l ? l.clicks7 : ""}</td><td>${l ? l.clicks30 : ""}</td><td>${a.followers ?? ""}</td><td>${done}</td><td>${up}</td></tr>`).join("") || '<tr><td colspan="9" class="muted">Aucun compte.</td></tr>'}</table></div>`;
+      <div class="card" style="overflow:auto"><table class="tbl"><tr><th>Compte</th><th>Groupe</th><th>Stratégie</th><th>Statut</th><th>Lien</th><th>Clics 7 j</th><th>Clics 30 j</th><th>Followers</th><th>Posts publiés</th><th>À venir</th></tr>
+      ${rows.map(({ a, l, up, done }) => `<tr><td>@${esc(a.pseudo)}</td><td>${gpill(a.group)}</td><td class="muted">${esc((S.data.strategyLabels || {})[a.strategy] || "")}</td><td>${pill(a.status)}</td><td class="muted">${esc(a.link || "")}</td><td>${l ? l.clicks7 : ""}</td><td>${l ? l.clicks30 : ""}</td><td>${a.followers ?? ""}</td><td>${done}</td><td>${up}</td></tr>`).join("") || '<tr><td colspan="10" class="muted">Aucun compte.</td></tr>'}</table></div>`;
   },
 
   sop() {
@@ -447,7 +452,20 @@ const VIEWS = {
           <details><summary>Voir les textes</summary>${texts.map((t) => `<div class="textline ${t.off ? "off" : ""}"><div class="x">${esc(t.text)}${t.fr ? `<div class="muted">${esc(t.fr)}</div>` : ""}</div><button class="btn sm light" data-act="toggleText" data-id="${t.id}">${t.off ? "Activer" : "Pause"}</button><button class="btn sm ghost" data-act="delText" data-id="${t.id}"></button></div>`).join("") || '<p class="muted">Aucun texte.</p>'}</details></div>`;
       }).join("")}
       <div class="card"><h3 style="margin-top:0">Photos de profil (${pfps.length})</h3><input type="file" accept="image/*" multiple data-upload="__pfp" /><div class="thumbs" style="margin-top:10px">${pfps.map((m) => `<figure><img loading="lazy" src="/api/media/${m.id}" /><button class="btn sm bad" data-act="delMedia" data-id="${m.id}"></button></figure>`).join("")}</div></div>
-      <div class="card"><h3 style="margin-top:0">Bios</h3><p class="muted">Une bio par bloc, séparées par une ligne vide. Le CRM en propose une au hasard au setup.</p><textarea data-set="bios" style="min-height:260px">${esc((st.bios || []).join("\n\n"))}</textarea>
+      <div class="card"><h3 style="margin-top:0">Les 3 stratégies de setup</h3>
+        <p class="muted">Chaque nouveau compte reçoit une stratégie, en équilibrant selon les cibles ci-dessous. Un compte qui remplace un compte sauté garde sa stratégie.</p>
+        <table class="tbl"><tr><th>Stratégie</th><th>Comment ça marche</th><th>Cible</th></tr>
+          <tr><td><b>Post épinglé</b></td><td>Pas de lien dans la bio. La bio dit « regarde mon post épinglé ». Le post épinglé a 2 parties : le post, puis une réponse avec le lien.</td><td><input type="number" min="0" data-strat="epingle" value="${esc(st.strategies?.epingle ?? 5)}" style="max-width:80px" /></td></tr>
+          <tr><td><b>Lien dans la bio</b></td><td>Le lien est dans le champ lien du profil. La bio invite à cliquer dessus. Post épinglé facultatif.</td><td><input type="number" min="0" data-strat="lien" value="${esc(st.strategies?.lien ?? 5)}" style="max-width:80px" /></td></tr>
+          <tr><td><b>Relais</b></td><td>Aucun lien sur le compte. Il cite le post épinglé du compte pivot et épingle cette citation. Le lien n'est que sur le pivot.</td><td><input type="number" min="0" data-strat="relais" value="${esc(st.strategies?.relais ?? 5)}" style="max-width:80px" /></td></tr></table>
+        <label class="f">Compte pivot <small>(pseudo Threads sans @ : le seul compte avec un post épinglé qui contient le lien)</small></label><input data-hub="pseudo" value="${esc(st.hub?.pseudo || "")}" />
+        <label class="f">Lien du post épinglé du pivot <small>(facultatif, pour que la VA le retrouve vite)</small></label><input data-hub="postUrl" value="${esc(st.hub?.postUrl || "")}" />
+        <label class="f">Texte de la citation (comptes relais) <small>({pivot} = pseudo du pivot)</small></label><textarea data-set="relayText" style="min-height:70px">${esc(st.relayText || "")}</textarea></div>
+      <div class="card"><h3 style="margin-top:0">Banque de bios</h3><p class="muted">Une bio par bloc, séparées par une ligne vide. Le CRM en tire une au hasard selon la stratégie du compte.</p>
+        <label class="f">Bios « Post épinglé » <small>(${(st.bioBank?.epingle || []).length})</small></label><textarea data-bank="epingle" style="min-height:200px">${esc((st.bioBank?.epingle || []).join("\n\n"))}</textarea>
+        <label class="f">Bios « Lien dans la bio » <small>(${(st.bioBank?.lien || []).length})</small></label><textarea data-bank="lien" style="min-height:200px">${esc((st.bioBank?.lien || []).join("\n\n"))}</textarea>
+        <label class="f">Bios « Relais » <small>(${(st.bioBank?.relais || []).length})</small></label><textarea data-bank="relais" style="min-height:200px">${esc((st.bioBank?.relais || []).join("\n\n"))}</textarea>
+        <label class="f">Bios de secours <small>(utilisées si une banque est vide)</small></label><textarea data-set="bios" style="min-height:120px">${esc((st.bios || []).join("\n\n"))}</textarea>
         <h3>Post épinglé</h3><p class="muted">Partie 1 = le post. Partie 2 = la réponse avec le lien. Mots remplacés tout seuls : <code>{pseudo}</code> et <code>{lien}</code>.</p><label class="f">Partie 1</label><textarea data-set="pinnedPost">${esc(st.pinnedPost || "")}</textarea><label class="f">Partie 2</label><textarea data-set="pinnedReply">${esc(st.pinnedReply || "")}</textarea>
         <h3>Liens (un par compte)</h3><p class="muted">Un lien TinyURL par ligne. Chaque nouveau compte prend le prochain lien libre.</p><textarea data-set="links">${esc((st.links || []).join("\n"))}</textarea>
         <p class="muted">${(st.links || []).map((l) => (usedLinks.has(l) ? `${esc(l)} @${esc(usedLinks.get(l))}` : `${esc(l)} libre`)).join("<br>")}</p>
@@ -550,25 +568,45 @@ function warmupCard(a, withTimer) {
 function setupWizard(a) {
   const st = S.data.settings;
   const s = S.setup;
-  if (!s.bio) s.bio = (st.bios || [])[Math.floor(Math.random() * (st.bios || []).length)] || "";
+  const strat = a.strategy || "epingle";
+  const bank = (st.bioBank && st.bioBank[strat] && st.bioBank[strat].length ? st.bioBank[strat] : st.bios) || [];
+  if (!s.bio) s.bio = bank[Math.floor(Math.random() * bank.length)] || "";
   const pfps = S.data.media.filter((m) => m.kind === "pfp");
   if (!s.pfp && pfps.length) s.pfp = pfps[Math.floor(Math.random() * pfps.length)].id;
   const ip = freshIp();
+  const fill = (t) => String(t || "").replaceAll("{pseudo}", a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT").replaceAll("{pivot}", st.hub?.pseudo || "PIVOT MANQUANT");
+  const box = (t) => `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t)}">Copier</button></div>`;
+  const explain = {
+    epingle: "Ce compte garde le lien dans son post épinglé, pas dans la bio. La bio dit juste d'aller voir le post épinglé.",
+    lien: "Ce compte met le lien directement dans le champ lien de la bio. La bio invite à cliquer dessus.",
+    relais: `Ce compte n'a aucun lien. Il republie (citation) le post épinglé du compte pivot @${esc(st.hub?.pseudo || "?")} et épingle cette citation. Si ce compte saute, le lien n'est pas touché.`,
+  }[strat];
+  let linkStep = "";
+  let pinStep = "";
+  let checks = ["Photo de profil mise", "Bio mise"];
+  if (strat === "lien") {
+    linkStep = `<div class="card"><div class="stepnum">4. Lien dans la bio</div><p>Dans Modifier le profil, champ Lien, colle ce lien.</p>${a.link ? copyLine("Lien", a.link) : '<div class="alert c-red">Pas de lien libre pour ce compte. Demande à Awen / Bilot d\'ajouter des liens (onglet Contenu).</div>'}</div>`;
+    pinStep = `<div class="card"><div class="stepnum">5. Post épinglé (facultatif)</div><p class="muted">Pas obligatoire pour ce compte. Si tu veux, publie la partie 1 et épingle-la, sans la partie 2.</p>${st.pinnedPost ? box(fill(st.pinnedPost)) : ""}</div>`;
+    checks.push("Lien mis dans la bio");
+  } else if (strat === "relais") {
+    linkStep = `<div class="card"><div class="stepnum">4. Lien</div><p>Aucun lien sur ce compte. Ne mets rien dans le champ Lien.</p></div>`;
+    pinStep = `<div class="card"><div class="stepnum">5. Relais du post pivot</div>${st.hub?.pseudo ? `<ol><li>Ouvre le profil du pivot : ${copyLine("Pivot", "@" + st.hub.pseudo)}${st.hub.postUrl ? copyLine("Post", st.hub.postUrl) : ""}</li><li>Sur son post épinglé, touche Republier, puis Citer.</li><li>Écris ce texte en citation, puis publie.</li>${box(fill(st.relayText || "看這篇 👇 {pivot} 的置頂貼文，答案都在裡面 🙈"))}<li>Sur ta citation, touche les 3 points, puis Épingler.</li></ol>` : '<div class="alert c-red">Compte pivot pas encore choisi (Réglages, Modèle en cours).</div>'}</div>`;
+    checks.push("Citation du post pivot publiée et épinglée");
+  } else {
+    linkStep = `<div class="card"><div class="stepnum">4. Lien</div><p>Pas de lien dans la bio pour ce compte : il va dans le post épinglé.</p>${a.link ? copyLine("Lien (pour le post)", a.link) : '<div class="alert c-red">Pas de lien libre pour ce compte. Demande à Awen / Bilot d\'ajouter des liens (onglet Contenu).</div>'}</div>`;
+    pinStep = `<div class="card"><div class="stepnum">5. Post épinglé (2 parties)</div>${st.pinnedPost ? `<ol><li>Publie la partie 1 (ton propre profil s'affiche en carte en dessous).</li>${box(fill(st.pinnedPost))}${st.pinnedReply ? `<li>Réponds à ton propre post avec la partie 2 (le lien).</li>${box(fill(st.pinnedReply))}` : ""}<li>Sur le post, touche les 3 points, puis Épingler.</li></ol>` : '<p class="muted">Modèle de post épinglé pas encore fourni.</p>'}</div>`;
+    checks.push("Post épinglé publié et épinglé");
+  }
   return `<h2>Setup de @${esc(a.pseudo)}</h2>
+    <div class="alert">${spill(strat)}<div style="margin-top:6px">${explain}</div></div>
     <div class="card"><div class="stepnum">1. IP + connexion</div>
       <button class="btn rot" data-act="rotate" data-wait="Changement...">Changer l'IP</button> ${ip ? `<span class="pill c-green">${esc(ip.ip)}</span>` : '<span class="pill c-yellow">IP pas fraîche</span>'}
       <p>Ouvre le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</div>
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
-    <div class="card"><div class="stepnum">3. Bio</div><textarea data-setupbio>${esc(s.bio)}</textarea><div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${(st.bios || []).length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
-    <div class="card"><div class="stepnum">4. Lien</div>${st.model?.link ? copyLine("Lien " + (st.model.name || "modèle"), st.model.link) : ""}${a.link ? copyLine("Lien", a.link) : '<div class="alert c-red">Pas de lien pour ce compte. Demande à Awen / Bilot d\'ajouter des liens (onglet Contenu).</div>'}</div>
-    <div class="card"><div class="stepnum">5. Post épinglé (2 parties)</div>${st.pinnedPost ? (() => {
-      const fill = (t) => String(t || "").replaceAll("{pseudo}", a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT");
-      const p1 = fill(st.pinnedPost), p2 = fill(st.pinnedReply);
-      const box = (t) => `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t)}">Copier</button></div>`;
-      return `<ol><li>Publie la partie 1 (ton propre profil s'affiche en carte en dessous).</li>${box(p1)}${p2 ? `<li>Réponds à ton propre post avec la partie 2 (le lien).</li>${box(p2)}` : ""}<li>Sur le post, touche les 3 points, puis Épingler.</li></ol>`;
-    })() : '<p class="muted">Modèle de post épinglé pas encore fourni.</p>'}</div>
-    <div class="card"><div class="checklist" data-scheck>${["Photo de profil mise", "Bio mise", "Lien mis", "Post épinglé publié et épinglé"].map((x) => `<label><input type="checkbox" /> ${x}</label>`).join("")}</div>
+    <div class="card"><div class="stepnum">3. Bio</div><p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} ». Copie-la telle quelle.</p><textarea data-setupbio>${esc(s.bio)}</textarea><div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
+    ${linkStep}${pinStep}
+    <div class="card"><div class="checklist" data-scheck>${checks.map((x) => `<label><input type="checkbox" /> ${x}</label>`).join("")}</div>
       <button class="btn big ok" data-act="setupDone" data-id="${a.id}" data-wait="...">Setup fini</button><div class="row" style="margin-top:10px"><button class="btn ghost" data-act="setupCancel">Retour à la liste</button></div></div>`;
 }
 function genPass() {
@@ -699,7 +737,9 @@ const ACT = {
     render();
   },
   otherBio() {
-    const bios = S.data.settings.bios || [];
+    const st = S.data.settings;
+    const strat = acc(S.setup.id)?.strategy || "epingle";
+    const bios = (st.bioBank && st.bioBank[strat] && st.bioBank[strat].length ? st.bioBank[strat] : st.bios) || [];
     S.setup.bio = bios[Math.floor(Math.random() * bios.length)] || "";
     render();
   },
@@ -798,6 +838,7 @@ const ACT = {
     const fields = [["pseudo", "Pseudo"], ["password", "Mot de passe"], ["phone", "Numéro"], ["email", "Email"], ["emailPassword", "Mot de passe email"], ["geelarkProfile", "Profil GeeLark"], ["link", "Lien"], ["notes", "Notes"]];
     modal(`<h3>@${esc(a.pseudo)}</h3>${fields.map(([k, l]) => `<label class="f">${l}</label><input data-ed="${k}" value="${esc(a[k] || "")}" />`).join("")}
       ${isAdmin() ? `<label class="f">Groupe</label><select data-ed="group">${S.data.settings.groups.map((g) => `<option value="${g.id}" ${g.id === a.group ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select>
+      <label class="f">Stratégie</label><select data-ed="strategy">${Object.entries(S.data.strategyLabels || {}).map(([k, l]) => `<option value="${k}" ${k === a.strategy ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
       <label class="f">Statut</label><select data-ed="status">${Object.entries(S.data.statusLabels).map(([k, l]) => `<option value="${k}" ${k === a.status ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}
       <p class="muted">IP de création : ${esc(a.ip || "?")} · Marque Metricool : ${esc(a.blogId || "aucune")}</p>
       <div class="row" style="margin-top:14px"><button class="btn" data-act="saveEdit" data-id="${a.id}" data-wait="...">Enregistrer</button>${a.blogId ? `<button class="btn light" data-act="unlink" data-id="${a.id}">Délier Metricool</button>` : ""}${isAdmin() ? `<div class="spacer"></div><button class="btn sm bad" data-act="delAcc" data-id="${a.id}">Supprimer</button>` : ""}</div>`);
@@ -886,8 +927,12 @@ const ACT = {
   async saveContent(b) {
     const lines = (k) => $(`[data-set="${k}"]`).value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     await run(b, async () => {
-      const bios = $('[data-set="bios"]').value.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
-      await api("settings", { bios, links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
+      const blocks = (sel) => $(sel).value.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+      const bios = blocks('[data-set="bios"]');
+      const bioBank = { epingle: blocks('[data-bank="epingle"]'), lien: blocks('[data-bank="lien"]'), relais: blocks('[data-bank="relais"]') };
+      const strategies = { epingle: Number($('[data-strat="epingle"]').value) || 0, lien: Number($('[data-strat="lien"]').value) || 0, relais: Number($('[data-strat="relais"]').value) || 0 };
+      const hub = { pseudo: $('[data-hub="pseudo"]').value.trim().replace(/^@/, ""), postUrl: $('[data-hub="postUrl"]').value.trim() };
+      await api("settings", { bios, bioBank, strategies, hub, relayText: $('[data-set="relayText"]').value.trim(), links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
       toast("Enregistré");
       await refresh();
     });

@@ -29,7 +29,7 @@ ok(await call("users", { name: "VA", pin: "1111", role: "va" }), "ajout VA");
 assert.equal((await call("users", { name: "X", pin: "1111", role: "va" })).s, 400);
 step("utilisateurs + code unique");
 
-ok(await call("settings", { proxy: "proxy.test:8000:user:pass", smsSiteUrl: "https://sms.test", links: ["https://tinyurl.com/a1", "https://tinyurl.com/a2", "https://tinyurl.com/a3"], bios: ["bio 1", "bio 2"], pinnedPost: "épinglé" }), "réglages");
+ok(await call("settings", { bioBank: { epingle: ["b1"], lien: ["b2"], relais: ["b3"] }, hub: { pseudo: "chloe_main", postUrl: "" }, proxy: "proxy.test:8000:user:pass", smsSiteUrl: "https://sms.test", links: ["https://tinyurl.com/a1", "https://tinyurl.com/a2", "https://tinyurl.com/a3"], bios: ["bio 1", "bio 2"], pinnedPost: "épinglé" }), "réglages");
 ok(await call("secrets", { rotationUrl: "https://rotate.test/x", mcToken: "TOKEN_TEST", mcUserId: "42" }), "secrets");
 let st = ok(await call("state"), "state");
 assert.deepEqual(st.configured, { rotation: true, metricool: true, mcToken: true, mcUserId: true, proxy: true, tiny: false });
@@ -65,6 +65,10 @@ const a3 = ok(await call("accounts/create", { pseudo: "tw_girl3", phone: "+886 3
 assert.notEqual(a1.group, a2.group);
 assert.notEqual(a2.group, a3.group);
 step("groupes répartis : " + [a1.group, a2.group, a3.group].join(", "));
+assert.deepEqual([a1.strategy, a2.strategy, a3.strategy].sort(), ["epingle", "lien", "relais"], "3 stratégies réparties");
+const relay = [a1, a2, a3].find((a) => a.strategy === "relais");
+assert.equal(relay.link, "", "un compte relais n'a pas de lien");
+step("stratégies réparties, relais sans lien");
 
 for (const a of [a1, a2, a3]) ok(await call(`accounts/${a.id}/warmup`, {}), "warmup");
 assert.equal((await call(`accounts/${a1.id}/setup`, {})).s, 400);
@@ -147,7 +151,8 @@ await call("rotate", {});
 const a4 = ok(await call("accounts/create", { pseudo: "tw_girl4", phone: "+886 4", password: "pw4" }), "remplacement");
 assert.equal(a4.group, a3.group);
 assert.equal(a4.replaces, a3.id);
-assert.equal(a4.link, "https://tinyurl.com/a3", "reprend le lien libéré");
+assert.equal(a4.strategy, a3.strategy, "le remplaçant garde la stratégie");
+if (a3.strategy !== "relais") assert.equal(a4.link, a3.link, "reprend le lien libéré"); else assert.equal(a4.link, "");
 st = ok(await call("state"), "state");
 assert.equal(st.tasks.toReplace.length, 0);
 step("remplaçant : même groupe, même lien, lien de remplacement");
@@ -161,7 +166,7 @@ step("marque du compte mort réutilisée");
 assert.equal((await call("links/stats", {})).s, 400);
 ok(await call("secrets", { tinyToken: "TINY_TEST" }), "token tiny");
 const lsr = ok(await call("links/stats", {}), "stats liens");
-assert.ok(Object.keys(lsr.links).length >= 3, "liens relevés");
+assert.ok(Object.keys(lsr.links).length >= 2, "liens relevés");
 assert.equal(Object.values(lsr.links)[0].clicks30, 42);
 assert.equal(Object.values(lsr.links)[0].clicks7, 9);
 st = ok(await call("state"), "state");
