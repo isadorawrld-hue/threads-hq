@@ -32,7 +32,7 @@ step("utilisateurs + code unique");
 ok(await call("settings", { bioBank: { epingle: ["b1"], lien: ["b2"], relais: ["b3"] }, hub: { pseudo: "chloe_main", postUrl: "" }, proxy: "proxy.test:8000:user:pass", smsSiteUrl: "https://sms.test", links: ["https://tinyurl.com/a1", "https://tinyurl.com/a2", "https://tinyurl.com/a3"], bios: ["bio 1", "bio 2"], pinnedPost: "épinglé" }), "réglages");
 ok(await call("secrets", { rotationUrl: "https://rotate.test/x", mcToken: "TOKEN_TEST", mcUserId: "42" }), "secrets");
 let st = ok(await call("state"), "state");
-assert.deepEqual(st.configured, { rotation: true, metricool: true, mcToken: true, mcUserId: true, proxy: true, tiny: false });
+assert.deepEqual(st.configured, { rotation: true, metricool: true, mcToken: true, mcUserId: true, proxy: true, tiny: false, sms: false });
 assert.equal((await call("secrets", { mcUserId: "nimporte" })).s, 400);
 ok(await call("secrets", { mcUserId: "https://app.metricool.com/evolution/web?blogId=1&userId=42" }), "userId via URL");
 assert.equal(JSON.stringify(st).includes("TOKEN_TEST"), false, "le token ne doit jamais sortir");
@@ -51,13 +51,50 @@ assert.equal((await call("accounts/create", { pseudo: "a", phone: "1", password:
 step("création refusée sans IP fraîche");
 const ip1 = ok(await call("rotate", {}), "rotation");
 assert.match(ip1.ip, /^82\.64\.12\./);
-const a1 = ok(await call("accounts/create", { pseudo: "@tw_girl1", phone: "+886 900 000 001", password: "pw1" }), "création 1");
+
+// Hero SMS
+assert.equal((await call("sms/buy", { country: 14 })).s, 400, "sans clé Hero : refusé");
+tok = admin;
+ok(await call("secrets", { heroToken: "HERO_TEST" }), "clé hero");
+tok = va;
+const prices = ok(await call("sms/prices"), "prix");
+assert.equal(prices.find((c) => c.id === 14).price, 0.035);
+assert.equal(prices.find((c) => c.id === 55).stock, 0);
+assert.equal(ok(await call("sms/balance"), "solde").balance, 9.5);
+assert.equal((await call("sms/buy", { country: 55 })).s, 400, "pas de numéro -> message clair");
+const act = ok(await call("sms/buy", { country: 14 }), "achat");
+assert.match(act.phone, /^\+8529/);
+assert.equal(act.status, "attente");
+assert.equal((await call("sms/buy", { country: 14 })).s, 400, "un seul numéro en cours");
+let c = ok(await call(`sms/${act.id}/code`, {}), "code ?");
+assert.equal(c.code, null);
+await fetch(B + "/__dev/sms?code=654321");
+c = ok(await call(`sms/${act.id}/code`, {}), "code");
+assert.equal(c.code, "654321");
+assert.equal((await call(`sms/${act.id}/cancel`, {})).s, 400, "code reçu -> pas d'annulation");
+st = ok(await call("state"), "state");
+assert.equal(st.sms.code, "654321");
+step("Hero SMS : prix, solde, achat, code reçu");
+const a1 = ok(await call("accounts/create", { pseudo: "@tw_girl1", phone: act.phone, smsId: act.id, password: "pw1" }), "création 1");
+assert.equal((await (await fetch(B + "/__sms")).json()).finished, true, "activation terminée chez Hero");
+st = ok(await call("state"), "state");
+assert.equal(st.sms, null, "plus de numéro en cours");
+// un numero annule est rembourse si aucun code
+const act2 = ok(await call("sms/buy", { country: 196 }), "achat 2");
+ok(await call(`sms/${act2.id}/cancel`, {}), "annulation");
+assert.equal((await (await fetch(B + "/__sms")).json()).cancelled, true);
+// un echec de creation rembourse tout seul
+const act3 = ok(await call("sms/buy", { country: 14 }), "achat 3");
+ok(await call("accounts/failed", { phone: act3.phone, smsId: act3.id, reason: "Code SMS jamais reçu" }), "échec 2");
+assert.equal((await (await fetch(B + "/__sms")).json()).cancelled, true, "remboursé après échec");
+step("Hero SMS : terminé à la création, remboursé à l'annulation et à l'échec");
 assert.equal(a1.pseudo, "tw_girl1");
 assert.equal(a1.ip, ip1.ip);
 assert.equal(a1.link, "https://tinyurl.com/a1");
 assert.equal((await call("accounts/create", { pseudo: "tw_girl2", phone: "2", password: "p" })).s, 400);
 step("compte créé, même IP refusée pour le suivant");
 ok(await call("accounts/failed", { phone: "3", reason: "Numéro refusé" }), "échec");
+
 await call("rotate", {});
 const a2 = ok(await call("accounts/create", { pseudo: "tw_girl2", phone: "+886 2", password: "pw2" }), "création 2");
 await call("rotate", {});

@@ -77,6 +77,8 @@ await shot(a, "03-content");
 
 // ---- VA sur mobile
 const v = await page(390, 844);
+v.on("pageerror", (e) => console.log("  [page error]", e.message));
+v.on("console", (m) => { if (m.type() === "error") console.log("  [console]", m.text()); });
 await v.goto(B);
 await pin(v, "1111");
 await v.waitForSelector(".bar");
@@ -99,13 +101,31 @@ await shot(v, "07-create-works");
 await v.click('[data-act="wizFail"]');
 await v.click('[data-act="wizFailSend"]');
 await waitToast(v, /Noté/);
-// on refait
+// l'admin branche Hero SMS
+await tab(a, "settings");
+await a.fill('[data-sec="heroToken"]', "HERO_TEST");
+await a.click('[data-act="saveSecrets"]');
+await waitToast(a, /Enregistré/);
+// on refait, cette fois le numero vient de Hero SMS
+await v.reload();
+await v.waitForSelector(".bar");
+await tab(v, "create");
 await v.click('main [data-act="rotate"]');
-await v.waitForSelector(".alert.c-green");
+await waitToast(v, /Nouvelle IP/);
 await v.click('[data-act="wizNext"]');
 await v.click('[data-act="wizNext"]');
-await v.fill('[data-f="phone"]', "+886 912 345 679");
+await v.waitForSelector('[data-act="smsBuy"]');
+await v.waitForFunction(() => /934 dispo/.test(document.body.textContent));
+await shot(v, "06b-sms-choix");
+await v.click('[data-act="smsBuy"]');
+await waitToast(v, /Numéro pris/);
+await v.waitForSelector("[data-smswait]");
+await shot(v, "06c-sms-attente");
+await fetch(`${B}/__dev/sms?code=482913`);
+await v.waitForFunction(() => /482913/.test(document.body.textContent), null, { timeout: 15000 });
+await shot(v, "06d-sms-code");
 await v.click('[data-act="wizNext"]');
+await v.waitForFunction(() => /482913/.test(document.body.textContent));
 await v.fill('[data-f="pseudo"]', "taipei_lily");
 await v.click('[data-act="genPass"]');
 await v.click('[data-act="wizNext"]');

@@ -23,6 +23,8 @@ let tinyTaken = null;
 const mcPosts = [];
 const mcCalls = [];
 let mcLinkFor = null;
+let smsN = 0;
+let smsAct = null;
 const brands = [
   { id: 111, label: "compte A", networksData: { threads: { username: "acc_a" } }, timezone: "Asia/Taipei" },
   { id: 222, label: "compte B", networksData: { threads: { username: "acc_b" } }, timezone: "Asia/Taipei" },
@@ -43,6 +45,24 @@ async function fakeFetch(url, opts = {}) {
     }
     const from = u.searchParams.get("from"); const days = Math.round((Date.now() - new Date(from).getTime()) / 864e5);
     return Response.json({ data: [{ date: from, count: days >= 20 ? 42 : 9 }] });
+  }
+  if (u.hostname === "hero-sms.com") {
+    if (u.pathname.endsWith("/handler_api.php")) return new Response(u.searchParams.get("api_key") === "HERO_TEST" ? "ACCESS_BALANCE:9.5" : "BAD_KEY", { status: 200 });
+    if (opts.headers?.Authorization !== "ApiKey HERO_TEST") return new Response(JSON.stringify({ title: "Unauthenticated." }), { status: 401 });
+    if (u.pathname.endsWith("/activations/offers/sms")) return Response.json({ data: { ig: { 14: { prices: { default: 0.035 }, counts: { total: 934 } }, 196: { prices: { default: 0.2102 }, counts: { total: 117 } }, 55: { prices: { default: 0.75 }, counts: { total: 0 } } } } });
+    if (u.pathname.endsWith("/activations") && opts.method === "POST") {
+      const b = JSON.parse(opts.body);
+      if (b.country === 55) return new Response(JSON.stringify({ title: "NO_NUMBERS" }), { status: 404 });
+      smsN++; smsAct = { id: String(7000 + smsN), phone: "8529" + String(1000000 + smsN), price: b.country === 14 ? 0.035 : 0.2102, expiredAt: new Date(Date.now() + 20 * 60e3).toISOString(), code: null, finished: false, cancelled: false };
+      return Response.json({ data: [{ id: smsAct.id, status: "waitOtp", phone: smsAct.phone, service: b.service, country: b.country, countryPhoneCode: 852, price: smsAct.price, createdAt: new Date().toISOString(), expiredAt: smsAct.expiredAt }] });
+    }
+    const m = u.pathname.match(/\/activations\/(\d+)(\/otp\/last|\/finish)?$/);
+    if (m && smsAct && m[1] === smsAct.id) {
+      if (m[2] === "/otp/last") return smsAct.code ? Response.json({ data: { id: "1", smsCode: smsAct.code, smsText: "Your Instagram code is " + smsAct.code, receivedAt: new Date().toISOString(), type: "sms" } }) : new Response(JSON.stringify({ title: "Not found" }), { status: 404 });
+      if (m[2] === "/finish") { smsAct.finished = true; return new Response(null, { status: 204 }); }
+      if (opts.method === "DELETE") { if (smsAct.code) return new Response(JSON.stringify({ title: "UNPROCESSABLE" }), { status: 422 }); smsAct.cancelled = true; return new Response(null, { status: 204 }); }
+    }
+    return new Response(JSON.stringify({ title: "Not found" }), { status: 404 });
   }
   if (u.hostname === "app.metricool.com" || u.hostname === "mc.test") {
     if (opts.headers?.["X-Mc-Auth"] !== "TOKEN_TEST") return new Response(JSON.stringify({ error: "denied" }), { status: 401 });
@@ -89,6 +109,11 @@ http
       if (b) b.networksData = url.searchParams.get("username") ? { threads: { username: url.searchParams.get("username") } } : {};
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__dev/sms") {
+      if (smsAct) smsAct.code = url.searchParams.get("code") || "123456";
+      res.writeHead(200); return res.end("ok");
+    }
+    if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }
     if (url.pathname === "/__mc") {
       res.writeHead(200, { "content-type": "application/json" });
       return res.end(JSON.stringify({ posts: mcPosts, calls: mcCalls }));

@@ -47,7 +47,7 @@ function toast(msg, bad) {
   t._h = setTimeout(() => (t.className = "toast"), bad ? 4500 : 2200);
 }
 async function run(btn, fn) {
-  if (S.busy) return;
+  if (S.busy) return toast("Patiente, une action est en cours...", true);
   S.busy = true;
   const old = btn ? btn.innerHTML : "";
   if (btn) {
@@ -142,7 +142,7 @@ const SOP = {
   },
   creation: {
     t: "Créer un compte",
-    steps: ["Change l'IP.", "GeeLark : nouveau profil, 1 profil = 1 compte. Mets le proxy (infos à copier dans le CRM).", "Prends un numéro sur le site SMS.", "Crée le compte Instagram avec ce numéro, puis active Threads.", "Le compte marche : clique « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
+    steps: ["Change l'IP.", "GeeLark : nouveau profil, 1 profil = 1 compte. Mets le proxy (infos à copier dans le CRM).", "Clique « Prendre un numéro » : le numéro s'affiche, le code SMS arrive tout seul dans le CRM.", "Crée le compte Instagram avec ce numéro, colle le code, puis active Threads.", "Le compte marche : clique « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
   },
   warmup: {
     t: "Warm-up (10 min)",
@@ -297,13 +297,23 @@ const VIEWS = {
         ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
         <label class="f">Nom du profil GeeLark <small>(facultatif)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : profil 12" />
         ${videoEmbed(S.data.settings.videos?.creation)}${nav(true)}</div>`;
-    if (w.step === 3)
+    if (w.step === 3) {
+      if (!S.data.configured.sms)
+        return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>
+          ${S.data.settings.smsSiteUrl ? `<a class="btn light" href="${esc(S.data.settings.smsSiteUrl)}" target="_blank" rel="noopener">Ouvrir le site SMS</a>` : '<div class="alert c-yellow">Hero SMS pas encore branché (Réglages, admin).</div>'}
+          <label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+852 ..." />
+          ${nav(true)}</div>`;
+      const cur = S.data.sms && S.data.sms.status === "attente" ? S.data.sms : null;
+      if (cur) {
+        w.f.phone = cur.phone;
+        w.f.smsId = cur.id;
+      }
       return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>
-        ${S.data.settings.smsSiteUrl ? `<a class="btn light" href="${esc(S.data.settings.smsSiteUrl)}" target="_blank" rel="noopener">Ouvrir le site SMS</a>` : '<div class="alert c-yellow">Lien du site SMS pas encore réglé.</div>'}
-        <label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+33 6 12 34 56 78" />
-        ${nav(true)}</div>`;
+        ${cur ? smsCard(cur) : smsBuyBlock()}
+        ${nav(!!(w.f.phone))}</div>`;
+    }
     if (w.step === 4)
-      return `${head}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Instagram puis Threads</h3>
+      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Instagram puis Threads</h3>
         <label class="f">Pseudo</label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
         <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(w.f.pseudo || "pseudo")}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(w.f.pseudo || "pseudo")}</button></div>
@@ -478,15 +488,17 @@ const VIEWS = {
     const vids = Object.keys(SOP);
     return `<h2>Réglages</h2>
       <div class="card"><h3 style="margin-top:0">Connexions <small class="muted">(cachées après enregistrement, c'est normal)</small></h3>
-        <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy]].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
+        <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy], ["Hero SMS", c.sms]].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
         <label class="f">1. Lien de rotation IP ${c.rotation ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotation ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy"}" autocomplete="off" />
         <label class="f">2. Token API Metricool ${c.mcToken ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(dans Metricool : Paramètres du compte, onglet API, Copier)</small></label><input type="password" data-sec="mcToken" placeholder="${c.mcToken ? "enregistré (colle un autre token pour le remplacer)" : "colle le token"}" autocomplete="off" />
         <label class="f">3. userId Metricool ${c.mcUserId ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(le nombre, ou colle simplement l'adresse de Metricool)</small></label><input data-sec="mcUserId" placeholder="${c.mcUserId ? "enregistré" : "ex : 5978155 ou https://app.metricool.com/...userId=..."}" autocomplete="off" />
         <label class="f">4. Proxy ${c.proxy ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxy" placeholder="${c.proxy ? "enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
         <label class="f">5. Token TinyURL ${c.tiny ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(TinyURL : Account, API tokens)</small></label><input type="password" data-sec="tinyToken" placeholder="${c.tiny ? "enregistré (colle un autre token pour le remplacer)" : "facultatif, pour les clics dans Stats"}" autocomplete="off" />
+        <label class="f">6. Clé API Hero SMS ${c.sms ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(hero-sms.com : Obtenir la clé API)</small></label><input type="password" data-sec="heroToken" placeholder="${c.sms ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API"}" autocomplete="off" />
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester le proxy</button></div></div>
       <div class="card"><h3 style="margin-top:0">Liens</h3>
-        <label class="f">Site SMS</label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
+        <label class="f">Pays des numéros SMS par défaut</label><select data-st="smsCountry">${(S.data.smsCountries || []).map((cc) => `<option value="${cc.id}" ${Number(st.smsCountry) === cc.id ? "selected" : ""}>${esc(cc.name)} (${esc(cc.note)})</option>`).join("")}</select>
+        <label class="f">Site SMS <small>(secours, si Hero SMS n'est pas branché)</small></label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
         <label class="f">Lien GeeLark</label><input data-st="geelarkUrl" value="${esc(st.geelarkUrl)}" />
         <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" />
         <h3>Modèle en cours</h3>
@@ -516,7 +528,7 @@ const VIEWS = {
 const LOGS = {
   premier_acces: "Premier accès", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
-  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
+  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
   secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
 };
@@ -568,6 +580,30 @@ function warmupCard(a, withTimer) {
     <div class="checklist" data-wcheck="${a.id}">${SOP.warmup.steps.map((s) => `<label><input type="checkbox" /> ${esc(s)}</label>`).join("")}</div>
     <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini, passer au setup</button>
     ${withTimer ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizReset">Créer un autre compte</button></div>' : ""}</div>`;
+}
+function smsBuyBlock() {
+  const prices = S.smsPrices || null;
+  const def = Number(S.data.settings.smsCountry) || 14;
+  const sel = S.smsCountry || def;
+  const list = S.data.smsCountries || [];
+  return `<p>Choisis le pays, puis clique. Le numéro et le code SMS arrivent ici, tu n'as rien d'autre à ouvrir.</p>
+    <div class="chips">${list.map((c) => {
+      const p = prices ? prices.find((x) => x.id === c.id) : null;
+      const info = p ? (p.price != null ? `${p.price.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} $ · ${p.stock} dispo` : "indisponible") : c.note;
+      return `<button class="chip ${sel === c.id ? "on" : ""}" data-act="smsCountry" data-v="${c.id}" ${p && !p.stock ? "disabled" : ""}>${esc(c.name)} <small>${esc(info)}</small></button>`;
+    }).join("")}</div>
+    <div class="row" style="margin-top:12px"><button class="btn big" data-act="smsBuy" data-wait="Achat du numéro...">Prendre un numéro ${esc(list.find((c) => c.id === sel)?.name || "")}</button><button class="btn ghost" data-act="smsPrices" data-wait="...">Voir les prix</button></div>
+    ${S.smsBalance != null ? `<p class="muted">Solde Hero SMS : ${S.smsBalance.toFixed(2)} $</p>` : ""}
+    <details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(S.wiz.f.phone || "")}" placeholder="+852 ..." /></details>`;
+}
+function smsCard(cur) {
+  const left = Math.max(0, Math.round((new Date(cur.expiredAt).getTime() - Date.now()) / 1000));
+  const mm = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
+  return `<div class="alert c-blue"><b>Numéro ${esc(cur.countryName)}</b> · ${cur.price ? cur.price.toFixed(3).replace(/0+$/, "") + " $" : ""} · expire dans <span data-smsleft>${mm}</span></div>
+    ${copyLine("Numéro complet", cur.phone)}${cur.local && cur.local !== cur.phone.slice(1) ? copyLine(`Sans indicatif (${cur.dial})`, cur.local) : ""}
+    <p>Dans Instagram, choisis l'indicatif <b>${esc(cur.dial || cur.countryName)}</b> puis colle le numéro sans indicatif. Le code arrive ici tout seul, sans rien ouvrir.</p>
+    ${cur.code ? `<div class="alert c-green" style="font-size:22px;font-weight:700;letter-spacing:2px">${esc(cur.code)} <button class="btn sm light" data-act="copy" data-v="${esc(cur.code)}" style="letter-spacing:0;font-size:13px">Copier</button></div>${cur.smsText ? `<p class="muted">${esc(cur.smsText)}</p>` : ""}` : `<div class="alert c-yellow" data-smswait>En attente du SMS... <span class="muted">(vérifié toutes les 5 secondes)</span></div>`}
+    <div class="row" style="margin-top:10px">${cur.code ? "" : `<button class="btn sm light" data-act="smsCode" data-wait="...">Vérifier maintenant</button><button class="btn sm ghost" data-act="smsCancel" data-wait="...">Pas de SMS : annuler (remboursé)</button>`}</div>`;
 }
 function mcConnectCard(a) {
   if (!a.mcLink) {
@@ -649,7 +685,36 @@ async function compress(file) {
 }
 
 // ------------------------------------------------------------ apres rendu
+let smsPoll = null;
 function afterRender() {
+  // prix Hero SMS charges tout seuls a l'arrivee sur l'etape
+  if (document.querySelector('[data-act="smsPrices"]') && !S.smsPrices && !S.smsPricesLoading) {
+    S.smsPricesLoading = true;
+    api("sms/prices").then((p) => { S.smsPrices = p; render(); }).catch(() => {}).finally(() => (S.smsPricesLoading = false));
+    api("sms/balance").then((b) => { S.smsBalance = b.balance; }).catch(() => {});
+  }
+  // code SMS : on verifie toutes les 5 s tant qu'il n'est pas arrive
+  clearInterval(smsPoll);
+  const waiting = document.querySelector("[data-smswait]");
+  if (waiting && S.data.sms && S.data.sms.status === "attente") {
+    smsPoll = setInterval(async () => {
+      if (!document.querySelector("[data-smswait]")) return clearInterval(smsPoll);
+      try {
+        const act = await api(`sms/${S.data.sms.id}/code`, {});
+        const left = document.querySelector("[data-smsleft]");
+        if (left) {
+          const l = Math.max(0, Math.round((new Date(act.expiredAt).getTime() - Date.now()) / 1000));
+          left.textContent = `${String(Math.floor(l / 60)).padStart(2, "0")}:${String(l % 60).padStart(2, "0")}`;
+        }
+        if (act.code || act.status !== "attente") {
+          clearInterval(smsPoll);
+          if (act.code) toast("Code SMS reçu : " + act.code);
+          else toast("Le numéro a expiré. Prends-en un autre.", true);
+          await refresh();
+        }
+      } catch {}
+    }, 5000);
+  }
   // remettre les chronos en route
   document.querySelectorAll("[data-timer]").forEach((el) => {
     const end = Number(sessionStorage.getItem("timer_" + el.dataset.timer) || 0);
@@ -726,7 +791,7 @@ const ACT = {
   },
   async wizFailSend(b) {
     await run(b, async () => {
-      await api("accounts/failed", { phone: S.wiz.f.phone, reason: $("#failwhy").value });
+      await api("accounts/failed", { phone: S.wiz.f.phone, smsId: S.wiz.f.smsId || "", reason: $("#failwhy").value });
       closeModal();
       S.wiz = { step: 1, f: { geelarkProfile: S.wiz.f.geelarkProfile } };
       toast("Noté. Change l'IP et on recommence");
@@ -792,6 +857,46 @@ const ACT = {
       }
       toast(msg);
       S.tab = "metricool";
+      await refresh();
+    });
+  },
+  smsCountry(b) {
+    readWizFields();
+    S.smsCountry = Number(b.dataset.v);
+    render();
+  },
+  async smsPrices(b) {
+    await run(b, async () => {
+      S.smsPrices = await api("sms/prices");
+      try { S.smsBalance = (await api("sms/balance")).balance; } catch {}
+      render();
+    });
+  },
+  async smsBuy(b) {
+    readWizFields();
+    await run(b, async () => {
+      const act = await api("sms/buy", { country: S.smsCountry || Number(S.data.settings.smsCountry) || 14 });
+      S.wiz.f.phone = act.phone;
+      S.wiz.f.smsId = act.id;
+      toast(`Numéro pris : ${act.phone}`);
+      await refresh();
+    });
+  },
+  async smsCode(b) {
+    await run(b, async () => {
+      const act = await api(`sms/${S.data.sms.id}/code`, {});
+      if (!act.code) toast("Toujours rien. Patiente, ça arrive en général sous 1 à 2 minutes.", true);
+      else toast("Code reçu : " + act.code);
+      await refresh();
+    });
+  },
+  async smsCancel(b) {
+    readWizFields();
+    await run(b, async () => {
+      await api(`sms/${S.data.sms.id}/cancel`, {});
+      S.wiz.f.phone = "";
+      S.wiz.f.smsId = "";
+      toast("Numéro annulé et remboursé. Prends-en un autre.");
       await refresh();
     });
   },
@@ -1033,6 +1138,7 @@ const ACT = {
     document.querySelectorAll("[data-vid]").forEach((el) => (videos[el.dataset.vid] = el.value.trim()));
     const body = {
       smsSiteUrl: v("smsSiteUrl").trim(),
+      smsCountry: Number(v("smsCountry")) || 14,
       geelarkUrl: v("geelarkUrl").trim(),
       metricoolUrl: v("metricoolUrl").trim(),
       timezone: v("timezone").trim(),
