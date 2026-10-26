@@ -173,6 +173,22 @@ st = ok(await call("state"), "state");
 assert.equal(st.configured.tiny, true);
 assert.ok(st.linkStats && st.linkStats.links);
 step("stats des liens TinyURL (7 j / 30 j)");
+// creation automatique du lien TinyURL avec le pseudo
+ok(await call("settings", { model: { name: "Chloé", link: "https://ludivine.me/d" }, tinyDomain: "chauna.live" }), "modèle + domaine");
+tok = va;
+await call("rotate", {});
+const a5 = ok(await call("accounts/create", { pseudo: "Taipei.Lily_2", phone: "+886 5", password: "pw5" }), "création 5");
+if (a5.strategy !== "relais") {
+  assert.equal(a5.link, "https://chauna.live/taipeilily_2", "lien créé avec le pseudo nettoyé");
+  assert.equal(a5.linkAlias, "taipeilily_2");
+} else assert.equal(a5.link, "");
+await call("rotate", {});
+const a6 = ok(await call("accounts/create", { pseudo: "taipei_lily", phone: "+886 6", password: "pw6" }), "création 6 (alias pris)");
+if (a6.strategy !== "relais") assert.equal(a6.link, "https://chauna.live/taipei_lilyx", "alias pris -> variante");
+tok = admin;
+const forced = [a5, a6].find((x) => x.strategy === "relais");
+if (forced) assert.equal((await call(`accounts/${forced.id}/makelink`, {})).s, 400);
+step("lien TinyURL auto : pseudo, variante si alias pris, pas pour les relais");
 const alerts = ok(await call("metricool/health", {}), "santé");
 assert.equal(alerts.length, 1);
 assert.match(alerts[0].msg, /Threads déconnecté/);

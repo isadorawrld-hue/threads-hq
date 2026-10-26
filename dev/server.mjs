@@ -19,6 +19,7 @@ const store = {
 
 // --- faux reseau
 let ipN = 10;
+let tinyTaken = null;
 const mcPosts = [];
 const mcCalls = [];
 const brands = [
@@ -34,6 +35,11 @@ async function fakeFetch(url, opts = {}) {
   }
   if (u.hostname === "api.tinyurl.com") {
     if (opts.headers?.Authorization !== "Bearer TINY_TEST") return new Response(JSON.stringify({ errors: ["Unauthenticated"] }), { status: 401 });
+    if (u.pathname === "/create") {
+      const b = JSON.parse(opts.body); tinyTaken = tinyTaken || new Set(["taipei_lily"]);
+      if (tinyTaken.has(b.alias)) return new Response(JSON.stringify({ code: 5, errors: ["Alias is not available."] }), { status: 422 });
+      tinyTaken.add(b.alias); return Response.json({ code: 0, data: { tiny_url: `https://${b.domain}/${b.alias}`, alias: b.alias, domain: b.domain, url: b.url } });
+    }
     const from = u.searchParams.get("from"); const days = Math.round((Date.now() - new Date(from).getTime()) / 864e5);
     return Response.json({ data: [{ date: from, count: days >= 20 ? 42 : 9 }] });
   }

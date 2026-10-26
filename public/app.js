@@ -491,7 +491,8 @@ const VIEWS = {
         <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" />
         <h3>Modèle en cours</h3>
         <label class="f">Prénom de la modèle</label><input data-model="name" value="${esc(st.model?.name || "")}" />
-        <label class="f">Lien de la modèle <small>(Telegram ou OnlyChat : celui qui va dans la bio et le post)</small></label><input data-model="link" value="${esc(st.model?.link || "")}" /></div>
+        <label class="f">Lien de la modèle <small>(la destination : chaque compte reçoit son propre lien court qui pointe dessus)</small></label><input data-model="link" value="${esc(st.model?.link || "")}" />
+        <label class="f">Domaine TinyURL <small>(le lien de chaque compte sera domaine/pseudo)</small></label><input data-st="tinyDomain" value="${esc(st.tinyDomain || "")}" /></div>
       <div class="card"><h3 style="margin-top:0">Planification</h3>
         <label class="f">Fuseau horaire de la cible <small>(Asia/Taipei = Taïwan, Singapour, Hong Kong)</small></label><input data-st="timezone" value="${esc(st.timezone)}" />
         <label class="f">Posts par jour et par compte</label><input type="number" min="1" max="10" data-st="postsPerDay" value="${esc(st.postsPerDay)}" />
@@ -517,7 +518,7 @@ const LOGS = {
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  secrets_modifies: "Connexions modifiées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
+  secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
 };
 function logDetails(l) {
   const out = [];
@@ -532,6 +533,9 @@ function logDetails(l) {
   if (l.replaces) out.push("remplace @" + l.replaces);
   if (l.phone) out.push(l.phone);
   if (l.reason) out.push(l.reason);
+  if (l.raison) out.push(l.raison);
+  if (l.lien) out.push(l.lien);
+  if (l.strategy) out.push((S.data.strategyLabels || {})[l.strategy] || l.strategy);
   if (l.added != null) out.push(`${l.added} ajouté(s)`);
   if (l.blogId) out.push("marque " + l.blogId);
   if (l.name) out.push(l.name);
@@ -564,6 +568,9 @@ function warmupCard(a, withTimer) {
     <div class="checklist" data-wcheck="${a.id}">${SOP.warmup.steps.map((s) => `<label><input type="checkbox" /> ${esc(s)}</label>`).join("")}</div>
     <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini</button>
     ${withTimer ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizReset">Créer un autre compte</button></div>' : ""}</div>`;
+}
+function noLink(a) {
+  return `<div class="alert c-red">Pas de lien pour ce compte.${a.linkNote ? " " + esc(a.linkNote) : ""}</div><button class="btn sm" data-act="makeLink" data-id="${a.id}" data-wait="Création...">Créer le lien ${esc(S.data.settings.tinyDomain || "")}/${esc(a.pseudo)}</button>`;
 }
 function setupWizard(a) {
   const st = S.data.settings;
@@ -687,7 +694,7 @@ const ACT = {
   async wizCreate(b) {
     await run(b, async () => {
       const a = await api("accounts/create", S.wiz.f);
-      toast(`@${a.pseudo} enregistré`);
+      toast(`@${a.pseudo} enregistré` + (a.link ? " · lien " + a.link : a.linkNote ? " · lien non créé : " + a.linkNote : ""), !!a.linkNote);
       S.wiz = { step: 6, f: {}, createdId: a.id };
       await refresh();
     });
@@ -872,6 +879,13 @@ const ACT = {
       await refresh();
     });
   },
+  async makeLink(b) {
+    await run(b, async () => {
+      const r = await api(`accounts/${b.dataset.id}/makelink`, {});
+      toast("Lien créé : " + r.link);
+      await refresh();
+    });
+  },
   async linkStats(b) {
     await run(b, async () => {
       const r = await api("links/stats", {});
@@ -982,6 +996,7 @@ const ACT = {
       videos,
       sopExtra: v("sopExtra"),
       model: { name: $('[data-model="name"]').value.trim(), link: $('[data-model="link"]').value.trim() },
+      tinyDomain: $('[data-st="tinyDomain"]').value.trim(),
     };
     await run(b, async () => {
       await api("settings", body);
