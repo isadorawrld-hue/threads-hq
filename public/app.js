@@ -447,7 +447,7 @@ const VIEWS = {
           <details><summary>Voir les textes</summary>${texts.map((t) => `<div class="textline ${t.off ? "off" : ""}"><div class="x">${esc(t.text)}${t.fr ? `<div class="muted">${esc(t.fr)}</div>` : ""}</div><button class="btn sm light" data-act="toggleText" data-id="${t.id}">${t.off ? "Activer" : "Pause"}</button><button class="btn sm ghost" data-act="delText" data-id="${t.id}"></button></div>`).join("") || '<p class="muted">Aucun texte.</p>'}</details></div>`;
       }).join("")}
       <div class="card"><h3 style="margin-top:0">Photos de profil (${pfps.length})</h3><input type="file" accept="image/*" multiple data-upload="__pfp" /><div class="thumbs" style="margin-top:10px">${pfps.map((m) => `<figure><img loading="lazy" src="/api/media/${m.id}" /><button class="btn sm bad" data-act="delMedia" data-id="${m.id}"></button></figure>`).join("")}</div></div>
-      <div class="card"><h3 style="margin-top:0">Bios</h3><p class="muted">Une bio par ligne. Le CRM en propose une au hasard au setup.</p><textarea data-set="bios">${esc((st.bios || []).join("\n"))}</textarea>
+      <div class="card"><h3 style="margin-top:0">Bios</h3><p class="muted">Une bio par bloc, séparées par une ligne vide. Le CRM en propose une au hasard au setup.</p><textarea data-set="bios" style="min-height:260px">${esc((st.bios || []).join("\n\n"))}</textarea>
         <h3>Post épinglé</h3><p class="muted">Partie 1 = le post. Partie 2 = la réponse avec le lien. Mots remplacés tout seuls : <code>{pseudo}</code> et <code>{lien}</code>.</p><label class="f">Partie 1</label><textarea data-set="pinnedPost">${esc(st.pinnedPost || "")}</textarea><label class="f">Partie 2</label><textarea data-set="pinnedReply">${esc(st.pinnedReply || "")}</textarea>
         <h3>Liens (un par compte)</h3><p class="muted">Un lien TinyURL par ligne. Chaque nouveau compte prend le prochain lien libre.</p><textarea data-set="links">${esc((st.links || []).join("\n"))}</textarea>
         <p class="muted">${(st.links || []).map((l) => (usedLinks.has(l) ? `${esc(l)} @${esc(usedLinks.get(l))}` : `${esc(l)} libre`)).join("<br>")}</p>
@@ -886,7 +886,8 @@ const ACT = {
   async saveContent(b) {
     const lines = (k) => $(`[data-set="${k}"]`).value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     await run(b, async () => {
-      await api("settings", { bios: lines("bios"), links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
+      const bios = $('[data-set="bios"]').value.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+      await api("settings", { bios, links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
       toast("Enregistré");
       await refresh();
     });

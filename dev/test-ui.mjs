@@ -60,7 +60,7 @@ await a.selectOption("[data-seedgroup]", "villes");
 await a.click('[data-act="seed"]');
 await waitToast(a, /42 texte/);
 await a.fill('[data-set="links"]', "https://tinyurl.com/tw1\nhttps://tinyurl.com/tw2");
-await a.fill('[data-set="bios"]', "台北 🌸 | 23\n夜貓子 🌙");
+await a.fill('[data-set="bios"]', "Ludivine • 21 🦋\nDouce\n\nLudivine 🦋\nJoyeuse");
 await a.fill('[data-set="pinnedPost"]', "想認識我更多？點我主頁的連結 💌");
 await a.click('[data-act="saveContent"]');
 await waitToast(a, /Enregistré/);
