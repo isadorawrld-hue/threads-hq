@@ -426,7 +426,7 @@ const VIEWS = {
       }).join("")}
       <div class="card"><h3 style="margin-top:0">Photos de profil (${pfps.length})</h3><input type="file" accept="image/*" multiple data-upload="__pfp" /><div class="thumbs" style="margin-top:10px">${pfps.map((m) => `<figure><img loading="lazy" src="/api/media/${m.id}" /><button class="btn sm bad" data-act="delMedia" data-id="${m.id}"></button></figure>`).join("")}</div></div>
       <div class="card"><h3 style="margin-top:0">Bios</h3><p class="muted">Une bio par ligne. Le CRM en propose une au hasard au setup.</p><textarea data-set="bios">${esc((st.bios || []).join("\n"))}</textarea>
-        <h3>Post épinglé</h3><textarea data-set="pinnedPost">${esc(st.pinnedPost || "")}</textarea>
+        <h3>Post épinglé</h3><p class="muted">Partie 1 = le post. Partie 2 = la réponse avec le lien. Mots remplacés tout seuls : <code>{pseudo}</code> et <code>{lien}</code>.</p><label class="f">Partie 1</label><textarea data-set="pinnedPost">${esc(st.pinnedPost || "")}</textarea><label class="f">Partie 2</label><textarea data-set="pinnedReply">${esc(st.pinnedReply || "")}</textarea>
         <h3>Liens (un par compte)</h3><p class="muted">Un lien TinyURL par ligne. Chaque nouveau compte prend le prochain lien libre.</p><textarea data-set="links">${esc((st.links || []).join("\n"))}</textarea>
         <p class="muted">${(st.links || []).map((l) => (usedLinks.has(l) ? `${esc(l)} @${esc(usedLinks.get(l))}` : `${esc(l)} libre`)).join("<br>")}</p>
         <button class="btn" data-act="saveContent" data-wait="...">Enregistrer</button></div>`;
@@ -536,7 +536,12 @@ function setupWizard(a) {
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
     <div class="card"><div class="stepnum">3. Bio</div><textarea data-setupbio>${esc(s.bio)}</textarea><div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${(st.bios || []).length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
     <div class="card"><div class="stepnum">4. Lien</div>${a.link ? copyLine("Lien", a.link) : '<div class="alert c-red">Pas de lien pour ce compte. Demande à Awen / Bilot d\'ajouter des liens (onglet Contenu).</div>'}</div>
-    <div class="card"><div class="stepnum">5. Post épinglé</div>${st.pinnedPost ? `<div style="white-space:pre-wrap" class="copyline"><span class="v">${esc(st.pinnedPost)}</span><button class="btn sm light" data-act="copy" data-v="${esc(st.pinnedPost)}">Copier</button></div><p class="muted">Publie-le puis épingle-le (••• Épingler).</p>` : '<p class="muted">Modèle de post épinglé pas encore fourni.</p>'}</div>
+    <div class="card"><div class="stepnum">5. Post épinglé (2 parties)</div>${st.pinnedPost ? (() => {
+      const fill = (t) => String(t || "").replaceAll("{pseudo}", a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT");
+      const p1 = fill(st.pinnedPost), p2 = fill(st.pinnedReply);
+      const box = (t) => `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t)}">Copier</button></div>`;
+      return `<ol><li>Publie la partie 1 (ton propre profil s'affiche en carte en dessous).</li>${box(p1)}${p2 ? `<li>Réponds à ton propre post avec la partie 2 (le lien).</li>${box(p2)}` : ""}<li>Sur le post, touche les 3 points, puis Épingler.</li></ol>`;
+    })() : '<p class="muted">Modèle de post épinglé pas encore fourni.</p>'}</div>
     <div class="card"><div class="checklist" data-scheck>${["Photo de profil mise", "Bio mise", "Lien mis", "Post épinglé publié et épinglé"].map((x) => `<label><input type="checkbox" /> ${x}</label>`).join("")}</div>
       <button class="btn big ok" data-act="setupDone" data-id="${a.id}" data-wait="...">Setup fini</button><div class="row" style="margin-top:10px"><button class="btn ghost" data-act="setupCancel">Retour à la liste</button></div></div>`;
 }
@@ -848,7 +853,7 @@ const ACT = {
   async saveContent(b) {
     const lines = (k) => $(`[data-set="${k}"]`).value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     await run(b, async () => {
-      await api("settings", { bios: lines("bios"), links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim() });
+      await api("settings", { bios: lines("bios"), links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
       toast("Enregistré");
       await refresh();
     });
