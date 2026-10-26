@@ -183,8 +183,8 @@ if (a5.strategy !== "relais") {
   assert.equal(a5.linkAlias, "taipeilily_2");
 } else assert.equal(a5.link, "");
 await call("rotate", {});
-const a6 = ok(await call("accounts/create", { pseudo: "taipei_lily", phone: "+886 6", password: "pw6" }), "création 6 (alias pris)");
-if (a6.strategy !== "relais") assert.equal(a6.link, "https://chauna.live/taipei_lilyx", "alias pris -> variante");
+const a6 = ok(await call("accounts/create", { pseudo: "taipei_lily", phone: "+886 6", password: "pw6", linkDomain: "tinyurl" }), "création 6 (alias pris, tinyurl.com)");
+if (a6.strategy !== "relais") { assert.equal(a6.link, "https://tinyurl.com/taipei_lilyx", "alias pris -> variante, sans domaine perso"); assert.equal(a6.linkDomain, "tinyurl"); }
 tok = admin;
 const forced = [a5, a6].find((x) => x.strategy === "relais");
 if (forced) assert.equal((await call(`accounts/${forced.id}/makelink`, {})).s, 400);

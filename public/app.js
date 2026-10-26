@@ -305,6 +305,8 @@ const VIEWS = {
     if (w.step === 4)
       return `${head}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Instagram puis Threads</h3>
         <label class="f">Pseudo</label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
+        <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
+        <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(w.f.pseudo || "pseudo")}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(w.f.pseudo || "pseudo")}</button></div>
         <label class="f">Mot de passe <button class="btn sm light" data-act="genPass">Générer</button></label><input data-f="password" value="${esc(w.f.password || "")}" autocapitalize="off" />
         <label class="f">Email <small>(facultatif)</small></label><input data-f="email" value="${esc(w.f.email || "")}" autocapitalize="off" />
         <label class="f">Mot de passe email <small>(facultatif)</small></label><input data-f="emailPassword" value="${esc(w.f.emailPassword || "")}" autocapitalize="off" />
@@ -570,7 +572,7 @@ function warmupCard(a, withTimer) {
     ${withTimer ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizReset">Créer un autre compte</button></div>' : ""}</div>`;
 }
 function noLink(a) {
-  return `<div class="alert c-red">Pas de lien pour ce compte.${a.linkNote ? " " + esc(a.linkNote) : ""}</div><button class="btn sm" data-act="makeLink" data-id="${a.id}" data-wait="Création...">Créer le lien ${esc(S.data.settings.tinyDomain || "")}/${esc(a.pseudo)}</button>`;
+  return `<div class="alert c-red">Pas de lien pour ce compte.${a.linkNote ? " " + esc(a.linkNote) : ""}</div><div class="row"><button class="btn sm" data-act="makeLink" data-id="${a.id}" data-v="brand" data-wait="Création...">Créer ${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(a.pseudo)}</button><button class="btn sm light" data-act="makeLink" data-id="${a.id}" data-v="tinyurl" data-wait="Création...">Créer tinyurl.com/${esc(a.pseudo)}</button></div>`;
 }
 function setupWizard(a) {
   const st = S.data.settings;
@@ -684,6 +686,11 @@ const ACT = {
   },
   wizReset() {
     S.wiz = { step: 1, f: {} };
+    render();
+  },
+  wizDomain(b) {
+    readWizFields();
+    S.wiz.f.linkDomain = b.dataset.v;
     render();
   },
   genPass() {
@@ -881,7 +888,7 @@ const ACT = {
   },
   async makeLink(b) {
     await run(b, async () => {
-      const r = await api(`accounts/${b.dataset.id}/makelink`, {});
+      const r = await api(`accounts/${b.dataset.id}/makelink`, { linkDomain: b.dataset.v });
       toast("Lien créé : " + r.link);
       await refresh();
     });
