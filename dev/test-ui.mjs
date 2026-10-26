@@ -118,16 +118,12 @@ for (const c of await v.$$('[data-wcheck] input')) await c.check();
 await v.click('[data-act="warmupDone"]');
 await waitToast(v, /Warm-up validé/);
 
-// ---- admin force le setup puis la VA relie Metricool
-await a.reload();
-await a.waitForSelector(".bar");
-await tab(a, "setup");
-await a.click('[data-act="startSetup"]');
-await a.waitForSelector("[data-setupbio]");
-await shot(a, "09-setup");
-for (const c of await a.$$("[data-scheck] input")) await c.check();
-await a.click('[data-act="setupDone"]');
-await waitToast(a, /Setup fini/);
+// ---- la VA enchaîne direct sur le setup (ouvert automatiquement)
+await v.waitForSelector("[data-setupbio]");
+await shot(v, "09-setup");
+for (const c of await v.$$("[data-scheck] input")) await c.check();
+await v.click('[data-act="setupDone"]');
+await waitToast(v, /Setup fini/);
 
 await v.reload();
 await v.waitForSelector(".bar");

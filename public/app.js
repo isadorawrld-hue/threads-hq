@@ -145,16 +145,16 @@ const SOP = {
     steps: ["Change l'IP.", "GeeLark : nouveau profil, 1 profil = 1 compte. Mets le proxy (infos à copier dans le CRM).", "Prends un numéro sur le site SMS.", "Crée le compte Instagram avec ce numéro, puis active Threads.", "Le compte marche : clique « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
   },
   warmup: {
-    t: "Warm-up (jour 0)",
-    steps: ["15 à 20 min de scroll sur Instagram + Threads.", "10 à 20 likes, 5 à 10 follows dans la niche.", "ZÉRO lien, zéro post, zéro changement de profil.", "Doucement : pas de rafale, comme une vraie personne."],
+    t: "Warm-up (10 min)",
+    steps: ["Juste après la création, dans le même profil GeeLark.", "10 min de scroll sur Threads : lis, like 5 à 10 posts, suis 3 à 5 comptes de la niche.", "Pendant ces 10 min : zéro post, zéro lien, zéro changement de profil.", "Doucement, comme une vraie personne. Puis tu passes direct au setup."],
   },
   strategies: {
     t: "Les 3 stratégies de setup",
     steps: ["Chaque compte a une stratégie, écrite sur sa carte. Suis celle-là, pas une autre.", "Post épinglé : pas de lien dans la bio. Le lien est dans la réponse au post épinglé.", "Lien dans la bio : le lien va dans le champ Lien du profil.", "Relais : aucun lien. Tu cites le post épinglé du compte pivot et tu épingles ta citation.", "Pourquoi : si un compte saute, on ne perd jamais le lien. Et Threads voit 3 profils différents, pas 15 clones."],
   },
   setup: {
-    t: "Setup (24h après)",
-    steps: ["Change l'IP et ouvre le profil GeeLark du compte.", "Photo de profil.", "Bio.", "Lien Telegram du compte.", "Post épinglé.", "Clique Setup fini."],
+    t: "Setup (juste après le warm-up)",
+    steps: ["Même profil GeeLark, même IP : pas de rotation entre le warm-up et le setup.", "Photo de profil.", "Bio (le CRM te la donne selon la stratégie du compte).", "Lien ou post épinglé ou relais : le CRM te dit quoi faire selon la stratégie.", "Clique Setup fini."],
   },
   metricool: {
     t: "Metricool",
@@ -262,12 +262,12 @@ const VIEWS = {
       cards.push(task("", "c-red", "Réglages à finir", `${!conf.proxy ? "Proxy · " : ""}${!conf.rotation ? "Lien de rotation · " : ""}${!conf.metricool ? "Metricool" : ""}`, "settings", "Ouvrir"));
     if (t.toCheck.length) cards.push(task("", "c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Regarde si chaque compte marche encore.", "check", "Commencer"));
     if (t.toReplace.length) cards.push(task("", "c-red", `${t.toReplace.length} compte(s) sauté(s) à remplacer`, "Crée un nouveau compte : il prend la place du mort.", "create", "Remplacer"));
-    if (t.warmup.length) cards.push(task("", "c-yellow", `${t.warmup.length} warm-up à finir`, "Termine le warm-up des comptes créés.", "warmup", "Ouvrir"));
-    if (t.setupReady.length) cards.push(task("", "c-blue", `${t.setupReady.length} compte(s) prêt(s) pour le setup`, "Photo, bio, lien, post épinglé.", "setup", "Faire le setup"));
+    if (t.warmup.length) cards.push(task("", "c-yellow", `${t.warmup.length} compte(s) créé(s) : warm-up puis setup`, "10 min de warm-up, puis le setup dans la foulée.", "warmup", "Ouvrir"));
+    if (t.setupReady.length) cards.push(task("", "c-blue", `${t.setupReady.length} compte(s) prêt(s) pour le setup`, "Photo, bio, puis lien ou post épinglé selon la stratégie.", "setup", "Faire le setup"));
     if (t.toConnect.length) cards.push(task("", "c-violet", `${t.toConnect.length} compte(s) à mettre sur Metricool`, "Relie le compte puis planifie.", "metricool", "Relier"));
     if (t.toPlan.length) cards.push(task("", "c-green", `${t.toPlan.length} compte(s) à planifier`, "1 clic : le CRM programme les posts.", "metricool", "Planifier"));
     if (t.reserveMissing) cards.push(task("", "c-pink", `Crée ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"));
-    const waiting = t.setupWaiting.length ? `<p class="muted">${t.setupWaiting.length} compte(s) en attente des 24h avant le setup.</p>` : "";
+    const waiting = "";
     return `<h2>Bonjour ${esc(S.data.me.name)}</h2><p class="lead">Voici ce qu'il reste à faire aujourd'hui, dans l'ordre.</p>
       <div class="stats">${stat("c-green", t.active, "comptes actifs")}${stat("c-violet", t.reserve, "en réserve")}${stat("c-yellow", t.toCheck.length, "à checker")}${stat("c-red", t.toReplace.length, "à remplacer")}</div>
       ${cards.length ? `<div class="card list">${cards.join("")}</div>` : '<div class="card done-all"><b>Tout est à jour.</b><span>Si tu as le temps, crée un compte de réserve.</span></div>'}${waiting}`;
@@ -327,18 +327,16 @@ const VIEWS = {
 
   warmup() {
     const list = S.data.tasks.warmup.map(acc).filter(Boolean);
-    return `<h2>Warm-up</h2><p class="lead">Les comptes qui viennent d'être créés. Fais le warm-up puis valide.</p>
+    return `<h2>Warm-up (10 min)</h2><p class="lead">Les comptes qui viennent d'être créés. 10 min de scroll, puis le setup direct.</p>
       ${list.length ? list.map((a) => warmupCard(a, false)).join("") : '<div class="card done-all"><b>Aucun warm-up en cours.</b></div>'}${sopBlock("warmup")}`;
   },
 
   setup() {
     const ready = S.data.tasks.setupReady.map(acc).filter(Boolean);
-    const waiting = S.data.tasks.setupWaiting.map(acc).filter(Boolean);
     if (S.setup && acc(S.setup.id)?.status === "attente_setup") return setupWizard(acc(S.setup.id));
     S.setup = null;
-    return `<h2>Setup (24h après)</h2><p class="lead">Photo, bio, lien, post épinglé.</p>
-      ${ready.length ? `<div class="grid">${ready.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><div class="row">${gpill(a.group)}${spill(a.strategy)}</div><button class="btn" data-act="startSetup" data-id="${a.id}">Faire le setup</button></div>`).join("")}</div>` : '<div class="card done-all"><b>Aucun setup prêt pour l\'instant.</b></div>'}
-      ${waiting.length ? `<h3>Pas encore (attendre 24h)</h3><div class="grid">${waiting.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><span class="muted">Setup possible ${ago(a.setupDueAt)}</span>${isAdmin() ? `<button class="btn sm ghost" data-act="startSetup" data-id="${a.id}">Forcer (admin)</button>` : ""}</div>`).join("")}</div>` : ""}
+    return `<h2>Setup</h2><p class="lead">Juste après le warm-up : photo, bio, puis lien ou post épinglé selon la stratégie.</p>
+      ${ready.length ? `<div class="grid">${ready.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><div class="row">${gpill(a.group)}${spill(a.strategy)}</div><button class="btn" data-act="startSetup" data-id="${a.id}">Faire le setup</button></div>`).join("")}</div>` : '<div class="card done-all"><b>Aucun setup à faire.</b></div>'}
       ${sopBlock("setup")}`;
   },
 
@@ -501,7 +499,7 @@ const VIEWS = {
         <label class="f">Créneaux <small>(HH:MM séparés par des virgules)</small></label><input data-st="slots" value="${esc((st.slots || []).join(", "))}" />
         <label class="f">Décalage aléatoire (± minutes)</label><input type="number" min="0" max="120" data-st="jitterMin" value="${esc(st.jitterMin)}" />
         <label class="f">Comptes de réserve visés</label><input type="number" min="0" max="50" data-st="reserveTarget" value="${esc(st.reserveTarget)}" />
-        <label class="f">Heures entre création et setup</label><input type="number" min="0" max="168" data-st="warmupHours" value="${esc(st.warmupHours)}" /></div>
+        <label class="f">Minutes de warm-up avant le setup</label><input type="number" min="0" max="120" data-st="warmupMinutes" value="${esc(st.warmupMinutes ?? 10)}" /></div>
       <div class="card"><h3 style="margin-top:0">Groupes</h3><p class="muted">Un groupe par ligne : <code>id | Nom | photo(oui/non) | couleur</code></p>
         <textarea data-st="groups">${esc(st.groups.map((g) => `${g.id} | ${g.name} | ${g.withPhoto ? "oui" : "non"} | ${g.color}`).join("\n"))}</textarea></div>
       <div class="card"><h3 style="margin-top:0">Vidéos des SOP</h3><p class="muted">Lien YouTube, Loom ou Google Drive.</p>
@@ -566,9 +564,9 @@ function parseProxy(p) {
 function warmupCard(a, withTimer) {
   if (!a) return "";
   return `<div class="card"><div class="head row"><span class="num">#${a.num}</span><b>@${esc(a.pseudo)}</b>${gpill(a.group)}</div>
-    <div class="timer" data-timer="${a.id}">15:00</div><div class="row"><button class="btn light" data-act="startTimer" data-id="${a.id}">▶️ Lancer le chrono 15 min</button></div>
+    <p class="muted">Même profil GeeLark, même IP. 10 min de scroll, puis le setup direct.</p><div class="timer" data-timer="${a.id}">10:00</div><div class="row"><button class="btn light" data-act="startTimer" data-id="${a.id}">Lancer le chrono 10 min</button></div>
     <div class="checklist" data-wcheck="${a.id}">${SOP.warmup.steps.map((s) => `<label><input type="checkbox" /> ${esc(s)}</label>`).join("")}</div>
-    <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini</button>
+    <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini, passer au setup</button>
     ${withTimer ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizReset">Créer un autre compte</button></div>' : ""}</div>`;
 }
 function noLink(a) {
@@ -582,7 +580,6 @@ function setupWizard(a) {
   if (!s.bio) s.bio = bank[Math.floor(Math.random() * bank.length)] || "";
   const pfps = S.data.media.filter((m) => m.kind === "pfp");
   if (!s.pfp && pfps.length) s.pfp = pfps[Math.floor(Math.random() * pfps.length)].id;
-  const ip = freshIp();
   const fill = (t) => String(t || "").replaceAll("{pseudo}", a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT").replaceAll("{pivot}", st.hub?.pseudo || "PIVOT MANQUANT");
   const box = (t) => `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t)}">Copier</button></div>`;
   const explain = {
@@ -608,9 +605,8 @@ function setupWizard(a) {
   }
   return `<h2>Setup de @${esc(a.pseudo)}</h2>
     <div class="alert">${spill(strat)}<div style="margin-top:6px">${explain}</div></div>
-    <div class="card"><div class="stepnum">1. IP + connexion</div>
-      <button class="btn rot" data-act="rotate" data-wait="Changement...">Changer l'IP</button> ${ip ? `<span class="pill c-green">${esc(ip.ip)}</span>` : '<span class="pill c-yellow">IP pas fraîche</span>'}
-      <p>Ouvre le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</div>
+    <div class="card"><div class="stepnum">1. Même profil, même IP</div>
+      <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</div>
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
     <div class="card"><div class="stepnum">3. Bio</div><p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} ». Copie-la telle quelle.</p><textarea data-setupbio>${esc(s.bio)}</textarea><div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
@@ -721,7 +717,7 @@ const ACT = {
     });
   },
   startTimer(b) {
-    const end = Date.now() + 15 * 60e3;
+    const end = Date.now() + (Number(S.data.settings.warmupMinutes) || 10) * 60e3;
     sessionStorage.setItem("timer_" + b.dataset.id, end);
     tick($(`[data-timer="${b.dataset.id}"]`), end);
   },
@@ -731,9 +727,12 @@ const ACT = {
     await run(b, async () => {
       await api(`accounts/${b.dataset.id}/warmup`, {});
       sessionStorage.removeItem("timer_" + b.dataset.id);
-      toast("Warm-up validé. Setup dans 24h.");
+      toast("Warm-up validé. Place au setup.");
       if (S.wiz?.step === 6) S.wiz = { step: 1, f: {} };
       await refresh();
+      S.setup = { id: b.dataset.id };
+      S.tab = "setup";
+      render();
     });
   },
   startSetup(b) {
@@ -998,7 +997,7 @@ const ACT = {
       slots: v("slots").split(",").map((x) => x.trim().padStart(5, "0")).filter(Boolean),
       jitterMin: Number(v("jitterMin")) || 0,
       reserveTarget: Number(v("reserveTarget")) || 0,
-      warmupHours: Number(v("warmupHours")),
+      warmupMinutes: Number(v("warmupMinutes")),
       groups,
       videos,
       sopExtra: v("sopExtra"),

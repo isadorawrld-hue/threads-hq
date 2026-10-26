@@ -41,7 +41,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 ## Règles métier (à respecter dans le code)
 - Un compte = un profil GeeLark = une IP. Le CRM refuse de créer un compte si l'IP fraîche a déjà servi.
 - La création d'un compte demande une IP changée il y a moins de 15 minutes.
-- Setup possible seulement 24 h après la création (l'admin peut forcer).
+- Pas d'attente : création → 10 min de warm-up (même profil, même IP) → setup direct (photo, bio, puis lien / post épinglé / relais selon la stratégie). Le setup s'ouvre tout seul après « Warm-up fini ».
 - Un compte qui saute : ses posts programmés sont annulés sur Metricool, et le prochain compte créé prend sa place (même groupe, même lien, `replaces`).
 - Un compte n'a jamais deux fois le même texte. Les posts sont planifiés aux créneaux de la cible (fuseau `Asia/Taipei`), avec un décalage aléatoire.
 - Les groupes (textes, photos, villes) sont configurables dans Réglages. Un groupe avec photos a `withPhoto = oui`.

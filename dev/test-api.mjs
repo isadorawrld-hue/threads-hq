@@ -70,12 +70,12 @@ const relay = [a1, a2, a3].find((a) => a.strategy === "relais");
 assert.equal(relay.link, "", "un compte relais n'a pas de lien");
 step("stratégies réparties, relais sans lien");
 
-for (const a of [a1, a2, a3]) ok(await call(`accounts/${a.id}/warmup`, {}), "warmup");
 assert.equal((await call(`accounts/${a1.id}/setup`, {})).s, 400);
-step("setup bloqué avant 24h pour la VA");
+step("setup refusé avant le warm-up");
+for (const a of [a1, a2, a3]) ok(await call(`accounts/${a.id}/warmup`, {}), "warmup");
+for (const a of [a1, a2, a3]) ok(await call(`accounts/${a.id}/setup`, { bio: "bio" }), "setup VA");
+step("setup par la VA juste après le warm-up (pas d'attente)");
 tok = admin;
-for (const a of [a1, a2, a3]) ok(await call(`accounts/${a.id}/setup`, { bio: "bio" }), "setup admin");
-step("setup forcé par l'admin");
 
 // contenu
 ok(await call("texts/bulk", { group: "textes", lines: "今天沒穿內衣就出門 || sortie sans soutif\n雙人床一個人睡\n雙人床一個人睡" }), "textes");
