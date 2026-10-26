@@ -120,6 +120,7 @@ const copyLine = (k, v, secret) =>
   `<div class="copyline"><span class="k">${esc(k)}</span><span class="v">${v ? esc(secret ? "••••••••" : v) : '<span class="muted">vide</span>'}</span>${v ? `<button class="btn sm light" data-act="copy" data-v="${esc(v)}">Copier</button>` : ""}</div>`;
 function videoEmbed(url) {
   if (!url) return '<div class="novid">Vidéo bientôt ici</div>';
+  if (/\.(webm|mp4)$/i.test(url)) return `<div class="video"><video src="${esc(url)}" controls muted playsinline preload="metadata"></video></div>`;
   let src = null;
   let m;
   if ((m = url.match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{6,})/))) src = `https://www.youtube.com/embed/${m[1]}`;
@@ -173,6 +174,80 @@ const SOP = {
     steps: ["Quand tu cliques Sauté, le CRM libère sa marque Metricool tout seul.", "Clique Créer : le nouveau compte prend la place du mort (même groupe, même stratégie, même lien).", "À l'étape Metricool, il reprend la marque libérée : tu connectes juste Threads."],
   },
 };
+// ------------------------------------------------------------ aide en direct (indice + bouton ?)
+// hint : une phrase toujours visible. more : le pas a pas du bouton ?. trap : l'erreur a eviter.
+// La video vient de Reglages (lien) ou, a defaut, du fichier /help/<cle>.webm s'il est livre (HELP_VIDEOS).
+const HELP = {
+  today: {
+    t: "Ta journée",
+    hint: "Fais la tâche n° 1, puis la suivante. Rien à retenir.",
+    more: ["Les tâches sont déjà triées par importance.", "La n° 1 est toujours la plus urgente : un compte qui ne poste plus passe avant tout.", "Clique le bouton de la tâche, fais-la, reviens ici.", "Plus rien à faire : crée un compte de réserve."],
+  },
+  rotation: {
+    t: "Changer l'IP",
+    hint: "Clique « Changer l'IP » et attends l'IP en vert.",
+    more: ["1 compte = 1 IP. Toujours une nouvelle IP avant de créer un compte.", "Clique « Changer l'IP » en haut de l'écran.", "Vert : IP neuve, tu peux continuer.", "Rouge : cette IP a déjà servi, reclique.", "L'IP reste valable 15 min. Au-delà, rechange-la."],
+    trap: "Créer le compte plus de 15 min après le changement d'IP. Le CRM bloque.",
+  },
+  geelark: {
+    t: "Nouveau téléphone GeeLark",
+    hint: "Nouveau profil GeeLark, colle le proxy du CRM, allume le téléphone.",
+    more: ["Ouvre l'appli GeeLark sur le PC.", "Crée un nouveau profil (jamais un ancien).", "Onglet Proxy : type HTTP.", "Colle hôte, port, utilisateur, mot de passe avec les boutons Copier du CRM.", "Teste le proxy, puis lance le téléphone.", "Note le nom du profil dans le CRM."],
+    trap: "Réutiliser un ancien profil. 1 profil = 1 compte, toujours.",
+  },
+  numero: {
+    t: "Prendre un numéro",
+    hint: "Clique « Numéro Hong Kong ». Le code SMS arrive ici tout seul.",
+    more: ["Clique « Numéro Hong Kong ». Singapour seulement s'il n'y a plus de Hong Kong.", "Dans Instagram, choisis l'indicatif +852.", "Colle le numéro sans indicatif (bouton Copier).", "Le code s'affiche dans le CRM en 5 à 60 s. Copie-le dans Instagram.", "Rien après 3 min : « Pas de code : rembourser », puis reprends un numéro."],
+    trap: "Utiliser 2 fois le même numéro.",
+  },
+  compte: {
+    t: "Créer Instagram puis Threads",
+    hint: "Crée Instagram avec ce numéro, puis note pseudo et mot de passe ici.",
+    more: ["Dans le téléphone GeeLark : Instagram, S'inscrire, avec le numéro.", "Colle le code SMS.", "Mot de passe : clique « Générer » dans le CRM et copie-le.", "Date de naissance : plus de 21 ans.", "Choisis le pseudo, note-le dans le CRM.", "Ouvre Threads, « Continuer avec Instagram »."],
+    trap: "Taper un autre mot de passe que celui du CRM. On perd le compte.",
+  },
+  marche: {
+    t: "Le compte marche ?",
+    hint: "Fil Threads sans blocage ? Clique « Oui, il marche ».",
+    more: ["Oui : tu vois le fil Threads, aucune demande de vérification.", "Non : demande de selfie, compte suspendu, code refusé.", "Si non : clique « Non ». Nouvelle IP, nouveau profil, on recommence."],
+  },
+  warmup: {
+    t: "Warm-up",
+    hint: "Scrolle et like dans la niche jusqu'à ce que le fil montre la niche.",
+    more: ["Même téléphone, même IP, juste après la création.", "Ouvre les comptes de la niche, abonne-toi à 3 à 5, like leurs posts.", "Scrolle le fil « Pour toi » comme une vraie personne.", "Fini quand le fil montre surtout des posts de la niche.", "Pendant le warm-up : zéro post, zéro lien, zéro changement de profil."],
+  },
+  setup: {
+    t: "Setup du profil",
+    hint: "Photo, bio, puis fais ce que dit la stratégie du compte.",
+    more: ["Même téléphone, même IP que le warm-up.", "Photo de profil : télécharge celle du CRM.", "Bio : bouton « Copier la bio », colle-la telle quelle.", "Lien, post épinglé ou relais : suis la carte de la stratégie, pas une autre.", "Coche les cases, clique « Setup fini »."],
+  },
+  metricool: {
+    t: "Connecter à Metricool",
+    hint: "Ouvre le lien dans le téléphone GeeLark, connecte Threads, reviens cliquer.",
+    more: ["Clique « Connecter à Metricool » : le CRM donne un lien.", "Copie le lien, ouvre-le dans le navigateur du téléphone GeeLark du compte. Jamais sur le PC.", "Touche « Connect a Threads account », puis « Continue with Instagram ».", "Connecte-toi avec le pseudo et le mot de passe du CRM, accepte tout.", "Reviens, clique « J'ai connecté Threads » : le CRM programme 3 jours de posts tout seul."],
+    trap: "Ouvrir le lien sur le PC : mauvaise IP, le compte peut sauter.",
+  },
+  reconnect: {
+    t: "Reconnecter à Metricool",
+    hint: "Threads s'est déconnecté : regarde si le compte vit encore, puis reconnecte.",
+    more: ["Ouvre le profil Threads du compte.", "Le compte a sauté (suspendu, introuvable) : clique « Il a sauté ». Le CRM le remplacera.", "Le compte marche : clique « Reconnecter », puis fais comme une connexion Metricool normale, dans le téléphone GeeLark du compte.", "À la fin, « J'ai connecté Threads » : les posts repartent tout seuls."],
+  },
+  check: {
+    t: "Check du matin",
+    hint: "Ouvre chaque profil, clique le bouton qui correspond.",
+    more: ["OK : le compte marche, ses posts sortent.", "Shadowban : ses posts ne se voient plus depuis un autre compte.", "Restreint : message « action limitée ».", "Sauté : suspendu, supprimé, ou vérification impossible.", "Note les followers si tu peux."],
+  },
+  remplacement: {
+    t: "Remplacer un compte sauté",
+    hint: "Crée le nouveau compte jusqu'au bout : il reprend la place du mort.",
+    more: ["Le CRM a déjà annulé les posts du compte mort et libéré sa marque Metricool.", "Crée le nouveau compte comme d'habitude : IP, téléphone, numéro, compte, warm-up, setup.", "À l'étape Metricool, il reprend la marque du mort : tu connectes juste Threads.", "Il garde le même groupe, la même stratégie, le même lien. Les posts repartent dès la connexion."],
+  },
+};
+const HELP_VIDEOS = ["today", "rotation", "geelark", "numero", "compte", "warmup", "setup", "metricool", "reconnect", "check", "remplacement"];
+const hint = (k) => (HELP[k] ? `<div class="hint"><span class="hint-k">Indice</span><span class="hint-t">${esc(HELP[k].hint)}</span><button class="qbtn" data-act="help" data-k="${k}" aria-label="Plus d'aide">?</button></div>` : "");
+const helpVideo = (k) => S.data.settings.videos?.[k] || (HELP_VIDEOS.includes(k) ? `/help/${k}.webm` : "");
+
 const sopBlock = (key, open) => {
   const s = SOP[key];
   const v = S.data.settings.videos?.[key];
@@ -267,15 +342,19 @@ const VIEWS = {
     const stt = S.data.settings;
     const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Hero SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)"].filter(Boolean);
     if (isAdmin() && miss.length) cards.push(task("", "c-red", "Réglages à finir", miss.join(" · "), "settings", "Ouvrir"));
-    if (t.toCheck.length) cards.push(task("", "c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Regarde si chaque compte marche encore.", "check", "Commencer"));
-    if (t.toReplace.length) cards.push(task("", "c-red", `${t.toReplace.length} compte(s) sauté(s) à remplacer`, "Crée un nouveau compte : il prend la place du mort.", "create", "Remplacer"));
-    if (t.warmup.length) cards.push(task("", "c-yellow", `${t.warmup.length} compte(s) créé(s) : warm-up puis setup`, "10 min de warm-up, puis le setup dans la foulée.", "warmup", "Ouvrir"));
-    if (t.setupReady.length) cards.push(task("", "c-blue", `${t.setupReady.length} compte(s) prêt(s) pour le setup`, "Photo, bio, puis lien ou post épinglé selon la stratégie.", "setup", "Faire le setup"));
-    if (t.toConnect.length) cards.push(task("", "c-violet", `${t.toConnect.length} compte(s) à connecter à Metricool`, "1 clic pour la marque, puis tu connectes Threads depuis le téléphone GeeLark.", "metricool", "Connecter"));
-    if (t.toPlan.length) cards.push(task("", "c-green", `${t.toPlan.length} compte(s) à planifier`, "1 clic : le CRM programme les posts.", "metricool", "Planifier"));
-    if (t.reserveMissing) cards.push(task("", "c-pink", `Crée ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"));
+    // ordre de priorite : d'abord que chaque compte poste (remplacer, reconnecter), puis le reste
+    const pri = [];
+    if (t.toReplace.length) pri.push(["c-red", `Remplacer ${t.toReplace.length} compte(s) sauté(s)`, "Un compte sauté ne poste plus. Crée le remplaçant tout de suite : il reprend sa place et sa marque Metricool.", "create", "Remplacer"]);
+    if ((t.toReconnect || []).length) pri.push(["c-red", `Reconnecter ${t.toReconnect.length} compte(s) à Metricool`, "Threads s'est déconnecté : ses posts ne sortent plus. 2 min pour le reconnecter.", "metricool", "Reconnecter"]);
+    if (t.toCheck.length) pri.push(["c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Repère vite les comptes qui ont sauté.", "check", "Commencer"]);
+    if (t.toConnect.length) pri.push(["c-violet", `Connecter ${t.toConnect.length} compte(s) à Metricool`, "Setup fini mais pas encore branché : il ne poste pas encore.", "metricool", "Connecter"]);
+    if (t.toPlan.length) pri.push(["c-green", `Planifier ${t.toPlan.length} compte(s)`, "Moins de 2 jours de posts devant lui. 1 clic.", "metricool", "Planifier"]);
+    if (t.setupReady.length) pri.push(["c-blue", `Setup de ${t.setupReady.length} compte(s)`, "Photo, bio, puis lien ou post épinglé selon la stratégie.", "setup", "Faire le setup"]);
+    if (t.warmup.length) pri.push(["c-yellow", `Warm-up de ${t.warmup.length} compte(s)`, "Finis le warm-up, puis le setup dans la foulée.", "warmup", "Ouvrir"]);
+    if (t.reserveMissing) pri.push(["c-pink", `Créer ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"]);
+    pri.forEach(([c, title, desc, tab, btn], i) => cards.push(task(i + 1, c, title, desc, tab, btn, i === 0)));
     const waiting = "";
-    return `<h2>Bonjour ${esc(S.data.me.name)}</h2><p class="lead">Voici ce qu'il reste à faire aujourd'hui, dans l'ordre.</p>
+    return `<h2>Bonjour ${esc(S.data.me.name)}</h2><p class="lead">Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
       <div class="stats">${stat("c-green", t.active, "comptes actifs")}${stat("c-violet", t.reserve, "en réserve")}${stat("c-yellow", t.toCheck.length, "à checker")}${stat("c-red", t.toReplace.length, "à remplacer")}</div>
       ${cards.length ? `<div class="card list">${cards.join("")}</div>` : '<div class="card done-all"><b>Tout est à jour.</b><span>Si tu as le temps, crée un compte de réserve.</span></div>'}${waiting}`;
   },
@@ -284,7 +363,7 @@ const VIEWS = {
     const cur = S.data.sms && S.data.sms.status === "attente" ? S.data.sms : null;
     const lab = { attente: ["c-yellow", "En cours"], fini: ["c-green", "Utilisé"], annule: ["c-blue", "Remboursé"], expire: ["c-red", "Expiré"] };
     const hist = (S.data.smsHistory || []).filter((h) => !cur || h.id !== cur.id);
-    return `<h2>Numéro</h2><p class="lead">Un numéro pour créer un compte. Toujours Hong Kong. Le code SMS arrive ici.</p>
+    return `<h2>Numéro</h2><p class="lead">Un numéro pour créer un compte. Toujours Hong Kong. Le code SMS arrive ici.</p>${hint("numero")}
       ${S.data.configured.sms ? `<div class="card">${cur ? smsCard(cur) : smsBuyBlock()}</div>
         ${cur ? `<p class="muted">Quand le compte est créé dans « Créer un compte », ce numéro se ferme tout seul.</p>` : ""}
         ${hist.length ? `<h3>Derniers numéros</h3><div class="card list">${hist.map((h) => `<div class="row" style="justify-content:space-between;padding:6px 0"><span><b>${esc(h.phone)}</b> <span class="muted">${esc(h.countryName)} · ${ago(h.createdAt)}${h.code ? " · code " + esc(h.code) : ""}</span></span>${(() => { const [c, l] = lab[h.status] || ["", h.status]; return `<span class="pill ${c}">${l}</span>`; })()}</div>`).join("")}</div>` : ""}`
@@ -297,18 +376,18 @@ const VIEWS = {
     const ip = freshIp();
     const ipUsed = ip && S.data.accounts.some((a) => a.ip === ip.ip);
     const bar = `<div class="steps">${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
-    const head = `<h2>Créer un compte</h2>${replacing ? `<div class="alert c-red">Ce compte remplace <b>@${esc(replacing.pseudo)}</b> (groupe ${esc(group(replacing.group).name)}).</div>` : ""}${bar}`;
+    const head = `<h2>Créer un compte</h2>${replacing ? `<div class="alert c-red">Ce compte remplace <b>@${esc(replacing.pseudo)}</b> (groupe ${esc(group(replacing.group).name)}). Va jusqu'à Metricool sans pause : les posts repartent dès que Threads est connecté.</div>${w.step === 1 ? hint("remplacement") : ""}` : ""}${bar}`;
     const nav = (canNext, label = "Étape suivante") =>
       `<div class="row" style="margin-top:16px">${w.step > 1 ? '<button class="btn ghost" data-act="wizBack">Retour</button>' : ""}<div class="spacer"></div><button class="btn" data-act="wizNext" ${canNext ? "" : "disabled"}>${label}</button></div>`;
     const proxy = parseProxy(S.data.settings.proxy);
     if (w.step === 1)
-      return `${head}<div class="card"><div class="stepnum">Étape 1 sur 5</div><h3>Change l'IP</h3>
+      return `${head}<div class="card"><div class="stepnum">Étape 1 sur 5</div><h3>Change l'IP</h3>${hint("rotation")}
         <p>Clique sur le bouton, puis attends que la nouvelle IP s'affiche.</p>
         <button class="btn big rot" data-act="rotate" data-wait="Changement de l'IP...">Changer l'IP</button>
         ${ip ? `<div class="alert ${ipUsed ? "c-red" : "c-green"}">${ipUsed ? "Cette IP a déjà servi. Rechange-la." : `Nouvelle IP : <b>${esc(ip.ip)}</b> ${esc(ip.country)} (${ago(ip.at)})`}</div>` : '<div class="alert c-yellow">Pas encore d\'IP fraîche.</div>'}
         ${nav(ip && !ipUsed)}</div>${sopBlock("rotation")}`;
     if (w.step === 2)
-      return `${head}<div class="card"><div class="stepnum">Étape 2 sur 5</div><h3>Nouveau profil GeeLark</h3>
+      return `${head}<div class="card"><div class="stepnum">Étape 2 sur 5</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
         <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous (type HTTP).</li></ol>
         <a class="btn light" href="${esc(S.data.settings.geelarkUrl)}" target="_blank" rel="noopener">Ouvrir GeeLark</a>
         ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
@@ -316,7 +395,7 @@ const VIEWS = {
         ${videoEmbed(S.data.settings.videos?.creation)}${nav(true)}</div>`;
     if (w.step === 3) {
       if (!S.data.configured.sms)
-        return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>
+        return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>${hint("numero")}
           ${S.data.settings.smsSiteUrl ? `<a class="btn light" href="${esc(S.data.settings.smsSiteUrl)}" target="_blank" rel="noopener">Ouvrir le site SMS</a>` : '<div class="alert c-yellow">Hero SMS pas encore branché (Réglages, admin).</div>'}
           <label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+852 ..." />
           ${nav(true)}</div>`;
@@ -325,12 +404,12 @@ const VIEWS = {
         w.f.phone = cur.phone;
         w.f.smsId = cur.id;
       }
-      return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>
+      return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>${hint("numero")}
         ${cur ? smsCard(cur) : smsBuyBlock() + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+852 ..." /></details>`}
         ${nav(!!(w.f.phone))}</div>`;
     }
     if (w.step === 4)
-      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Instagram puis Threads</h3>
+      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Instagram puis Threads</h3>${hint("compte")}
         <label class="f">Pseudo</label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
         <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(w.f.pseudo || "pseudo")}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(w.f.pseudo || "pseudo")}</button></div>
@@ -339,7 +418,7 @@ const VIEWS = {
         <label class="f">Mot de passe email <small>(facultatif)</small></label><input data-f="emailPassword" value="${esc(w.f.emailPassword || "")}" autocapitalize="off" />
         ${nav(true)}</div>`;
     if (w.step === 5)
-      return `${head}<div class="card"><div class="stepnum">Étape 5 sur 5</div><h3>Le compte marche ?</h3>
+      return `${head}<div class="card"><div class="stepnum">Étape 5 sur 5</div><h3>Le compte marche ?</h3>${hint("marche")}
         <p>Tu arrives sur le fil Threads, sans blocage, sans demande de vérif ? Alors il marche.</p>
         ${copyLine("Pseudo", w.f.pseudo)}${copyLine("Numéro", w.f.phone)}
         <div class="row" style="margin-top:14px"><button class="btn big ok" data-act="wizCreate" data-wait="Enregistrement...">Oui, il marche</button></div>
@@ -373,7 +452,13 @@ const VIEWS = {
     const now = Date.now();
     const upcoming = (id) => S.data.posts.filter((p) => p.accountId === id && p.status === "programme" && new Date(p.at).getTime() > now);
     const brandOpts = (S.brands || []).filter((b) => !b.linkedTo);
+    const broken = (S.data.tasks.toReconnect || []).map(acc).filter(Boolean);
+    const why = (id) => (S.data.mcAlerts || []).find((x) => x.accountId === id)?.msg || "Threads déconnecté";
     return `<h2>Metricool</h2><p class="lead">Après le setup, le CRM crée la marque et te donne le lien. Tu connectes Threads, le CRM planifie tout seul.</p>
+      ${broken.length ? `<h3>À reconnecter en urgence (${broken.length})</h3>${hint("reconnect")}<div class="grid">${broken.map((a) => a.mcLink ? mcConnectCard(a) : `<div class="card acc urgent"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><div class="alert c-red">${esc(why(a.id))}. Ses posts ne sortent plus.</div>
+        <div class="row"><a class="btn light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Ouvrir le profil</a></div>
+        <div class="row"><button class="btn big" data-act="mcConnect" data-id="${a.id}" data-wait="...">Reconnecter</button><button class="btn bad" data-act="dead" data-id="${a.id}">Il a sauté</button></div></div>`).join("")}</div>` : ""}
+      ${hint("metricool")}
       ${!S.data.configured.metricool ? '<div class="alert c-red">Metricool pas encore branché (Réglages, admin).</div>' : ""}
       <h3>À connecter (${toConnect.length})</h3>
       ${toConnect.length ? `<div class="grid">${toConnect.map((a) => mcConnectCard(a)).join("")}</div>
@@ -393,7 +478,7 @@ const VIEWS = {
 
   check() {
     const list = S.data.tasks.toCheck.map(acc).filter(Boolean);
-    return `<h2>Check du matin</h2><p class="lead">Ouvre chaque profil. Choisis le bon bouton.</p>
+    return `<h2>Check du matin</h2><p class="lead">Ouvre chaque profil. Choisis le bon bouton.</p>${hint("check")}
       ${list.length ? list.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span><div class="spacer"></div>${pill(a.status)}</div>
         <div class="row"><a class="btn light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Ouvrir le profil</a><input type="number" min="0" placeholder="Followers (facultatif)" data-followers="${a.id}" style="max-width:220px" /></div>
         <div class="row"><button class="btn ok" data-act="check" data-st="actif" data-id="${a.id}">OK</button><button class="btn warn" data-act="check" data-st="shadowban" data-id="${a.id}">Shadowban</button><button class="btn warn" data-act="check" data-st="restreint" data-id="${a.id}">Restreint</button><button class="btn bad" data-act="dead" data-id="${a.id}">Sauté</button></div></div>`).join("") : '<div class="card done-all"><b>Check du jour terminé. Bravo.</b></div>'}
@@ -548,7 +633,7 @@ const VIEWS = {
 
 // ------------------------------------------------------------ journal lisible
 const LOGS = {
-  premier_acces: "Premier accès", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
+  premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
@@ -573,12 +658,14 @@ function logDetails(l) {
   if (l.added != null) out.push(`${l.added} ajouté(s)`);
   if (l.blogId) out.push("marque " + l.blogId);
   if (l.name) out.push(l.name);
+  if (l.aide) out.push(HELP[l.aide]?.t || l.aide);
   return out.join(", ");
 }
 
 // ------------------------------------------------------------ petits blocs
-function task(emo, color, title, desc, tab, btn) {
-  return `<div class="task"><span class="dot ${color}"></span><div class="task-text"><b>${esc(title)}</b><span>${esc(desc)}</span></div><button class="btn sm" data-tab="${tab}">${esc(btn)}</button></div>`;
+function task(n, color, title, desc, tab, btn, first) {
+  const num = n === "" ? `<span class="dot ${color}"></span>` : `<span class="prio ${color}">${esc(n)}</span>`;
+  return `<div class="task ${first ? "first" : ""}">${num}<div class="task-text"><b>${esc(title)}</b><span>${esc(desc)}</span></div><button class="btn sm ${first ? "accent" : ""}" data-tab="${tab}">${esc(btn)}</button></div>`;
 }
 function stat(color, n, label) {
   return `<div class="stat"><b>${esc(n)}</b><span><i class="dot ${color}"></i>${esc(label)}</span></div>`;
@@ -597,7 +684,7 @@ function parseProxy(p) {
 }
 function warmupCard(a, withTimer) {
   if (!a) return "";
-  return `<div class="card"><div class="head row"><span class="num">#${a.num}</span><b>@${esc(a.pseudo)}</b>${gpill(a.group)}</div>
+  return `<div class="card"><div class="head row"><span class="num">#${a.num}</span><b>@${esc(a.pseudo)}</b>${gpill(a.group)}</div>${hint("warmup")}
     <p class="muted">Même profil GeeLark, même IP. 10 min de scroll, puis le setup direct.</p><div class="timer" data-timer="${a.id}">10:00</div><div class="row"><button class="btn light" data-act="startTimer" data-id="${a.id}">Lancer le chrono 10 min</button></div>
     <div class="checklist" data-wcheck="${a.id}">${SOP.warmup.steps.map((s) => `<label><input type="checkbox" /> ${esc(s)}</label>`).join("")}</div>
     <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini, passer au setup</button>
@@ -674,7 +761,7 @@ function setupWizard(a) {
     pinStep = `<div class="card"><div class="stepnum">5. Post épinglé (2 parties)</div>${st.pinnedPost ? `<ol><li>Publie la partie 1 (ton propre profil s'affiche en carte en dessous).</li>${box(fill(st.pinnedPost))}${st.pinnedReply ? `<li>Réponds à ton propre post avec la partie 2 (le lien).</li>${box(fill(st.pinnedReply))}` : ""}<li>Sur le post, touche les 3 points, puis Épingler.</li></ol>` : '<p class="muted">Modèle de post épinglé pas encore fourni.</p>'}</div>`;
     checks.push("Post épinglé publié et épinglé");
   }
-  return `<h2>Setup de @${esc(a.pseudo)}</h2>
+  return `<h2>Setup de @${esc(a.pseudo)}</h2>${hint("setup")}
     <div class="alert">${spill(strat)}<div style="margin-top:6px">${explain}</div></div>
     <div class="card"><div class="stepnum">1. Même profil, même IP</div>
       <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</div>
@@ -756,6 +843,14 @@ function tick(el, end) {
 // ------------------------------------------------------------ actions
 const ACT = {
   copy: (b) => copy(b.dataset.v),
+  help(b) {
+    const k = b.dataset.k;
+    const h = HELP[k];
+    if (!h) return;
+    const v = helpVideo(k);
+    modal(`<h3>${esc(h.t)}</h3>${v ? videoEmbed(v) : ""}<ol class="helpsteps">${h.more.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>${h.trap ? `<div class="alert c-red"><b>Piège</b> : ${esc(h.trap)}</div>` : ""}<p class="muted">Tu bloques encore ? Écris à ton manager avec une capture d'écran.</p>`);
+    api("help/seen", { k }).catch(() => {});
+  },
   closeModal,
   logout,
   async rotate(b) {
@@ -1047,7 +1142,7 @@ const ACT = {
   },
   dead(b) {
     const a = acc(b.dataset.id);
-    modal(`<h3>@${esc(a.pseudo)} a sauté ?</h3><ol><li>Le CRM annule ses posts programmés.</li><li><b>Dans Metricool</b> : ouvre la marque <b>${esc(a.pseudo)}</b> et déconnecte Threads.</li><li>Crée un nouveau compte : il prendra sa place automatiquement.</li></ol>
+    modal(`<h3>@${esc(a.pseudo)} a sauté ?</h3><ol><li>Le CRM annule ses posts programmés et libère sa marque Metricool tout seul.</li><li>Crée tout de suite le remplaçant : il reprend sa place, sa marque et son lien.</li></ol>
       ${videoEmbed(S.data.settings.videos?.remplacement)}<label class="f">Note <small>(facultatif)</small></label><input id="deadnote" placeholder="ex : suspendu, demande de selfie..." />
       <button class="btn big bad" style="margin-top:14px" data-act="deadConfirm" data-id="${a.id}" data-wait="...">Oui, il a sauté</button>`);
   },

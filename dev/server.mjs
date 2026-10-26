@@ -119,11 +119,13 @@ async function fakeFetch(url, opts = {}) {
 }
 async function fakeProxyFetch(url, proxy) {
   if (!proxy) return Response.json({ ip: "1.1.1.1", country: "TH", city: "Bangkok" });
+  // FAKE_IP=HK pour les videos d'aide : une IP de Hong Kong, comme en vrai
+  if (process.env.FAKE_IP === "HK") return Response.json({ ip: `103.152.34.${ipN}`, country: "HK", city: "Hong Kong", org: "HKBN" });
   return Response.json({ ip: `82.64.12.${ipN}`, country: "FR", city: "Paris", org: "SFR" });
 }
 
 const env = { store, fetch: fakeFetch, proxyFetch: fakeProxyFetch, rotateWaitMs: 3000, rotatePollMs: 200 };
-const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8" };
+const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".webm": "video/webm", ".png": "image/png" };
 
 http
   .createServer(async (req, res) => {

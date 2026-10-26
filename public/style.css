@@ -238,3 +238,23 @@ details.card[open] > summary { margin-bottom: 8px; }
   .stat:nth-child(2n) { border-right: 0; }
   .stat { border-bottom: 1px solid var(--line); }
 }
+
+/* aide en direct : indice + bouton ? */
+.hint { display: flex; align-items: center; gap: 10px; margin: 10px 0 14px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; background: #f5f7ff; font-size: 14px; }
+.hint-k { font-size: 12px; font-weight: 600; color: var(--accent); flex: none; }
+.hint-t { flex: 1; min-width: 0; }
+.qbtn { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--accent); background: #fff; color: var(--accent); font-weight: 700; cursor: pointer; }
+.qbtn:hover { background: var(--accent); color: #fff; }
+.helpsteps li { margin: 6px 0; }
+.video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+/* priorites de l'accueil */
+.prio { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: var(--graphite); }
+.prio.c-red { background: var(--red); }
+.prio.c-yellow { background: var(--amber); }
+.prio.c-green { background: var(--green); }
+.prio.c-blue { background: var(--blue); }
+.prio.c-violet { background: var(--violet); }
+.prio.c-pink { background: var(--pink); }
+.task.first { background: #f5f7ff; }
+.card.urgent { border-color: var(--red); }
