@@ -964,6 +964,8 @@ document.addEventListener("click", async (e) => {
   if (e.target.id === "modal") closeModal();
 });
 document.addEventListener("input", (e) => {
+  // on garde chaque champ de l'assistant en mémoire à chaque frappe (pas seulement au clic suivant)
+  if (e.target.matches("[data-f]") && S.wiz) S.wiz.f[e.target.dataset.f] = e.target.value.trim();
   if (e.target.matches("[data-search]")) {
     S.search = e.target.value;
     const pos = e.target.selectionStart;
