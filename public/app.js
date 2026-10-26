@@ -447,7 +447,10 @@ const VIEWS = {
       <div class="card"><h3 style="margin-top:0">Liens</h3>
         <label class="f">Site SMS</label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
         <label class="f">Lien GeeLark</label><input data-st="geelarkUrl" value="${esc(st.geelarkUrl)}" />
-        <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" /></div>
+        <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" />
+        <h3>Modèle en cours</h3>
+        <label class="f">Prénom de la modèle</label><input data-model="name" value="${esc(st.model?.name || "")}" />
+        <label class="f">Lien de la modèle <small>(Telegram ou OnlyChat : celui qui va dans la bio et le post)</small></label><input data-model="link" value="${esc(st.model?.link || "")}" /></div>
       <div class="card"><h3 style="margin-top:0">Planification</h3>
         <label class="f">Fuseau horaire de la cible <small>(Asia/Taipei = Taïwan, Singapour, Hong Kong)</small></label><input data-st="timezone" value="${esc(st.timezone)}" />
         <label class="f">Posts par jour et par compte</label><input type="number" min="1" max="10" data-st="postsPerDay" value="${esc(st.postsPerDay)}" />
@@ -535,7 +538,7 @@ function setupWizard(a) {
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
     <div class="card"><div class="stepnum">3. Bio</div><textarea data-setupbio>${esc(s.bio)}</textarea><div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${(st.bios || []).length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
-    <div class="card"><div class="stepnum">4. Lien</div>${a.link ? copyLine("Lien", a.link) : '<div class="alert c-red">Pas de lien pour ce compte. Demande à Awen / Bilot d\'ajouter des liens (onglet Contenu).</div>'}</div>
+    <div class="card"><div class="stepnum">4. Lien</div>${st.model?.link ? copyLine("Lien " + (st.model.name || "modèle"), st.model.link) : ""}${a.link ? copyLine("Lien", a.link) : '<div class="alert c-red">Pas de lien pour ce compte. Demande à Awen / Bilot d\'ajouter des liens (onglet Contenu).</div>'}</div>
     <div class="card"><div class="stepnum">5. Post épinglé (2 parties)</div>${st.pinnedPost ? (() => {
       const fill = (t) => String(t || "").replaceAll("{pseudo}", a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT");
       const p1 = fill(st.pinnedPost), p2 = fill(st.pinnedReply);
@@ -902,6 +905,7 @@ const ACT = {
       groups,
       videos,
       sopExtra: v("sopExtra"),
+      model: { name: $('[data-model="name"]').value.trim(), link: $('[data-model="link"]').value.trim() },
     };
     await run(b, async () => {
       await api("settings", body);
