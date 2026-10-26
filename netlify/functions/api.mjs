@@ -8,7 +8,7 @@ function makeStore() {
     get: (k) => s.get(k, { type: "json" }),
     set: (k, v) => s.setJSON(k, v),
     getBinary: (k) => s.get(k, { type: "arrayBuffer" }),
-    setBinary: (k, v) => s.set(k, v),
+    setBinary: (k, v) => s.set(k, v instanceof ArrayBuffer ? v : v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength)),
     delete: (k) => s.delete(k),
     list: async (prefix) => {
       const keys = [];
