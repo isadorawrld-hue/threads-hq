@@ -117,7 +117,7 @@ await v.click('[data-act="wizNext"]');
 await v.waitForSelector('[data-act="smsBuy"]');
 await v.waitForFunction(() => /934 dispo/.test(document.body.textContent));
 await shot(v, "06b-sms-choix");
-await v.click('[data-act="smsBuy"]');
+await v.click('[data-act="smsBuy"][data-v="14"]');
 await waitToast(v, /Numéro pris/);
 await v.waitForSelector("[data-smswait]");
 await shot(v, "06c-sms-attente");
@@ -137,6 +137,20 @@ await waitToast(v, /Coche/);
 for (const c of await v.$$('[data-wcheck] input')) await c.check();
 await v.click('[data-act="warmupDone"]');
 await waitToast(v, /Warm-up validé/);
+
+// ---- onglet Numéro : prendre un numéro puis se faire rembourser
+await tab(v, "numero");
+await v.waitForFunction(() => /934 dispo/.test(document.body.textContent));
+await shot(v, "06e-numero");
+await v.click('[data-act="smsBuy"][data-v="14"]');
+await waitToast(v, /Numéro pris/);
+await v.waitForSelector("[data-smswait]");
+await v.click('[data-act="smsCancel"]');
+await waitToast(v, /Remboursé/);
+await v.waitForSelector('[data-act="smsBuy"][data-v="14"]');
+await v.waitForFunction(() => /Remboursé/.test(document.querySelector("main").textContent));
+await shot(v, "06f-numero-rembourse");
+await tab(v, "setup");
 
 // ---- la VA enchaîne direct sur le setup (ouvert automatiquement)
 await v.waitForSelector("[data-setupbio]");

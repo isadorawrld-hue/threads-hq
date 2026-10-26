@@ -140,6 +140,10 @@ const SOP = {
     t: "Changer l'IP",
     steps: ["Avant chaque compte, clique sur « Changer l'IP ».", "Attends que la nouvelle IP s'affiche.", "Jamais 2 comptes sur la même IP. Le CRM bloque si tu oublies."],
   },
+  numero: {
+    t: "Prendre un numéro",
+    steps: ["Onglet Numéro (ou étape 3 de Créer un compte) : clique « Numéro Hong Kong ».", "Singapour seulement s'il n'y a plus de Hong Kong.", "Dans Instagram : indicatif +852, puis le numéro sans indicatif (bouton Copier).", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Instagram.", "Pas de code après 2 à 3 minutes : « Pas de code : rembourser », puis reprends un numéro.", "Jamais 2 comptes sur le même numéro."],
+  },
   creation: {
     t: "Créer un compte",
     steps: ["Change l'IP.", "GeeLark : nouveau profil, 1 profil = 1 compte. Mets le proxy (infos à copier dans le CRM).", "Clique « Prendre un numéro » : le numéro s'affiche, le code SMS arrive tout seul dans le CRM.", "Crée le compte Instagram avec ce numéro, colle le code, puis active Threads.", "Le compte marche : clique « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
@@ -179,6 +183,7 @@ const sopBlock = (key, open) => {
 const ICONS = {
   today: '<path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
   create: '<path d="M12 5v14M5 12h14"/>',
+  numero: '<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>',
   warmup: '<path d="M12 3c2 3 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-8z"/>',
   setup: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
   metricool: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
@@ -200,6 +205,7 @@ function render() {
   const groups = [
     ["Travail du jour", [
       ["today", "Aujourd'hui", 0],
+      ["numero", "Numéro", S.data.sms && S.data.sms.status === "attente" ? 1 : 0],
       ["create", "Créer un compte", t.toReplace.length + t.reserveMissing],
       ["warmup", "Warm-up", t.warmup.length],
       ["setup", "Setup", t.setupReady.length],
@@ -273,6 +279,16 @@ const VIEWS = {
       ${cards.length ? `<div class="card list">${cards.join("")}</div>` : '<div class="card done-all"><b>Tout est à jour.</b><span>Si tu as le temps, crée un compte de réserve.</span></div>'}${waiting}`;
   },
 
+  numero() {
+    const cur = S.data.sms && S.data.sms.status === "attente" ? S.data.sms : null;
+    const lab = { attente: ["c-yellow", "En cours"], fini: ["c-green", "Utilisé"], annule: ["c-blue", "Remboursé"], expire: ["c-red", "Expiré"] };
+    const hist = (S.data.smsHistory || []).filter((h) => !cur || h.id !== cur.id);
+    return `<h2>Numéro</h2><p class="lead">Un numéro pour créer un compte. Toujours Hong Kong. Le code SMS arrive ici.</p>
+      ${S.data.configured.sms ? `<div class="card">${cur ? smsCard(cur) : smsBuyBlock()}</div>
+        ${cur ? `<p class="muted">Quand le compte est créé dans « Créer un compte », ce numéro se ferme tout seul.</p>` : ""}
+        ${hist.length ? `<h3>Derniers numéros</h3><div class="card list">${hist.map((h) => `<div class="row" style="justify-content:space-between;padding:6px 0"><span><b>${esc(h.phone)}</b> <span class="muted">${esc(h.countryName)} · ${ago(h.createdAt)}${h.code ? " · code " + esc(h.code) : ""}</span></span>${(() => { const [c, l] = lab[h.status] || ["", h.status]; return `<span class="pill ${c}">${l}</span>`; })()}</div>`).join("")}</div>` : ""}`
+      : '<div class="alert c-red">Hero SMS pas encore branché (Réglages, admin).</div>'}${sopBlock("numero")}`;
+  },
   create() {
     const w = S.wiz || (S.wiz = { step: 1, f: {} });
     const t = S.data.tasks;
@@ -309,7 +325,7 @@ const VIEWS = {
         w.f.smsId = cur.id;
       }
       return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>
-        ${cur ? smsCard(cur) : smsBuyBlock()}
+        ${cur ? smsCard(cur) : smsBuyBlock() + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+852 ..." /></details>`}
         ${nav(!!(w.f.phone))}</div>`;
     }
     if (w.step === 4)
@@ -497,7 +513,6 @@ const VIEWS = {
         <label class="f">6. Clé API Hero SMS ${c.sms ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(hero-sms.com : Obtenir la clé API)</small></label><input type="password" data-sec="heroToken" placeholder="${c.sms ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API"}" autocomplete="off" />
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester le proxy</button></div></div>
       <div class="card"><h3 style="margin-top:0">Liens</h3>
-        <label class="f">Pays des numéros SMS par défaut</label><select data-st="smsCountry">${(S.data.smsCountries || []).map((cc) => `<option value="${cc.id}" ${Number(st.smsCountry) === cc.id ? "selected" : ""}>${esc(cc.name)} (${esc(cc.note)})</option>`).join("")}</select>
         <label class="f">Site SMS <small>(secours, si Hero SMS n'est pas branché)</small></label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
         <label class="f">Lien GeeLark</label><input data-st="geelarkUrl" value="${esc(st.geelarkUrl)}" />
         <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" />
@@ -583,18 +598,14 @@ function warmupCard(a, withTimer) {
 }
 function smsBuyBlock() {
   const prices = S.smsPrices || null;
-  const def = Number(S.data.settings.smsCountry) || 14;
-  const sel = S.smsCountry || def;
-  const list = S.data.smsCountries || [];
-  return `<p>Choisis le pays, puis clique. Le numéro et le code SMS arrivent ici, tu n'as rien d'autre à ouvrir.</p>
-    <div class="chips">${list.map((c) => {
-      const p = prices ? prices.find((x) => x.id === c.id) : null;
-      const info = p ? (p.price != null ? `${p.price.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} $ · ${p.stock} dispo` : "indisponible") : c.note;
-      return `<button class="chip ${sel === c.id ? "on" : ""}" data-act="smsCountry" data-v="${c.id}" ${p && !p.stock ? "disabled" : ""}>${esc(c.name)} <small>${esc(info)}</small></button>`;
-    }).join("")}</div>
-    <div class="row" style="margin-top:12px"><button class="btn big" data-act="smsBuy" data-wait="Achat du numéro...">Prendre un numéro ${esc(list.find((c) => c.id === sel)?.name || "")}</button><button class="btn ghost" data-act="smsPrices" data-wait="...">Voir les prix</button></div>
-    ${S.smsBalance != null ? `<p class="muted">Solde Hero SMS : ${S.smsBalance.toFixed(2)} $</p>` : ""}
-    <details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(S.wiz.f.phone || "")}" placeholder="+852 ..." /></details>`;
+  const hk = prices ? prices.find((x) => x.id === 14) : null;
+  const sg = prices ? prices.find((x) => x.id === 196) : null;
+  const info = (p) => (p ? (p.price != null && p.stock ? `${p.price.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} $ · ${p.stock} dispo` : "plus de numéro") : "");
+  const hkEmpty = hk && !hk.stock;
+  return `<p>Clique sur <b>Hong Kong</b>. Le numéro et le code SMS arrivent ici, tu n'as rien d'autre à ouvrir.</p>
+    <button class="btn big" data-act="smsBuy" data-v="14" data-wait="Achat du numéro..." ${hkEmpty ? "disabled" : ""}>Numéro Hong Kong ${hk ? `<small style="opacity:.7;font-weight:500">· ${esc(info(hk))}</small>` : ""}</button>
+    <div class="row" style="margin-top:10px"><button class="btn ${hkEmpty ? "" : "light"}" data-act="smsBuy" data-v="196" data-wait="Achat du numéro...">Numéro Singapour ${sg ? `<small style="opacity:.7;font-weight:500">· ${esc(info(sg))}</small>` : ""}</button></div>
+    <p class="muted">${hkEmpty ? "<b>Plus de numéro Hong Kong</b> : prends Singapour." : "Singapour seulement s'il n'y a plus de Hong Kong."}${S.smsBalance != null ? ` · Solde : ${S.smsBalance.toFixed(2)} $` : ""} · <a href="#" data-act="smsPrices">actualiser</a></p>`;
 }
 function smsCard(cur) {
   const left = Math.max(0, Math.round((new Date(cur.expiredAt).getTime() - Date.now()) / 1000));
@@ -603,7 +614,7 @@ function smsCard(cur) {
     ${copyLine("Numéro complet", cur.phone)}${cur.local && cur.local !== cur.phone.slice(1) ? copyLine(`Sans indicatif (${cur.dial})`, cur.local) : ""}
     <p>Dans Instagram, choisis l'indicatif <b>${esc(cur.dial || cur.countryName)}</b> puis colle le numéro sans indicatif. Le code arrive ici tout seul, sans rien ouvrir.</p>
     ${cur.code ? `<div class="alert c-green" style="font-size:22px;font-weight:700;letter-spacing:2px">${esc(cur.code)} <button class="btn sm light" data-act="copy" data-v="${esc(cur.code)}" style="letter-spacing:0;font-size:13px">Copier</button></div>${cur.smsText ? `<p class="muted">${esc(cur.smsText)}</p>` : ""}` : `<div class="alert c-yellow" data-smswait>En attente du SMS... <span class="muted">(vérifié toutes les 5 secondes)</span></div>`}
-    <div class="row" style="margin-top:10px">${cur.code ? "" : `<button class="btn sm light" data-act="smsCode" data-wait="...">Vérifier maintenant</button><button class="btn sm ghost" data-act="smsCancel" data-wait="...">Pas de SMS : annuler (remboursé)</button>`}</div>`;
+    <div class="row" style="margin-top:10px">${cur.code ? (S.tab === "numero" ? `<button class="btn sm light" data-act="smsDone" data-wait="...">Numéro utilisé, j'en veux un autre</button>` : "") : `<button class="btn sm light" data-act="smsCode" data-wait="...">Vérifier maintenant</button><button class="btn sm bad" data-act="smsCancel" data-wait="Remboursement...">Pas de code : rembourser</button>`}</div>`;
 }
 function mcConnectCard(a) {
   if (!a.mcLink) {
@@ -860,12 +871,8 @@ const ACT = {
       await refresh();
     });
   },
-  smsCountry(b) {
-    readWizFields();
-    S.smsCountry = Number(b.dataset.v);
-    render();
-  },
   async smsPrices(b) {
+    S.smsPrices = null;
     await run(b, async () => {
       S.smsPrices = await api("sms/prices");
       try { S.smsBalance = (await api("sms/balance")).balance; } catch {}
@@ -875,7 +882,7 @@ const ACT = {
   async smsBuy(b) {
     readWizFields();
     await run(b, async () => {
-      const act = await api("sms/buy", { country: S.smsCountry || Number(S.data.settings.smsCountry) || 14 });
+      const act = await api("sms/buy", { country: Number(b.dataset.v) || 14 });
       S.wiz.f.phone = act.phone;
       S.wiz.f.smsId = act.id;
       toast(`Numéro pris : ${act.phone}`);
@@ -890,13 +897,20 @@ const ACT = {
       await refresh();
     });
   },
+  async smsDone(b) {
+    await run(b, async () => {
+      await api(`sms/${S.data.sms.id}/finish`, {});
+      toast("Numéro fermé. Tu peux en prendre un autre.");
+      await refresh();
+    });
+  },
   async smsCancel(b) {
     readWizFields();
     await run(b, async () => {
       await api(`sms/${S.data.sms.id}/cancel`, {});
       S.wiz.f.phone = "";
       S.wiz.f.smsId = "";
-      toast("Numéro annulé et remboursé. Prends-en un autre.");
+      toast("Remboursé. Reprends un numéro Hong Kong.");
       await refresh();
     });
   },
@@ -1138,7 +1152,6 @@ const ACT = {
     document.querySelectorAll("[data-vid]").forEach((el) => (videos[el.dataset.vid] = el.value.trim()));
     const body = {
       smsSiteUrl: v("smsSiteUrl").trim(),
-      smsCountry: Number(v("smsCountry")) || 14,
       geelarkUrl: v("geelarkUrl").trim(),
       metricoolUrl: v("metricoolUrl").trim(),
       timezone: v("timezone").trim(),

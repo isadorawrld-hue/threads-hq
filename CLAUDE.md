@@ -56,7 +56,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Service Instagram+Threads = `ig`. Pays : Hong Kong 14, Singapour 196, Taïwan 55 (liste publique : `/stubs/handler_api.php?action=getCountries`).
 - Prix/stock : `GET /activations/offers/sms?services=ig&countries=14,196,55`. Acheter : `POST /activations {service, country, amount:1, verificationType:"sms"}` → `data[0]` (id, phone sans +, countryPhoneCode, price, expiredAt).
 - Code : `GET /activations/{id}/otp/last` (404 tant que rien). Fin : `POST /activations/{id}/finish`. Annuler + rembourser (seulement sans code) : `DELETE /activations/{id}`. Solde : `/stubs/handler_api.php?action=getBalance&api_key=...` → `ACCESS_BALANCE:x`.
-- Flux CRM : étape 3 de « Créer un compte » → la VA choisit le pays, clique, le numéro s'affiche, le code arrive tout seul (vérif toutes les 5 s). Compte créé → activation terminée. Échec ou « Annuler » sans code → remboursé.
+- Flux CRM : onglet « Numéro » (ou étape 3 de « Créer un compte ») → gros bouton Hong Kong, Singapour seulement si HK vide (Taïwan retiré), clique, le numéro s'affiche, le code arrive tout seul (vérif toutes les 5 s). Compte créé → activation terminée. Échec ou « Annuler » sans code → remboursé.
 - Prix vus le 26/10/2026 (Instagram+Threads) : Hong Kong 0,035 $ (934 dispo), Singapour 0,21 $ (117), Taïwan 0,75 $ (virtuels seulement).
 
 ## Metricool (faits vérifiés)
