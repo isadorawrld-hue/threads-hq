@@ -58,6 +58,13 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Planifier : `POST /v2/scheduler/posts?blogId=...&userId=...`. Corps : `publicationDate {dateTime, timezone}`, `text`, `providers: [{network: "threads"}]`, `media`, `threadsData`, et d'autres champs optionnels.
 - Images : `GET /actions/normalize/image/url?url=...` d'abord, puis passer l'URL retournée dans `media`. L'URL d'origine doit être publique et non expirante.
 - Annuler : `DELETE /v2/scheduler/posts/{id}?blogId=...`
+- Créer une marque nommée : `POST /v2/settings/brands?userId=...` corps `{brandLabel: "@pseudo"}` → `data.id` = blogId (testé en vrai le 26/10/2026).
+- Lien de connexion anonyme (la VA connecte Threads sans compte Metricool) : `POST /v2/settings/brands/connections/anonymous-link?blogId=...&userId=...` → `data.link` (https://f.mtr.cool/XXXX, valable 3 jours). `GET` renvoie 404 s'il n'y en a pas, `DELETE` l'invalide. Testé en vrai : la page affiche « Connect a Threads account ».
+- Vérifier la connexion : dans `GET /v2/settings/brands`, la marque a `networksData.threadsData.username`.
+- Déconnecter Threads d'une marque : `DELETE /v2/settings/brands/connections/threads?blogId=...`
+- Renommer une marque : `GET /admin/update-label-blog?blogId=...&newName=...`
+- Supprimer une marque : `DELETE /v2/settings/brands/{id}?blogId=...` corps `{maxRecoveryDays: 1}`.
+- Flux CRM : setup fini → `accounts/:id/mcconnect` (crée ou reprend la marque + lien) → la VA ouvre le lien dans le téléphone GeeLark → `accounts/:id/mcverify` (vérifie le pseudo, passe en actif, planifie 3 jours). Un compte sauté libère sa marque (Threads déconnecté), son remplaçant la reprend et la renomme.
 - Si tu touches à Metricool, vérifie le contrat dans `https://app.metricool.com/api/swagger.json`.
 
 ## Design : comment parler et montrer

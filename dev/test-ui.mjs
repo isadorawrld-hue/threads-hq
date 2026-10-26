@@ -125,14 +125,15 @@ for (const c of await v.$$("[data-scheck] input")) await c.check();
 await v.click('[data-act="setupDone"]');
 await waitToast(v, /Setup fini/);
 
-await v.reload();
-await v.waitForSelector(".bar");
-await tab(v, "metricool");
-await v.click('[data-act="loadBrands"]');
-await v.waitForSelector("[data-brand]");
-await v.selectOption("[data-brand]", "111");
+// ---- apres le setup : onglet Metricool ouvert, marque creee, lien de connexion affiche
+await v.waitForSelector('[data-act="mcVerify"]');
 await shot(v, "10-metricool");
-await v.click('[data-act="link"]');
+const mcLink = await v.$eval('[data-act="mcVerify"]', (el) => el.closest(".card").querySelector(".copyline .v").textContent);
+const blogId = mcLink.replace("https://f.mtr.cool/TEST", "");
+await v.click('[data-act="mcVerify"]');
+await waitToast(v, /pas encore connecté/);
+await fetch(`${B}/__dev/connect?blogId=${blogId}&username=taipei_lily`);
+await v.click('[data-act="mcVerify"]');
 await waitToast(v, /post\(s\) programmé/);
 await v.waitForSelector(".mnav .nav.on");
 await shot(v, "11-metricool-active");

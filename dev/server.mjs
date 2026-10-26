@@ -22,6 +22,7 @@ let ipN = 10;
 let tinyTaken = null;
 const mcPosts = [];
 const mcCalls = [];
+let mcLinkFor = null;
 const brands = [
   { id: 111, label: "compte A", networksData: { threads: { username: "acc_a" } }, timezone: "Asia/Taipei" },
   { id: 222, label: "compte B", networksData: { threads: { username: "acc_b" } }, timezone: "Asia/Taipei" },
@@ -46,7 +47,21 @@ async function fakeFetch(url, opts = {}) {
   if (u.hostname === "app.metricool.com" || u.hostname === "mc.test") {
     if (opts.headers?.["X-Mc-Auth"] !== "TOKEN_TEST") return new Response(JSON.stringify({ error: "denied" }), { status: 401 });
     mcCalls.push({ method: opts.method || "GET", path: u.pathname, query: u.search, body: opts.body ? JSON.parse(opts.body) : null });
+    if (u.pathname.endsWith("/v2/settings/brands") && opts.method === "POST") {
+      const b = JSON.parse(opts.body); const nb = { id: 1000 + brands.length, label: b.brandLabel, networksData: {}, timezone: "Asia/Taipei" };
+      brands.push(nb); return Response.json({ data: nb });
+    }
     if (u.pathname.endsWith("/v2/settings/brands")) return Response.json({ data: brands });
+    if (u.pathname.endsWith("/connections/anonymous-link")) {
+      if (opts.method === "POST") { mcLinkFor = u.searchParams.get("blogId"); return Response.json({ data: { link: "https://f.mtr.cool/TEST" + mcLinkFor, expiresAt: { dateTime: "2099-01-01T00:00:00", timezone: "Europe/Paris" } } }); }
+      return new Response(null, { status: 200 });
+    }
+    if (u.pathname.endsWith("/connections/threads") && opts.method === "DELETE") {
+      const b = brands.find((x) => String(x.id) === u.searchParams.get("blogId")); if (b) b.networksData = {};
+      return new Response(null, { status: 200 });
+    }
+    if (u.pathname.endsWith("/admin/update-label-blog")) { const b = brands.find((x) => String(x.id) === u.searchParams.get("blogId")); if (b) b.label = u.searchParams.get("newName"); return Response.json({}); }
+    // simulation : la VA "connecte" Threads sur la marque via /__dev/connect?blogId=&username=
     if (u.pathname.endsWith("/actions/normalize/image/url")) return Response.json("https://static.metricool.test/" + encodeURIComponent(u.searchParams.get("url")));
     if (u.pathname.endsWith("/v2/scheduler/posts") && opts.method === "POST") {
       const id = 9000 + mcPosts.length;
@@ -69,6 +84,11 @@ const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 http
   .createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${PORT}`);
+    if (url.pathname === "/__dev/connect") {
+      const b = brands.find((x) => String(x.id) === url.searchParams.get("blogId"));
+      if (b) b.networksData = url.searchParams.get("username") ? { threads: { username: url.searchParams.get("username") } } : {};
+      res.writeHead(200); return res.end("ok");
+    }
     if (url.pathname === "/__mc") {
       res.writeHead(200, { "content-type": "application/json" });
       return res.end(JSON.stringify({ posts: mcPosts, calls: mcCalls }));

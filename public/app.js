@@ -158,7 +158,7 @@ const SOP = {
   },
   metricool: {
     t: "Metricool",
-    steps: ["Dans Metricool : crée une marque au nom du compte (@pseudo).", "Connecte Threads DEPUIS le profil GeeLark du compte (même IP).", "Reviens dans le CRM, onglet Metricool, choisis la marque et clique Relier.", "Clique Planifier : le CRM remplit les posts tout seul."],
+    steps: ["Après le setup, le CRM crée la marque Metricool tout seul et te donne un lien.", "Copie le lien, ouvre-le dans le navigateur du téléphone GeeLark du compte (même IP).", "Connect a Threads account, Continue with Instagram, connecte-toi, accepte tout.", "Reviens dans le CRM, clique « J'ai connecté Threads » : le CRM vérifie et programme 3 jours de posts tout seul."],
   },
   check: {
     t: "Check du matin",
@@ -166,7 +166,7 @@ const SOP = {
   },
   remplacement: {
     t: "Remplacer un compte sauté",
-    steps: ["Dans Metricool : ouvre la marque du compte sauté, déconnecte Threads.", "Dans le CRM, clique Créer : le nouveau compte prend automatiquement la place du mort (même groupe).", "Quand il arrive à l'étape Metricool, relie-le à la marque libérée."],
+    steps: ["Quand tu cliques Sauté, le CRM libère sa marque Metricool tout seul.", "Clique Créer : le nouveau compte prend la place du mort (même groupe, même stratégie, même lien).", "À l'étape Metricool, il reprend la marque libérée : tu connectes juste Threads."],
   },
 };
 const sopBlock = (key, open) => {
@@ -264,7 +264,7 @@ const VIEWS = {
     if (t.toReplace.length) cards.push(task("", "c-red", `${t.toReplace.length} compte(s) sauté(s) à remplacer`, "Crée un nouveau compte : il prend la place du mort.", "create", "Remplacer"));
     if (t.warmup.length) cards.push(task("", "c-yellow", `${t.warmup.length} compte(s) créé(s) : warm-up puis setup`, "10 min de warm-up, puis le setup dans la foulée.", "warmup", "Ouvrir"));
     if (t.setupReady.length) cards.push(task("", "c-blue", `${t.setupReady.length} compte(s) prêt(s) pour le setup`, "Photo, bio, puis lien ou post épinglé selon la stratégie.", "setup", "Faire le setup"));
-    if (t.toConnect.length) cards.push(task("", "c-violet", `${t.toConnect.length} compte(s) à mettre sur Metricool`, "Relie le compte puis planifie.", "metricool", "Relier"));
+    if (t.toConnect.length) cards.push(task("", "c-violet", `${t.toConnect.length} compte(s) à connecter à Metricool`, "1 clic pour la marque, puis tu connectes Threads depuis le téléphone GeeLark.", "metricool", "Connecter"));
     if (t.toPlan.length) cards.push(task("", "c-green", `${t.toPlan.length} compte(s) à planifier`, "1 clic : le CRM programme les posts.", "metricool", "Planifier"));
     if (t.reserveMissing) cards.push(task("", "c-pink", `Crée ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"));
     const waiting = "";
@@ -346,13 +346,13 @@ const VIEWS = {
     const now = Date.now();
     const upcoming = (id) => S.data.posts.filter((p) => p.accountId === id && p.status === "programme" && new Date(p.at).getTime() > now);
     const brandOpts = (S.brands || []).filter((b) => !b.linkedTo);
-    return `<h2>Metricool</h2><p class="lead">Relie les comptes, puis 1 clic pour planifier.</p>
+    return `<h2>Metricool</h2><p class="lead">Après le setup, le CRM crée la marque et te donne le lien. Tu connectes Threads, le CRM planifie tout seul.</p>
       ${!S.data.configured.metricool ? '<div class="alert c-red">Metricool pas encore branché (Réglages, admin).</div>' : ""}
-      <h3>À relier (${toConnect.length})</h3>
-      ${toConnect.length ? `<div class="card"><ol><li>Dans Metricool, crée une marque au nom du compte.</li><li>Connecte Threads <b>depuis le profil GeeLark du compte</b>.</li><li>Clique "Charger mes marques", choisis-la, clique Relier.</li></ol>
-        <div class="row"><a class="btn light" href="${esc(S.data.settings.metricoolUrl)}" target="_blank" rel="noopener">Ouvrir Metricool</a><button class="btn" data-act="loadBrands" data-wait="Chargement...">Charger mes marques</button></div></div>
-        <div class="grid">${toConnect.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div>${gpill(a.group)}
-          ${S.brands ? `<select data-brand="${a.id}"><option value="">Choisis la marque...</option>${brandOpts.map((b) => `<option value="${esc(b.blogId)}">${esc(b.label || "sans nom")} ${b.threads ? "(Threads connecté : " + esc(b.threads) + ")" : "(Threads non connecté)"}</option>`).join("")}</select><button class="btn" data-act="link" data-id="${a.id}" data-wait="Liaison...">Relier</button>` : '<span class="muted">Clique d\'abord sur "Charger mes marques".</span>'}</div>`).join("")}</div>` : '<div class="card muted">Rien à relier.</div>'}
+      <h3>À connecter (${toConnect.length})</h3>
+      ${toConnect.length ? `<div class="grid">${toConnect.map((a) => mcConnectCard(a)).join("")}</div>
+        ${isAdmin() ? `<details class="card" style="margin-top:12px"><summary class="muted">Relier à une marque Metricool existante (admin)</summary>
+          <div class="row" style="margin-top:10px"><a class="btn light" href="${esc(S.data.settings.metricoolUrl)}" target="_blank" rel="noopener">Ouvrir Metricool</a><button class="btn" data-act="loadBrands" data-wait="Chargement...">Charger mes marques</button></div>
+          ${S.brands ? toConnect.map((a) => `<div class="row" style="margin-top:8px"><b>@${esc(a.pseudo)}</b><select data-brand="${a.id}"><option value="">Choisis la marque...</option>${brandOpts.map((b) => `<option value="${esc(b.blogId)}">${esc(b.label || "sans nom")} ${b.threads ? "(Threads : " + esc(b.threads) + ")" : "(Threads non connecté)"}</option>`).join("")}</select><button class="btn sm" data-act="link" data-id="${a.id}" data-wait="Liaison...">Relier</button></div>`).join("") : ""}</details>` : ""}` : '<div class="card muted">Rien à connecter.</div>'}
       <h3>Comptes actifs (${active.length})</h3>
       ${active.length ? `<div class="card"><button class="btn big ok" data-act="planAll" data-wait="Planification de tous les comptes...">Planifier TOUS les comptes (3 jours)</button></div>` : ""}
       <div class="grid">${active.map((a) => {
@@ -516,7 +516,7 @@ const VIEWS = {
 const LOGS = {
   premier_acces: "Premier accès", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
-  metricool_delie: "Délié de Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
+  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
   secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
 };
@@ -568,6 +568,23 @@ function warmupCard(a, withTimer) {
     <div class="checklist" data-wcheck="${a.id}">${SOP.warmup.steps.map((s) => `<label><input type="checkbox" /> ${esc(s)}</label>`).join("")}</div>
     <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini, passer au setup</button>
     ${withTimer ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizReset">Créer un autre compte</button></div>' : ""}</div>`;
+}
+function mcConnectCard(a) {
+  if (!a.mcLink) {
+    return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><div class="row">${gpill(a.group)}${spill(a.strategy)}</div>
+      <p class="muted">1 clic : le CRM crée la marque Metricool et te donne le lien de connexion.</p>
+      <button class="btn big" data-act="mcConnect" data-id="${a.id}" data-wait="Création de la marque...">Connecter à Metricool</button></div>`;
+  }
+  return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><div class="row">${gpill(a.group)}${spill(a.strategy)}</div>
+    <ol>
+      <li>Copie ce lien : ${copyLine("Lien", a.mcLink)}</li>
+      <li>Ouvre-le dans le <b>navigateur du téléphone GeeLark du compte</b> (même téléphone, même IP). Jamais sur ton PC.</li>
+      <li>Touche <b>Connect a Threads account</b>, puis <b>Continue with Instagram</b>.</li>
+      <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</li>
+      <li>Accepte <b>toutes</b> les permissions. Si ça te renvoie sur Threads, ferme et refais l'étape 3.</li>
+      <li>Reviens ici et clique le bouton vert.</li>
+    </ol>
+    <div class="row"><button class="btn big ok" data-act="mcVerify" data-id="${a.id}" data-wait="Vérification...">J'ai connecté Threads</button><button class="btn ghost" data-act="mcConnect" data-id="${a.id}" data-wait="...">Nouveau lien</button></div></div>`;
 }
 function noLink(a) {
   return `<div class="alert c-red">Pas de lien pour ce compte.${a.linkNote ? " " + esc(a.linkNote) : ""}</div><div class="row"><button class="btn sm" data-act="makeLink" data-id="${a.id}" data-v="brand" data-wait="Création...">Créer ${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(a.pseudo)}</button><button class="btn sm light" data-act="makeLink" data-id="${a.id}" data-v="tinyurl" data-wait="Création...">Créer tinyurl.com/${esc(a.pseudo)}</button></div>`;
@@ -764,7 +781,33 @@ const ACT = {
     await run(b, async () => {
       await api(`accounts/${b.dataset.id}/setup`, { bio: $("[data-setupbio]").value });
       S.setup = null;
-      toast("Setup fini ! Prochaine étape : Metricool.");
+      let msg = "Setup fini ! Prochaine étape : Metricool.";
+      if (S.data.configured.metricool) {
+        try {
+          await api(`accounts/${b.dataset.id}/mcconnect`, {});
+          msg = "Setup fini ! Marque Metricool créée : connecte Threads.";
+        } catch (e) {
+          msg = "Setup fini. Metricool : " + e.message;
+        }
+      }
+      toast(msg);
+      S.tab = "metricool";
+      await refresh();
+    });
+  },
+  async mcConnect(b) {
+    await run(b, async () => {
+      await api(`accounts/${b.dataset.id}/mcconnect`, {});
+      toast("Marque créée. Suis les étapes pour connecter Threads.");
+      await refresh();
+    });
+  },
+  async mcVerify(b) {
+    await run(b, async () => {
+      const r = await api(`accounts/${b.dataset.id}/mcverify`, {});
+      if (!r.connected) return toast("Threads n'est pas encore connecté sur Metricool. Finis les étapes puis reclique.", true);
+      const p = r.plan || { created: [], problems: [] };
+      toast(`Threads connecté (@${r.threads}). ${p.created.length} post(s) programmé(s)` + (p.problems.length ? " · " + p.problems[0] : ""), !!p.problems.length);
       await refresh();
     });
   },
