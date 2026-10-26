@@ -219,7 +219,7 @@ function render() {
   app.innerHTML = `
   <div class="shell">
     <aside class="side">
-      <div class="logo"><span class="mark">TH</span><div><b>Threads HQ</b><small>Sensual Aura</small></div></div>
+      <div class="logo"><span class="mark">ES</span><div><b>Elite Sirens</b><small>Sensual Aura</small></div></div>
       ${groups.map(([title, items]) => `<div class="navgroup"><div class="navtitle">${title}</div>${items.map(navBtn).join("")}</div>`).join("")}
       <div class="me"><span>${esc(S.data.me.name)}</span><button class="link" data-act="logout">Se déconnecter</button></div>
     </aside>
@@ -237,7 +237,7 @@ function render() {
 
 function renderLogin() {
   app.innerHTML = `<div class="login"><div class="login-card">
-    <span class="mark big">TH</span><h1>Threads HQ</h1>
+    <span class="mark big">ES</span><h1>Elite Sirens</h1>
     <p class="muted">${S.firstRun ? "Premier accès : choisis ton code (4 à 8 chiffres). Tu seras admin." : "Entre ton code d'accès"}</p>
     ${S.firstRun ? '<input id="firstname" placeholder="Ton prénom" value="Awen" />' : ""}
     <div class="pin-dots">${[0, 1, 2, 3, 4, 5].map((i) => `<span class="${i < S.pin.length ? "on" : ""}"></span>`).join("")}</div>
