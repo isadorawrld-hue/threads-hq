@@ -181,7 +181,7 @@ const HELP = {
   today: {
     t: "Ta journée",
     hint: "Fais la tâche n° 1, puis la suivante. Rien à retenir.",
-    more: ["Les tâches sont déjà triées par importance.", "La n° 1 est toujours la plus urgente : un compte qui ne poste plus passe avant tout.", "Clique le bouton de la tâche, fais-la, reviens ici.", "Plus rien à faire : crée un compte de réserve."],
+    more: ["Les tâches sont triées toutes seules, avec une règle simple.", "D'abord : un compte qui ne poste plus (sauté, remplaçant pas fini, Metricool déconnecté, posts bientôt finis).", "Ensuite : finir les comptes commencés, le plus proche de poster d'abord (Metricool, puis setup, puis warm-up).", "Enfin : préparer la suite (comptes de réserve).", "Clique le bouton de la tâche n° 1, fais-la, reviens ici."],
   },
   rotation: {
     t: "Changer l'IP",
@@ -343,14 +343,23 @@ const VIEWS = {
     const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Hero SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)"].filter(Boolean);
     if (isAdmin() && miss.length) cards.push(task("", "c-red", "Réglages à finir", miss.join(" · "), "settings", "Ouvrir"));
     // ordre de priorite : d'abord que chaque compte poste (remplacer, reconnecter), puis le reste
+    // regle : 1) ce qui empeche un compte de poster, 2) finir ce qui est commence (le plus proche de poster d'abord), 3) preparer la suite
     const pri = [];
+    const inPipe = (ids) => ids.map(acc).filter(Boolean);
+    const stepOf = { setup_ok: ["metricool", "Connecter à Metricool"], attente_setup: ["setup", "Faire le setup"], warmup: ["warmup", "Finir le warm-up"] };
+    const subs = [...inPipe(t.toConnect), ...inPipe(t.setupReady), ...inPipe(t.warmup)].filter((a) => a.replaces);
+    const notSub = (ids) => inPipe(ids).filter((a) => !a.replaces).length;
+    if (subs.length) {
+      const [tab, btn] = stepOf[subs[0].status];
+      pri.push(["c-red", `Finir le remplaçant @${subs[0].pseudo}${subs.length > 1 ? ` (+${subs.length - 1})` : ""}`, "Il remplace un compte sauté : va jusqu'à Metricool, les posts repartent dès la connexion.", tab, btn]);
+    }
     if (t.toReplace.length) pri.push(["c-red", `Remplacer ${t.toReplace.length} compte(s) sauté(s)`, "Un compte sauté ne poste plus. Crée le remplaçant tout de suite : il reprend sa place et sa marque Metricool.", "create", "Remplacer"]);
     if ((t.toReconnect || []).length) pri.push(["c-red", `Reconnecter ${t.toReconnect.length} compte(s) à Metricool`, "Threads s'est déconnecté : ses posts ne sortent plus. 2 min pour le reconnecter.", "metricool", "Reconnecter"]);
-    if (t.toCheck.length) pri.push(["c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Repère vite les comptes qui ont sauté.", "check", "Commencer"]);
-    if (t.toConnect.length) pri.push(["c-violet", `Connecter ${t.toConnect.length} compte(s) à Metricool`, "Setup fini mais pas encore branché : il ne poste pas encore.", "metricool", "Connecter"]);
     if (t.toPlan.length) pri.push(["c-green", `Planifier ${t.toPlan.length} compte(s)`, "Moins de 2 jours de posts devant lui. 1 clic.", "metricool", "Planifier"]);
-    if (t.setupReady.length) pri.push(["c-blue", `Setup de ${t.setupReady.length} compte(s)`, "Photo, bio, puis lien ou post épinglé selon la stratégie.", "setup", "Faire le setup"]);
-    if (t.warmup.length) pri.push(["c-yellow", `Warm-up de ${t.warmup.length} compte(s)`, "Finis le warm-up, puis le setup dans la foulée.", "warmup", "Ouvrir"]);
+    if (t.toCheck.length) pri.push(["c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Repère vite les comptes qui ont sauté.", "check", "Commencer"]);
+    if (notSub(t.toConnect)) pri.push(["c-violet", `Connecter ${notSub(t.toConnect)} compte(s) à Metricool`, "Setup fini mais pas encore branché : il ne poste pas encore.", "metricool", "Connecter"]);
+    if (notSub(t.setupReady)) pri.push(["c-blue", `Setup de ${notSub(t.setupReady)} compte(s)`, "Photo, bio, puis lien ou post épinglé selon la stratégie.", "setup", "Faire le setup"]);
+    if (notSub(t.warmup)) pri.push(["c-yellow", `Warm-up de ${notSub(t.warmup)} compte(s)`, "Finis le warm-up, puis le setup dans la foulée.", "warmup", "Ouvrir"]);
     if (t.reserveMissing) pri.push(["c-pink", `Créer ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"]);
     pri.forEach(([c, title, desc, tab, btn], i) => cards.push(task(i + 1, c, title, desc, tab, btn, i === 0)));
     const waiting = "";
