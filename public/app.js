@@ -123,7 +123,9 @@ const HAN = /[\u3400-\u9fff]/;
 const frSlot = (t) => (HAN.test(t || "") ? `<div class="frtr" data-fr="${esc(t)}"><span class="frk">FR</span><span class="frv">${esc(S.tr?.[t] || "traduction...")}</span></div>` : "");
 function videoEmbed(url) {
   if (!url) return '<div class="novid">Vidéo bientôt ici</div>';
-  if (/\.(webm|mp4)$/i.test(url)) return `<div class="video"><video src="${esc(url)}" controls muted playsinline preload="metadata"></video></div>`;
+  // tutos .mp4 : avec le son (voix FR), image de titre affichee avant lecture (#t=1)
+  if (/\.mp4$/i.test(url)) return `<div class="video"><video src="${esc(url)}#t=1" controls playsinline preload="metadata"></video></div>`;
+  if (/\.webm$/i.test(url)) return `<div class="video"><video src="${esc(url)}" controls muted playsinline preload="metadata"></video></div>`;
   let src = null;
   let m;
   if ((m = url.match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{6,})/))) src = `https://www.youtube.com/embed/${m[1]}`;
