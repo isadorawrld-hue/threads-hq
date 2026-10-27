@@ -342,7 +342,7 @@ const VIEWS = {
     const cards = [];
     const conf = S.data.configured;
     const stt = S.data.settings;
-    const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Hero SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)"].filter(Boolean);
+    const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Hero SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)", !(stt.warmupTargets || []).length && "Comptes à suivre au warm-up (Contenu)"].filter(Boolean);
     const lowBios = Object.entries(stt.bioBank || {}).filter(([, v]) => (v || []).length < 20).map(([k, v]) => `${(S.data.strategyLabels || {})[k] || k} : ${(v || []).length}`);
     if (isAdmin() && lowBios.length) cards.push(task("", "c-red", "Bios bientôt épuisées", lowBios.join(" · ") + " (chaque bio ne sert qu'une fois)", "content", "Ajouter"));
     if (isAdmin() && miss.length) cards.push(task("", "c-red", "Réglages à finir", miss.join(" · "), "settings", "Ouvrir"));
@@ -619,7 +619,8 @@ const VIEWS = {
           <tr><td><b>Relais</b></td><td>Aucun lien sur le compte. Il cite le post épinglé du compte pivot et épingle cette citation. Le lien n'est que sur le pivot.</td><td><input type="number" min="0" data-strat="relais" value="${esc(st.strategies?.relais ?? 5)}" style="max-width:80px" /></td></tr></table>
         <label class="f">Compte pivot <small>(pseudo Threads sans @ : le seul compte avec un post épinglé qui contient le lien)</small></label><input data-hub="pseudo" value="${esc(st.hub?.pseudo || "")}" />
         <label class="f">Lien du post épinglé du pivot <small>(facultatif, pour que la VA le retrouve vite)</small></label><input data-hub="postUrl" value="${esc(st.hub?.postUrl || "")}" />
-        <label class="f">Texte de la citation (comptes relais) <small>({pivot} = pseudo du pivot)</small></label><textarea data-set="relayText" style="min-height:70px">${esc(st.relayText || "")}</textarea></div>
+        <label class="f">Texte de la citation (comptes relais) <small>({pivot} = pseudo du pivot)</small></label><textarea data-set="relayText" style="min-height:70px">${esc(st.relayText || "")}</textarea>
+        <label class="f">Comptes à suivre pendant le warm-up <small>(${(st.warmupTargets || []).length} · un pseudo ou un lien Threads par ligne · chaque compte créé en reçoit 5 au hasard)</small></label><textarea data-set="warmupTargets" style="min-height:120px" placeholder="pseudo1&#10;https://www.threads.com/@pseudo2">${esc((st.warmupTargets || []).join("\n"))}</textarea></div>
       <div class="card"><h3 style="margin-top:0">Banque de bios</h3><p class="muted">Une bio par bloc, séparées par une ligne vide. Le CRM en tire une au hasard selon la stratégie du compte.</p>
         <p class="muted">Chaque bio ne sert qu'une fois : dès qu'un setup est fini, elle sort de la banque. ${(st.biosUsed || []).length} déjà utilisée(s).</p><label class="f">Bios « Post épinglé » <small>(${(st.bioBank?.epingle || []).length} restantes)</small></label><textarea data-bank="epingle" style="min-height:200px">${esc((st.bioBank?.epingle || []).join("\n\n"))}</textarea>
         <label class="f">Bios « Lien dans la bio » <small>(${(st.bioBank?.lien || []).length} restantes)</small></label><textarea data-bank="lien" style="min-height:200px">${esc((st.bioBank?.lien || []).join("\n\n"))}</textarea>
@@ -746,10 +747,20 @@ function parseProxy(p) {
   const [host, port, user, pass] = s.split(":");
   return host && port ? { host, port, user: user || "", pass: pass || "" } : null;
 }
+// 5 comptes de la niche a suivre, toujours les memes pour un compte donne, differents d'un compte a l'autre
+function warmupTargets(a) {
+  const all = S.data.settings.warmupTargets || [];
+  if (!all.length) return '<p class="muted">Pas encore de liste de comptes à suivre : choisis des filles qui postent en chinois (Taïwan, Hong Kong).</p>';
+  let h = 0;
+  for (const ch of a.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const pick = [...all].map((p, i) => [p, (h ^ (i * 2654435761)) >>> 0]).sort((x, y) => x[1] - y[1]).slice(0, 5).map((x) => x[0]);
+  return `<div class="card" style="margin:10px 0"><b>Suis ces ${pick.length} comptes</b> <span class="muted">(dans le téléphone : Recherche, colle le pseudo, S'abonner, like 2 posts)</span>${pick.map((p) => copyLine("@", p)).join("")}</div>`;
+}
 function warmupCard(a, withTimer) {
   if (!a) return "";
   return `<div class="card"><div class="head row"><span class="num">#${a.num}</span><b>@${esc(a.pseudo)}</b>${gpill(a.group)}</div>${hint("warmup")}
     <p class="muted">Même profil GeeLark, même IP. 10 min de scroll, puis le setup direct.</p><div class="timer" data-timer="${a.id}">10:00</div><div class="row"><button class="btn light" data-act="startTimer" data-id="${a.id}">Lancer le chrono 10 min</button></div>
+    ${warmupTargets(a)}
     <div class="checklist" data-wcheck="${a.id}">${SOP.warmup.steps.map((s) => `<label><input type="checkbox" /> ${esc(s)}</label>`).join("")}</div>
     <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini, passer au setup</button>
     ${withTimer ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizReset">Créer un autre compte</button></div>' : ""}</div>`;
@@ -1354,7 +1365,7 @@ const ACT = {
       const bioBank = { epingle: blocks('[data-bank="epingle"]'), lien: blocks('[data-bank="lien"]'), relais: blocks('[data-bank="relais"]') };
       const strategies = { epingle: Number($('[data-strat="epingle"]').value) || 0, lien: Number($('[data-strat="lien"]').value) || 0, relais: Number($('[data-strat="relais"]').value) || 0 };
       const hub = { pseudo: $('[data-hub="pseudo"]').value.trim().replace(/^@/, ""), postUrl: $('[data-hub="postUrl"]').value.trim() };
-      await api("settings", { bioBank, strategies, hub, relayText: $('[data-set="relayText"]').value.trim(), links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
+      await api("settings", { bioBank, strategies, hub, relayText: $('[data-set="relayText"]').value.trim(), warmupTargets: [...new Set($('[data-set="warmupTargets"]').value.split(/\n/).map((x) => x.trim().replace(/^.*threads\.(?:com|net)\/@?/i, "").replace(/^@/, "").replace(/[/?#].*$/, "")).filter(Boolean))], links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
       await refresh();
       toast("Enregistré");
     });
