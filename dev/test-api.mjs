@@ -253,7 +253,15 @@ await fetch(B + "/__dev/connect?blogId=222&username=");
 const alerts = ok(await call("metricool/health", {}), "santé");
 assert.equal(alerts.length, 1);
 assert.match(alerts[0].msg, /Threads déconnecté/);
-step("santé Metricool : alerte Threads déconnecté");
+{
+  // le compte deconnecte remonte en priorite pour la VA, et ne fait plus partie des comptes a planifier
+  const sv = ok(await call("state", undefined, va), "state VA");
+  assert.deepEqual(sv.tasks.toReconnect, [alerts[0].accountId], "compte à reconnecter");
+  assert.ok(!sv.tasks.toPlan.includes(alerts[0].accountId));
+  assert.equal(sv.mcAlerts.length, 1, "la VA voit l'alerte");
+  ok(await call("help/seen", { k: "reconnect" }, va), "aide notée");
+}
+step("santé Metricool : alerte Threads déconnecté, compte à reconnecter en priorité");
 
 // import Google Drive
 const dl = ok(await call("drive/list?folder=" + encodeURIComponent("https://drive.google.com/drive/folders/DOSSIERTEST123?usp=drive_link")), "liste drive");

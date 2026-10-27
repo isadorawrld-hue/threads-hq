@@ -83,6 +83,11 @@ await v.goto(B);
 await pin(v, "1111");
 await v.waitForSelector(".bar");
 await shot(v, "04-va-today");
+// bouton ? : ouvre l'explication pas a pas
+await v.click(".hint .qbtn");
+await v.waitForSelector("#modal:not(.hidden) .helpsteps");
+await shot(v, "04b-aide");
+await v.click(".modal-x");
 await tab(v, "create");
 await v.click('main [data-act="rotate"]');
 await v.waitForSelector(".alert.c-green");
@@ -184,6 +189,9 @@ await v.click('[data-act="deadConfirm"]');
 await waitToast(v, /Créer pour le remplacer/);
 await tab(v, "today");
 await shot(v, "14-today-after-dead");
+// le compte saute passe en priorite n° 1
+const first = await v.$eval(".task.first b", (el) => el.textContent);
+if (!/Remplacer 1 compte/.test(first)) errors.push("priorité 1 attendue : remplacer, vu : " + first);
 await tab(v, "accounts");
 await v.click('[data-filter="tous"]');
 await shot(v, "15-accounts");
