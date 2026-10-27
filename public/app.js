@@ -921,7 +921,25 @@ function afterRender() {
     S.trLoading = true;
     S.trTries = (S.trTries || 0) + 1;
     api("tr", { texts: need })
-      .then((r) => {
+      .then(async (r) => {
+        delete r._fail;
+        // ce que le serveur n'a pas pu traduire : le navigateur demande a Google, puis le CRM le garde en cache
+        const miss = need.filter((t) => !r[t]);
+        if (miss.length) {
+          const got = {};
+          for (const t of miss) {
+            try {
+              const g = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=fr&dt=t&q=${encodeURIComponent(t)}`);
+              const j = await g.json();
+              const fr = (j?.[0] || []).map((x) => x?.[0] || "").join("").trim();
+              if (fr) got[t] = fr;
+            } catch {}
+          }
+          if (Object.keys(got).length) {
+            Object.assign(r, got);
+            api("tr", { save: got }).catch(() => {});
+          }
+        }
         S.tr = { ...(S.tr || {}), ...r };
         if (Object.keys(r).length) S.trTries = 0;
         document.querySelectorAll("[data-fr]").forEach((el) => {
