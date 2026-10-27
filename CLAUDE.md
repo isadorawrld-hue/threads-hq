@@ -82,6 +82,20 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Flux CRM : setup fini → `accounts/:id/mcconnect` (crée ou reprend la marque + lien) → la VA ouvre le lien dans le téléphone GeeLark → `accounts/:id/mcverify` (vérifie le pseudo, passe en actif, planifie 3 jours). Un compte sauté libère sa marque (Threads déconnecté), son remplaçant la reprend et la renomme.
 - Si tu touches à Metricool, vérifie le contrat dans `https://app.metricool.com/api/swagger.json`.
 
+## Tutos vidéo (bouton « ? » et page SOP)
+- `public/help/<clé>.mp4` : vrais tutos filmés par Awen (Loom), montés avec voix FR ElevenLabs (via Higgsfield), mots de passe / numéros / codes floutés. Clés : geelark, numero, compte, warmup, setup, metricool, planning, creation (tout enchaîné).
+- Mapping dans `HELP_TUTOS` (app.js) : `rotation`, `today`, `check`, `reconnect`, `remplacement` gardent leurs mini vidéos `.webm`.
+- Un lien mis dans Réglages > Vidéos des SOP passe avant le fichier.
+- La VA crée le compte directement dans Threads (« Utiliser un numéro de mobile »), pas via Instagram : les textes du CRM le disent.
+
+## Traduction FR
+- Tout texte chinois montré à la VA (post épinglé, réponse, citation relais, bio) a sa traduction FR dessous (`frSlot`).
+- Route `POST /api/tr {texts}` : Google Translate (gtx), cache par texte dans le store (`tr/<sha1>`).
+
+## Planification
+- `+3 jours` / `+7 jours` (mode `add`) : ajoutent N jours APRÈS le dernier jour déjà prévu (avant : 0 post si déjà plein). `14 jours` et « Remplir 14 jours pour tous » remplissent les trous jusqu'à J+13.
+- Le 1er appel fixe `until`, le navigateur le renvoie si la fonction a coupé (partial). Jamais plus de J+30.
+
 ## Design : comment parler et montrer
 - Noir, blanc, une couleur d'action (le bleu). Couleurs d'état seulement en petits points ou fonds très légers.
 - Zéro emoji dans l'interface. Pas de majuscules pour les labels. Pas de flèches dans les boutons.

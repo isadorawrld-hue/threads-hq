@@ -279,3 +279,7 @@ table.plan td.tx.low { color: var(--red); font-weight: 600; }
 .pd.s-erreur { background: var(--red); }
 .pd.s-retard { background: var(--amber); }
 .stat .dot.c-blue, .dot.c-blue { background: var(--blue); }
+
+/* traduction FR sous les textes chinois */
+.frtr { display: flex; gap: 8px; align-items: flex-start; margin: -2px 0 10px; padding: 8px 12px; border-radius: 10px; background: #f6f7fb; color: #4b5060; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+.frtr .frk { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 2px 6px; border-radius: 6px; background: #e4e7f2; color: #3a3f55; }

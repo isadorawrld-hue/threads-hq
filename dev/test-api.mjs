@@ -214,7 +214,18 @@ for (const p of mc.posts) {
 }
 const again = ok(await call("metricool/plan", { accountId: (photosAcc).id, days: 3 }), "replanif");
 assert.equal(again.created.length, 0, "pas de doublon de créneau");
-step(`planif Metricool OK (${mc.posts.length} posts, créneaux Taïwan, pas de doublon)`);
+// +3 jours : ajoute 3 jours APRES le dernier jour deja prevu (avant : 0 post si deja plein)
+const before = again.plannedUntil;
+const add3 = ok(await call("metricool/plan", { accountId: photosAcc.id, days: 3, mode: "add" }), "+3 jours");
+assert.ok(add3.created.length >= 1, "+3 jours ajoute des posts : " + JSON.stringify(add3.problems));
+const addDay = (d, n) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+assert.equal(add3.until, addDay(before, 3), "fin = dernier jour prévu + 3");
+assert.ok(add3.plannedUntil > before, "le planning avance");
+if (!add3.problems.length) assert.equal(add3.plannedUntil, addDay(before, 3));
+assert.ok(add3.created.every((p) => p.day > before), "rien avant l'ancien dernier jour");
+const add3b = ok(await call("metricool/plan", { accountId: photosAcc.id, days: 3, mode: "add", until: add3.until }), "reprise après coupure");
+assert.equal(add3b.created.length, 0, "reprise : rien en double");
+step(`planif Metricool OK (${mc.posts.length} posts, créneaux Taïwan, pas de doublon, +3 jours après le dernier jour)`);
 
 // check + saute + remplacement
 st = ok(await call("state"), "state");
@@ -323,6 +334,16 @@ assert.ok(!tz.deleted.includes("taipeilily_2"), "lien d'un compte jamais supprim
 assert.ok(!tz.deleted.includes("chloe"), "lien perso jamais supprimé");
 assert.equal(ok(await call("tiny/cleanup"), "rescan").count, 1, "reste seulement l'archivé du mock");
 step("ménage TinyURL : 31 vieux liens supprimés, liens des comptes gardés");
+// traduction FR des textes chinois (cache : un seul appel par texte)
+tok = va;
+const tr1 = ok(await call("tr", { texts: ["現在你知道我在哪裡", "現在你知道我在哪裡", "看這篇"] }), "traduction");
+assert.equal(Object.keys(tr1).length, 2, "doublons fusionnés");
+assert.ok(tr1["看這篇"].startsWith("FR: "));
+const n1 = (await (await fetch(B + "/__tr")).json()).calls;
+ok(await call("tr", { texts: ["看這篇"] }), "traduction en cache");
+assert.equal((await (await fetch(B + "/__tr")).json()).calls, n1, "cache : pas de 2e appel");
+tok = admin;
+step("traduction FR des textes chinois, avec cache");
 st = ok(await call("state"), "state admin");
 const actions = new Set(st.logs.map((l) => l.action));
 for (const a of ["premier_acces", "connexion", "ip_changee", "compte_cree", "creation_ratee", "warmup_fait", "setup_fait", "metricool_relie", "marque_creee", "lien_metricool", "planif", "check", "compte_saute"]) assert.ok(actions.has(a), "log manquant " + a);

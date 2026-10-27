@@ -23,6 +23,7 @@ let tinyTaken = null;
 const tinyDom = {};
 let oldTiny = Array.from({ length: 30 }, (_, i) => "vieux" + i);
 const tinyDeleted = [];
+let trCalls = 0;
 const mcPosts = [];
 const mcCalls = [];
 let mcLinkFor = null;
@@ -60,6 +61,11 @@ async function fakeFetch(url, opts = {}) {
     }
     const from = u.searchParams.get("from"); const days = Math.round((Date.now() - new Date(from).getTime()) / 864e5);
     return Response.json({ data: [{ date: from, count: days >= 20 ? 42 : 9 }] });
+  }
+  if (u.hostname === "translate.googleapis.com") {
+    trCalls++;
+    const q = u.searchParams.get("q") || "";
+    return Response.json([[["FR: " + q.slice(0, 40), q, null, null, 1]], null, "zh-TW"]);
   }
   if (u.hostname === "drive.google.com") {
     if (u.pathname === "/embeddedfolderview") {
@@ -144,6 +150,7 @@ http
       if (smsAct) smsAct.code = url.searchParams.get("code") || "123456";
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__tr") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ calls: trCalls })); }
     if (url.pathname === "/__tiny") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ deleted: tinyDeleted, left: oldTiny })); }
     if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }
     if (url.pathname === "/__dev/mcstatus") {

@@ -118,6 +118,9 @@ function ago(iso) {
 const fmt = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
 const copyLine = (k, v, secret) =>
   `<div class="copyline"><span class="k">${esc(k)}</span><span class="v">${v ? esc(secret ? "••••••••" : v) : '<span class="muted">vide</span>'}</span>${v ? `<button class="btn sm light" data-act="copy" data-v="${esc(v)}">Copier</button>` : ""}</div>`;
+// traduction FR sous chaque texte chinois montre a la VA (remplie par afterRender via /api/tr, cache dans S.tr)
+const HAN = /[\u3400-\u9fff]/;
+const frSlot = (t) => (HAN.test(t || "") ? `<div class="frtr" data-fr="${esc(t)}"><span class="frk">FR</span><span class="frv">${esc(S.tr?.[t] || "traduction...")}</span></div>` : "");
 function videoEmbed(url) {
   if (!url) return '<div class="novid">Vidéo bientôt ici</div>';
   if (/\.(webm|mp4)$/i.test(url)) return `<div class="video"><video src="${esc(url)}" controls muted playsinline preload="metadata"></video></div>`;
@@ -143,11 +146,11 @@ const SOP = {
   },
   numero: {
     t: "Prendre un numéro",
-    steps: ["Onglet Numéro (ou étape 3 de Créer un compte) : clique le gros bouton (France).", "Pas de code ? Rembourse, puis prends le pays suivant (USA).", "Dans Instagram : l'indicatif affiché par le CRM, puis le numéro sans indicatif (bouton Copier).", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Instagram.", "Pas de code après 2 à 3 minutes : « Pas de code : rembourser », puis reprends un numéro.", "Jamais 2 comptes sur le même numéro."],
+    steps: ["Onglet Numéro (ou étape 3 de Créer un compte) : clique le gros bouton (France).", "Pas de code ? Rembourse, puis prends le pays suivant (USA).", "Dans Threads : « Utiliser un numéro de mobile », l'indicatif affiché par le CRM, puis le numéro sans indicatif (bouton Copier).", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Threads.", "Pas de code après 2 à 3 minutes : « Pas de code : rembourser », puis reprends un numéro.", "Jamais 2 comptes sur le même numéro."],
   },
   creation: {
     t: "Créer un compte",
-    steps: ["Change l'IP.", "GeeLark : nouveau profil, 1 profil = 1 compte. Mets le proxy (infos à copier dans le CRM).", "Clique « Prendre un numéro » : le numéro s'affiche, le code SMS arrive tout seul dans le CRM.", "Crée le compte Instagram avec ce numéro, colle le code, puis active Threads.", "Le compte marche : clique « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
+    steps: ["Change l'IP.", "GeeLark : nouveau profil, 1 profil = 1 compte. Mets le proxy (infos à copier dans le CRM).", "Clique « Prendre un numéro » : le numéro s'affiche, le code SMS arrive tout seul dans le CRM.", "Ouvre Threads, « Utiliser un numéro de mobile », colle le numéro puis le code SMS.", "Le compte marche : clique « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
   },
   warmup: {
     t: "Warm-up (10 min)",
@@ -163,7 +166,11 @@ const SOP = {
   },
   metricool: {
     t: "Metricool",
-    steps: ["Après le setup, le CRM crée la marque Metricool tout seul et te donne un lien.", "Copie le lien, ouvre-le dans le navigateur du téléphone GeeLark du compte (même IP).", "Connect a Threads account, Continue with Instagram, connecte-toi, accepte tout.", "Reviens dans le CRM, clique « J'ai connecté Threads » : le CRM vérifie et programme 3 jours de posts tout seul."],
+    steps: ["Après le setup, le CRM crée la marque Metricool tout seul et te donne un lien.", "Copie le lien, ouvre-le dans le navigateur du téléphone GeeLark du compte (même IP).", "Connect a Threads account, connecte-toi avec le pseudo et le mot de passe du CRM, accepte tout.", "Reviens dans le CRM, clique « J'ai connecté Threads » : le CRM vérifie et programme 3 jours de posts tout seul."],
+  },
+  planning: {
+    t: "Le planning",
+    steps: ["Onglet Planning : un point = un post. Bleu prévu, vert publié, rouge erreur, orange en retard.", "Case rose = jour vide : clique « Remplir 14 jours pour tous ».", "Clique un jour pour voir ses textes et leur traduction.", "Colonne Textes en rouge : il manque des textes, préviens ton manager."],
   },
   check: {
     t: "Check du matin",
@@ -176,7 +183,7 @@ const SOP = {
 };
 // ------------------------------------------------------------ aide en direct (indice + bouton ?)
 // hint : une phrase toujours visible. more : le pas a pas du bouton ?. trap : l'erreur a eviter.
-// La video vient de Reglages (lien) ou, a defaut, du fichier /help/<cle>.webm s'il est livre (HELP_VIDEOS).
+// La video vient de Reglages (lien), sinon du tuto filme (HELP_TUTOS, .mp4), sinon de la mini video /help/<cle>.webm (HELP_VIDEOS).
 const HELP = {
   today: {
     t: "Ta journée",
@@ -198,13 +205,13 @@ const HELP = {
   numero: {
     t: "Prendre un numéro",
     hint: "Clique le gros bouton (France). Le code SMS arrive ici tout seul.",
-    more: ["Clique le gros bouton (France, même pays que le proxy).", "Pas de code en 3 min : rembourse, puis prends USA.", "Dans Instagram, choisis l'indicatif affiché par le CRM (+33 pour la France).", "Colle le numéro sans indicatif (bouton Copier).", "Le code s'affiche dans le CRM en 5 à 60 s. Copie-le dans Instagram.", "Rien après 3 min : « Pas de code : rembourser », puis reprends un numéro."],
+    more: ["Clique le gros bouton (France, même pays que le proxy).", "Pas de code en 3 min : rembourse, puis prends USA.", "Dans Threads, touche « Utiliser un numéro de mobile ».", "Choisis l'indicatif affiché par le CRM (+33 pour la France), colle le numéro sans indicatif (bouton Copier).", "Le code s'affiche dans le CRM en 5 à 60 s. Copie-le dans Threads.", "Rien après 3 min : « Pas de code : rembourser », puis reprends un numéro."],
     trap: "Utiliser 2 fois le même numéro.",
   },
   compte: {
-    t: "Créer Instagram puis Threads",
-    hint: "Crée Instagram avec ce numéro, puis note pseudo et mot de passe ici.",
-    more: ["Dans le téléphone GeeLark : Instagram, S'inscrire, avec le numéro.", "Colle le code SMS.", "Mot de passe : clique « Générer » dans le CRM et copie-le.", "Date de naissance : plus de 21 ans.", "Choisis le pseudo, note-le dans le CRM.", "Ouvre Threads, « Continuer avec Instagram »."],
+    t: "Créer le compte Threads",
+    hint: "Crée le compte Threads avec ce numéro, puis note pseudo et mot de passe ici.",
+    more: ["Dans le téléphone GeeLark : ouvre Threads, « Utiliser un numéro de mobile ».", "Colle le numéro, puis le code SMS.", "Mot de passe : clique « Générer » dans le CRM et copie-le (ou note ici celui que tu as tapé).", "Date de naissance : plus de 21 ans.", "Profil public, accepte les conditions, autorise les notifications.", "Note le pseudo et le mot de passe dans le CRM."],
     trap: "Taper un autre mot de passe que celui du CRM. On perd le compte.",
   },
   marche: {
@@ -225,7 +232,7 @@ const HELP = {
   metricool: {
     t: "Connecter à Metricool",
     hint: "Ouvre le lien dans le téléphone GeeLark, connecte Threads, reviens cliquer.",
-    more: ["Clique « Connecter à Metricool » : le CRM donne un lien.", "Copie le lien, ouvre-le dans le navigateur du téléphone GeeLark du compte. Jamais sur le PC.", "Touche « Connect a Threads account », puis « Continue with Instagram ».", "Connecte-toi avec le pseudo et le mot de passe du CRM, accepte tout.", "Reviens, clique « J'ai connecté Threads » : le CRM programme 3 jours de posts tout seul."],
+    more: ["Clique « Connecter à Metricool » : le CRM donne un lien.", "Copie le lien, ouvre-le dans le navigateur du téléphone GeeLark du compte. Jamais sur le PC.", "Touche « Connect a Threads account », accepte les cookies.", "Connecte-toi avec le pseudo et le mot de passe du CRM (boutons Copier), accepte tout.", "Reviens, clique « J'ai connecté Threads » : le CRM programme 3 jours de posts tout seul."],
     trap: "Ouvrir le lien sur le PC : mauvaise IP, le compte peut sauter.",
   },
   reconnect: {
@@ -238,19 +245,27 @@ const HELP = {
     hint: "Ouvre chaque profil, clique le bouton qui correspond.",
     more: ["OK : le compte marche, ses posts sortent.", "Shadowban : ses posts ne se voient plus depuis un autre compte.", "Restreint : message « action limitée ».", "Sauté : suspendu, supprimé, ou vérification impossible.", "Note les followers si tu peux."],
   },
+  planning: {
+    t: "Le planning",
+    hint: "Un point = un post. Une case rose = un jour vide : remplis-le.",
+    more: ["Bleu : prévu. Vert : publié. Rouge : erreur. Orange : en retard.", "Clique un jour pour voir ses textes, avec la traduction.", "« Remplir 14 jours pour tous » : deux semaines prévues pour chaque compte en un clic.", "Sur la page Metricool, « +3 jours » et « +7 jours » ajoutent des posts après le dernier jour déjà prévu.", "Colonne Textes en rouge : il manque des textes, préviens ton manager."],
+  },
   remplacement: {
     t: "Remplacer un compte sauté",
     hint: "Crée le nouveau compte jusqu'au bout : il reprend la place du mort.",
     more: ["Le CRM a déjà annulé les posts du compte mort et libéré sa marque Metricool.", "Crée le nouveau compte comme d'habitude : IP, téléphone, numéro, compte, warm-up, setup.", "À l'étape Metricool, il reprend la marque du mort : tu connectes juste Threads.", "Il garde le même groupe, la même stratégie, le même lien. Les posts repartent dès la connexion."],
   },
 };
-const HELP_VIDEOS = ["today", "rotation", "geelark", "numero", "compte", "warmup", "setup", "metricool", "reconnect", "check", "remplacement"];
+// Tutos filmes (vraie creation d'un compte, voix FR) : /help/<fichier>.mp4. Les autres cles gardent leur mini video .webm.
+const HELP_TUTOS = { geelark: "geelark", numero: "numero", compte: "compte", marche: "compte", warmup: "warmup", setup: "setup", metricool: "metricool", planning: "planning", creation: "creation", strategies: "setup" };
+const HELP_VIDEOS = ["today", "rotation", "reconnect", "check", "remplacement"];
+const tutoVideo = (k) => S.data.settings.videos?.[k] || (HELP_TUTOS[k] ? `/help/${HELP_TUTOS[k]}.mp4` : "");
 const hint = (k) => (HELP[k] ? `<div class="hint"><span class="hint-k">Indice</span><span class="hint-t">${esc(HELP[k].hint)}</span><button class="qbtn" data-act="help" data-k="${k}" aria-label="Plus d'aide">?</button></div>` : "");
-const helpVideo = (k) => S.data.settings.videos?.[k] || (HELP_VIDEOS.includes(k) ? `/help/${k}.webm` : "");
+const helpVideo = (k) => tutoVideo(k) || (HELP_VIDEOS.includes(k) ? `/help/${k}.webm` : "");
 
 const sopBlock = (key, open) => {
   const s = SOP[key];
-  const v = S.data.settings.videos?.[key];
+  const v = helpVideo(key);
   return `<details class="card sop" ${open ? "open" : ""}><summary><b>${s.t}</b> ${v ? "" : ""}</summary>${videoEmbed(v)}<ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
 };
 
@@ -407,7 +422,7 @@ const VIEWS = {
         <a class="btn light" href="${esc(S.data.settings.geelarkUrl)}" target="_blank" rel="noopener">Ouvrir GeeLark</a>
         ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", S.data.settings.socksPort || proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
         <label class="f">Nom du profil GeeLark <small>(facultatif)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : profil 12" />
-        ${videoEmbed(S.data.settings.videos?.creation)}${nav(true)}</div>`;
+        ${nav(true)}</div>`;
     if (w.step === 3) {
       if (!S.data.configured.sms)
         return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>${hint("numero")}
@@ -424,7 +439,7 @@ const VIEWS = {
         ${nav(!!(w.f.phone))}</div>`;
     }
     if (w.step === 4)
-      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Instagram puis Threads</h3>${hint("compte")}
+      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Threads</h3>${hint("compte")}
         <label class="f">Pseudo</label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
         <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(w.f.pseudo || "pseudo")}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(w.f.pseudo || "pseudo")}</button></div>
@@ -487,7 +502,7 @@ const VIEWS = {
         return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><div class="row">${gpill(a.group)}${pill(a.status)}</div>
           <span class="muted">${up.length} post(s) programmé(s)${a.plannedUntil ? ` · jusqu'au ${esc(a.plannedUntil)}` : ""}</span>
           ${up.slice(0, 3).map((p) => `<span class="muted">${esc(p.local.replace("T", " ").slice(0, 16))}</span>`).join("")}
-          <div class="row"><button class="btn sm" data-act="plan" data-id="${a.id}" data-days="3" data-wait="...">+3 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="7" data-wait="...">+7 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="14" data-wait="...">14 jours</button><button class="btn sm ghost" data-act="manual" data-id="${a.id}">Post à la main</button></div></div>`;
+          <div class="row"><button class="btn sm" data-act="plan" data-id="${a.id}" data-days="3" data-mode="add" data-wait="...">+3 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="7" data-mode="add" data-wait="...">+7 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="14" data-wait="...">14 jours</button><button class="btn sm ghost" data-act="manual" data-id="${a.id}">Post à la main</button></div></div>`;
       }).join("")}</div>${sopBlock("metricool")}`;
   },
 
@@ -539,7 +554,7 @@ const VIEWS = {
       return `<td class="pc" data-act="dayPosts" data-id="${a.id}" data-v="${d}">${ps.map((p) => `<i class="pd s-${state(p)}"></i>`).join("")}</td>`;
     };
     const fmt = (d) => { const x = new Date(d + "T12:00:00Z"); return `<b>${["D", "L", "M", "M", "J", "V", "S"][x.getUTCDay()]}</b>${x.getUTCDate()}`; };
-    return `<h2>Planning</h2><p class="lead">Chaque point = un post. Vert : publié. Bleu : prévu. Rouge : erreur. Orange : en retard. Case rose : rien de prévu.</p>
+    return `<h2>Planning</h2><p class="lead">Chaque point = un post. Vert : publié. Bleu : prévu. Rouge : erreur. Orange : en retard. Case rose : rien de prévu.</p>${hint("planning")}
       <div class="stats">${stat("c-green", `${pub24}/${last24.length}`, "publiés (24 h)")}${stat("c-red", bad, "pas sortis (3 j)")}${stat("c-blue", `${full}/${live.length}`, "comptes prévus 14 j")}</div>
       <div class="row" style="margin-bottom:12px"><button class="btn" data-act="planAll" data-days="14" data-wait="Planification...">Remplir 14 jours pour tous</button><button class="btn light" data-act="postsSync" data-wait="Vérification...">Vérifier sur Metricool</button><span class="muted">${S.data.postsSyncAt ? "Vérifié " + ago(S.data.postsSyncAt) + " (tout seul toutes les 20 min)" : "Jamais vérifié"}</span></div>
       ${live.length ? `<div class="card" style="padding:0;overflow-x:auto"><table class="plan"><thead><tr><th class="pa">Compte</th>${days.map((d) => `<th class="${d === today ? "td" : d < today ? "past" : ""}">${fmt(d)}</th>`).join("")}<th>Textes</th></tr></thead>
@@ -716,11 +731,13 @@ function task(n, color, title, desc, tab, btn, first) {
   return `<div class="task ${first ? "first" : ""}">${num}<div class="task-text"><b>${esc(title)}</b><span>${esc(desc)}</span></div><button class="btn sm ${first ? "accent" : ""}" data-tab="${tab}">${esc(btn)}</button></div>`;
 }
 // planifie un compte en plusieurs appels si besoin (le serveur rend la main avant 10 s)
-async function planFull(accountId, days, btn, label) {
+async function planFull(accountId, days, btn, label, mode) {
   let created = 0;
   let problems = [];
+  let until;
   for (let i = 0; i < 30; i++) {
-    const r = await api("metricool/plan", { accountId, days });
+    const r = await api("metricool/plan", { accountId, days, mode, until });
+    until = r.until;
     created += r.created.length;
     problems = r.problems;
     if (btn) btn.innerHTML = `<span class="spin"></span> ${label ? label + " · " : ""}${created} post(s)...`;
@@ -784,7 +801,7 @@ function smsCard(cur) {
   const mm = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
   return `<div class="alert c-blue"><b>Numéro ${esc(cur.countryName)}</b> · ${cur.price ? cur.price.toFixed(3).replace(/0+$/, "") + " $" : ""} · expire dans <span data-smsleft>${mm}</span></div>
     ${copyLine("Numéro complet", cur.phone)}${cur.local && cur.local !== cur.phone.slice(1) ? copyLine(`Sans indicatif (${cur.dial})`, cur.local) : ""}
-    <p>Dans Instagram, choisis l'indicatif <b>${esc(cur.dial || cur.countryName)}</b> puis colle le numéro sans indicatif. Le code arrive ici tout seul, sans rien ouvrir.</p>
+    <p>Dans Threads (« Utiliser un numéro de mobile »), choisis l'indicatif <b>${esc(cur.dial || cur.countryName)}</b> puis colle le numéro sans indicatif. Le code arrive ici tout seul, sans rien ouvrir.</p>
     ${cur.code ? `<div class="alert c-green" style="font-size:22px;font-weight:700;letter-spacing:2px">${esc(cur.code)} <button class="btn sm light" data-act="copy" data-v="${esc(cur.code)}" style="letter-spacing:0;font-size:13px">Copier</button></div>${cur.smsText ? `<p class="muted">${esc(cur.smsText)}</p>` : ""}` : `<div class="alert c-yellow" data-smswait>En attente du SMS... <span class="muted">(vérifié toutes les 5 secondes)</span></div>`}
     <div class="row" style="margin-top:10px">${cur.code ? (S.tab === "numero" ? `<button class="btn sm light" data-act="smsDone" data-wait="...">Numéro utilisé, j'en veux un autre</button>` : "") : `<button class="btn sm light" data-act="smsCode" data-wait="...">Vérifier maintenant</button><button class="btn sm bad" data-act="smsCancel" data-wait="Remboursement...">Pas de code : rembourser</button>`}</div>`;
 }
@@ -798,7 +815,7 @@ function mcConnectCard(a) {
     <ol>
       <li>Copie ce lien : ${copyLine("Lien", a.mcLink)}</li>
       <li>Ouvre-le dans le <b>navigateur du téléphone GeeLark du compte</b> (même téléphone, même IP). Jamais sur ton PC.</li>
-      <li>Touche <b>Connect a Threads account</b>, puis <b>Continue with Instagram</b>.</li>
+      <li>Touche <b>Connect a Threads account</b>, accepte les cookies.</li>
       <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</li>
       <li>Accepte <b>toutes</b> les permissions. Si ça te renvoie sur Threads, ferme et refais l'étape 3.</li>
       <li>Reviens ici et clique le bouton vert.</li>
@@ -817,7 +834,7 @@ function setupWizard(a) {
   const pfps = S.data.media.filter((m) => m.kind === "pfp");
   if (!s.pfp && pfps.length) s.pfp = pfps[Math.floor(Math.random() * pfps.length)].id;
   const fill = (t) => String(t || "").replaceAll("{pseudo}", a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT").replaceAll("{pivot}", st.hub?.pseudo || "PIVOT MANQUANT");
-  const box = (t) => `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t)}">Copier</button></div>`;
+  const box = (t) => `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t)}">Copier</button></div>${frSlot(t)}`;
   const explain = {
     epingle: "Ce compte garde le lien dans son post épinglé, pas dans la bio. La bio dit juste d'aller voir le post épinglé.",
     lien: "Ce compte met le lien directement dans le champ lien de la bio. La bio invite à cliquer dessus.",
@@ -845,7 +862,7 @@ function setupWizard(a) {
       <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</div>
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
-    <div class="card"><div class="stepnum">3. Bio</div>${bank.length ? `<p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} » (${bank.length} restantes). Copie-la telle quelle : une fois le setup fini, elle sort de la banque.</p>` : '<div class="alert c-red">Plus aucune bio dans cette banque. Préviens Awen ou Bilot (Contenu, Bios).</div>'}<textarea data-setupbio>${esc(s.bio)}</textarea><div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
+    <div class="card"><div class="stepnum">3. Bio</div>${bank.length ? `<p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} » (${bank.length} restantes). Copie-la telle quelle : une fois le setup fini, elle sort de la banque.</p>` : '<div class="alert c-red">Plus aucune bio dans cette banque. Préviens Awen ou Bilot (Contenu, Bios).</div>'}<textarea data-setupbio>${esc(s.bio)}</textarea>${frSlot(s.bio)}<div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
     ${linkStep}${pinStep}
     <div class="card"><div class="checklist" data-scheck>${checks.map((x) => `<label><input type="checkbox" /> ${x}</label>`).join("")}</div>
       <button class="btn big ok" data-act="setupDone" data-id="${a.id}" data-wait="...">Setup fini</button><div class="row" style="margin-top:10px"><button class="btn ghost" data-act="setupCancel">Retour à la liste</button></div></div>`;
@@ -898,11 +915,34 @@ function afterRender() {
       } catch {}
     }, 5000);
   }
+  // traductions FR manquantes : une requete pour tout l'ecran, puis on remplit sur place
+  const need = [...document.querySelectorAll("[data-fr]")].map((el) => el.dataset.fr).filter((t) => !S.tr?.[t]);
+  if (need.length && !S.trLoading && (S.trTries || 0) < 3) {
+    S.trLoading = true;
+    S.trTries = (S.trTries || 0) + 1;
+    api("tr", { texts: need })
+      .then((r) => {
+        S.tr = { ...(S.tr || {}), ...r };
+        if (Object.keys(r).length) S.trTries = 0;
+        document.querySelectorAll("[data-fr]").forEach((el) => {
+          const fr = S.tr[el.dataset.fr];
+          if (fr) el.querySelector(".frv").textContent = fr;
+        });
+      })
+      .catch(() => {})
+      .finally(() => {
+        S.trLoading = false;
+        if ([...document.querySelectorAll("[data-fr]")].some((el) => !S.tr?.[el.dataset.fr])) setTimeout(afterRenderTr, 1500);
+      });
+  }
   // remettre les chronos en route
   document.querySelectorAll("[data-timer]").forEach((el) => {
     const end = Number(sessionStorage.getItem("timer_" + el.dataset.timer) || 0);
     if (end) tick(el, end);
   });
+}
+function afterRenderTr() {
+  if (document.querySelector("[data-fr]")) afterRender();
 }
 function tick(el, end) {
   const draw = () => {
@@ -1185,9 +1225,10 @@ const ACT = {
   },
   async plan(b) {
     await run(b, async () => {
-      const r = await planFull(b.dataset.id, Number(b.dataset.days) || 3, b);
+      const r = await planFull(b.dataset.id, Number(b.dataset.days) || 3, b, "", b.dataset.mode);
       await refresh();
-      toast(`${r.created} post(s) programmé(s)` + (r.problems.length ? " · " + r.problems[0] : ""), !!r.problems.length);
+      const a = acc(b.dataset.id);
+      toast(`${r.created} post(s) programmé(s)` + (a?.plannedUntil ? ` · prévu jusqu'au ${a.plannedUntil}` : "") + (r.problems.length ? " · " + r.problems[0] : ""), !!r.problems.length);
     });
   },
   async postsSync(b) {
