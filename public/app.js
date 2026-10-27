@@ -192,7 +192,7 @@ const HELP = {
   geelark: {
     t: "Nouveau téléphone GeeLark",
     hint: "Nouveau profil GeeLark, colle le proxy du CRM, allume le téléphone.",
-    more: ["Ouvre l'appli GeeLark sur le PC.", "Crée un nouveau profil (jamais un ancien).", "Onglet Proxy : type HTTP.", "Colle hôte, port, utilisateur, mot de passe avec les boutons Copier du CRM.", "Teste le proxy, puis lance le téléphone.", "Note le nom du profil dans le CRM."],
+    more: ["Ouvre l'appli GeeLark sur le PC.", "Crée un nouveau profil (jamais un ancien).", "Onglet Proxy : type SOCKS5 (si le test reste rouge, essaie HTTP).", "Colle hôte, port, utilisateur, mot de passe avec les boutons Copier du CRM.", "Teste le proxy, puis lance le téléphone.", "Note le nom du profil dans le CRM."],
     trap: "Réutiliser un ancien profil. 1 profil = 1 compte, toujours.",
   },
   numero: {
@@ -403,7 +403,7 @@ const VIEWS = {
         ${nav(ip && !ipUsed)}</div>${sopBlock("rotation")}`;
     if (w.step === 2)
       return `${head}<div class="card"><div class="stepnum">Étape 2 sur 5</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
-        <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous (type HTTP).</li></ol>
+        <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous (type <b>SOCKS5</b>, ou HTTP si le test reste rouge).</li></ol>
         <a class="btn light" href="${esc(S.data.settings.geelarkUrl)}" target="_blank" rel="noopener">Ouvrir GeeLark</a>
         ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
         <label class="f">Nom du profil GeeLark <small>(facultatif)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : profil 12" />
