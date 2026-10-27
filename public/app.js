@@ -307,7 +307,7 @@ function render() {
   app.innerHTML = `
   <div class="shell">
     <aside class="side">
-      <div class="logo"><span class="mark">TH</span><div><b>Threads HQ</b><small>Sensual Aura</small></div></div>
+      <div class="logo"><span class="mark">TH</span><div><b>Threads HQ</b></div></div>
       ${groups.map(([title, items]) => `<div class="navgroup"><div class="navtitle">${title}</div>${items.map(navBtn).join("")}</div>`).join("")}
       <div class="me"><span>${esc(S.data.me.name)}</span><button class="link" data-act="logout">Se déconnecter</button></div>
     </aside>
