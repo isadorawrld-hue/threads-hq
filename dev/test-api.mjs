@@ -34,6 +34,8 @@ ok(await call("secrets", { rotationUrl: "https://rotate.test/x", mcToken: "TOKEN
 let st = ok(await call("state"), "state");
 assert.deepEqual(st.configured, { rotation: true, metricool: true, mcToken: true, mcUserId: true, proxy: true, tiny: false, sms: false });
 assert.equal((await call("secrets", { mcUserId: "nimporte" })).s, 400);
+assert.equal((await call("settings", { socksPort: "517157867" })).s, 400, "port SOCKS5 farfelu refusé");
+ok(await call("settings", { socksPort: "17157" }), "port SOCKS5 ok");
 ok(await call("secrets", { mcUserId: "https://app.metricool.com/evolution/web?blogId=1&userId=42" }), "userId via URL");
 assert.equal(JSON.stringify(st).includes("TOKEN_TEST"), false, "le token ne doit jamais sortir");
 assert.equal(JSON.stringify(st).includes("rotate.test"), false, "le lien de rotation ne doit jamais sortir");
