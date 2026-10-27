@@ -143,7 +143,7 @@ const SOP = {
   },
   numero: {
     t: "Prendre un numéro",
-    steps: ["Onglet Numéro (ou étape 3 de Créer un compte) : clique « Numéro Hong Kong ».", "Singapour seulement s'il n'y a plus de Hong Kong.", "Dans Instagram : indicatif +852, puis le numéro sans indicatif (bouton Copier).", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Instagram.", "Pas de code après 2 à 3 minutes : « Pas de code : rembourser », puis reprends un numéro.", "Jamais 2 comptes sur le même numéro."],
+    steps: ["Onglet Numéro (ou étape 3 de Créer un compte) : clique le gros bouton (France).", "Pas de code ? Rembourse, puis prends le pays suivant (USA).", "Dans Instagram : l'indicatif affiché par le CRM, puis le numéro sans indicatif (bouton Copier).", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Instagram.", "Pas de code après 2 à 3 minutes : « Pas de code : rembourser », puis reprends un numéro.", "Jamais 2 comptes sur le même numéro."],
   },
   creation: {
     t: "Créer un compte",
@@ -197,8 +197,8 @@ const HELP = {
   },
   numero: {
     t: "Prendre un numéro",
-    hint: "Clique « Numéro Hong Kong ». Le code SMS arrive ici tout seul.",
-    more: ["Clique « Numéro Hong Kong ». Singapour seulement s'il n'y a plus de Hong Kong.", "Dans Instagram, choisis l'indicatif +852.", "Colle le numéro sans indicatif (bouton Copier).", "Le code s'affiche dans le CRM en 5 à 60 s. Copie-le dans Instagram.", "Rien après 3 min : « Pas de code : rembourser », puis reprends un numéro."],
+    hint: "Clique le gros bouton (France). Le code SMS arrive ici tout seul.",
+    more: ["Clique le gros bouton (France, même pays que le proxy).", "Pas de code en 3 min : rembourse, puis prends USA.", "Dans Instagram, choisis l'indicatif affiché par le CRM (+33 pour la France).", "Colle le numéro sans indicatif (bouton Copier).", "Le code s'affiche dans le CRM en 5 à 60 s. Copie-le dans Instagram.", "Rien après 3 min : « Pas de code : rembourser », puis reprends un numéro."],
     trap: "Utiliser 2 fois le même numéro.",
   },
   compte: {
@@ -378,7 +378,7 @@ const VIEWS = {
     const cur = S.data.sms && S.data.sms.status === "attente" ? S.data.sms : null;
     const lab = { attente: ["c-yellow", "En cours"], fini: ["c-green", "Utilisé"], annule: ["c-blue", "Remboursé"], expire: ["c-red", "Expiré"] };
     const hist = (S.data.smsHistory || []).filter((h) => !cur || h.id !== cur.id);
-    return `<h2>Numéro</h2><p class="lead">Un numéro pour créer un compte. Toujours Hong Kong. Le code SMS arrive ici.</p>${hint("numero")}
+    return `<h2>Numéro</h2><p class="lead">Un numéro pour créer un compte. France d'abord. Le code SMS arrive ici.</p>${hint("numero")}
       ${S.data.configured.sms ? `<div class="card">${cur ? smsCard(cur) : smsBuyBlock()}</div>
         ${cur ? `<p class="muted">Quand le compte est créé dans « Créer un compte », ce numéro se ferme tout seul.</p>` : ""}
         ${hist.length ? `<h3>Derniers numéros</h3><div class="card list">${hist.map((h) => `<div class="row" style="justify-content:space-between;padding:6px 0"><span><b>${esc(h.phone)}</b> <span class="muted">${esc(h.countryName)} · ${ago(h.createdAt)}${h.code ? " · code " + esc(h.code) : ""}</span></span>${(() => { const [c, l] = lab[h.status] || ["", h.status]; return `<span class="pill ${c}">${l}</span>`; })()}</div>`).join("")}</div>` : ""}`
@@ -412,7 +412,7 @@ const VIEWS = {
       if (!S.data.configured.sms)
         return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>${hint("numero")}
           ${S.data.settings.smsSiteUrl ? `<a class="btn light" href="${esc(S.data.settings.smsSiteUrl)}" target="_blank" rel="noopener">Ouvrir le site SMS</a>` : '<div class="alert c-yellow">Hero SMS pas encore branché (Réglages, admin).</div>'}
-          <label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+852 ..." />
+          <label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+33 ..." />
           ${nav(true)}</div>`;
       const cur = S.data.sms && S.data.sms.status === "attente" ? S.data.sms : null;
       if (cur) {
@@ -420,7 +420,7 @@ const VIEWS = {
         w.f.smsId = cur.id;
       }
       return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>${hint("numero")}
-        ${cur ? smsCard(cur) : smsBuyBlock() + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+852 ..." /></details>`}
+        ${cur ? smsCard(cur) : smsBuyBlock() + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+33 ..." /></details>`}
         ${nav(!!(w.f.phone))}</div>`;
     }
     if (w.step === 4)
@@ -768,14 +768,16 @@ function warmupCard(a, withTimer) {
 }
 function smsBuyBlock() {
   const prices = S.smsPrices || null;
-  const hk = prices ? prices.find((x) => x.id === 14) : null;
-  const sg = prices ? prices.find((x) => x.id === 196) : null;
+  const list = S.data.smsCountries || [];
   const info = (p) => (p ? (p.price != null && p.stock ? `${p.price.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} $ · ${p.stock} dispo` : "plus de numéro") : "");
-  const hkEmpty = hk && !hk.stock;
-  return `<p>Clique sur <b>Hong Kong</b>. Le numéro et le code SMS arrivent ici, tu n'as rien d'autre à ouvrir.</p>
-    <button class="btn big" data-act="smsBuy" data-v="14" data-wait="Achat du numéro..." ${hkEmpty ? "disabled" : ""}>Numéro Hong Kong ${hk ? `<small style="opacity:.7;font-weight:500">· ${esc(info(hk))}</small>` : ""}</button>
-    <div class="row" style="margin-top:10px"><button class="btn ${hkEmpty ? "" : "light"}" data-act="smsBuy" data-v="196" data-wait="Achat du numéro...">Numéro Singapour ${sg ? `<small style="opacity:.7;font-weight:500">· ${esc(info(sg))}</small>` : ""}</button></div>
-    <p class="muted">${hkEmpty ? "<b>Plus de numéro Hong Kong</b> : prends Singapour." : "Singapour seulement s'il n'y a plus de Hong Kong."}${S.smsBalance != null ? ` · Solde : ${S.smsBalance.toFixed(2)} $` : ""} · <a href="#" data-act="smsPrices">actualiser</a></p>`;
+  const priceOf = (c) => (prices ? prices.find((x) => x.id === c.id) : null);
+  const empty = (c) => { const p = priceOf(c); return p && !p.stock; };
+  const first = list.find((c) => !empty(c)) || list[0];
+  const btn = (c, big) => `<button class="btn ${big ? "big" : "light"}" data-act="smsBuy" data-v="${c.id}" data-wait="Achat du numéro..." ${empty(c) ? "disabled" : ""}>Numéro ${esc(c.name)} ${priceOf(c) ? `<small style="opacity:.7;font-weight:500">· ${esc(info(priceOf(c)))}</small>` : ""}</button>`;
+  return `<p>Clique sur <b>${esc(first?.name || "")}</b>. Le numéro et le code SMS arrivent ici, tu n'as rien d'autre à ouvrir.</p>
+    ${first ? btn(first, true) : ""}
+    <div class="row" style="margin-top:10px">${list.filter((c) => c !== first).map((c) => btn(c, false)).join("")}</div>
+    <p class="muted">Pas de code ? Rembourse, puis essaie le pays suivant.${S.smsBalance != null ? ` · Solde : ${S.smsBalance.toFixed(2)} $` : ""} · <a href="#" data-act="smsPrices">actualiser</a></p>`;
 }
 function smsCard(cur) {
   const left = Math.max(0, Math.round((new Date(cur.expiredAt).getTime() - Date.now()) / 1000));
@@ -1143,7 +1145,7 @@ const ACT = {
       S.wiz.f.phone = "";
       S.wiz.f.smsId = "";
       await refresh();
-      toast("Remboursé. Reprends un numéro Hong Kong.");
+      toast("Remboursé. Prends le pays suivant.");
     });
   },
   async mcConnect(b) {

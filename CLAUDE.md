@@ -58,7 +58,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 
 ## Hero SMS (numéros pour créer les comptes)
 - Base : `https://hero-sms.com/api/v1`. Auth : header `Authorization: ApiKey <clé>`. Clé dans Réglages > Connexions, champ 6 (secret, jamais dans le repo).
-- Service Instagram+Threads = `ig`. Pays : Hong Kong 14, Singapour 196, Taïwan 55 (liste publique : `/stubs/handler_api.php?action=getCountries`).
+- Service Instagram+Threads = `ig`. Pays (27/10/2026) : France 78 en premier (même pays que le proxy), USA 187, Hong Kong 14 (Instagram n'y envoie souvent pas le SMS), Singapour 196, Taïwan 55 retiré (liste publique : `/stubs/handler_api.php?action=getCountries`).
 - Prix/stock : `GET /activations/offers/sms?services=ig&countries=14,196,55`. Acheter : `POST /activations {service, country, amount:1, verificationType:"sms"}` → `data[0]` (id, phone sans +, countryPhoneCode, price, expiredAt).
 - Code : `GET /activations/{id}/otp/last` (404 tant que rien). Fin : `POST /activations/{id}/finish`. Annuler + rembourser (seulement sans code) : `DELETE /activations/{id}`. Solde : `/stubs/handler_api.php?action=getBalance&api_key=...` → `ACCESS_BALANCE:x`.
 - Flux CRM : onglet « Numéro » (ou étape 3 de « Créer un compte ») → gros bouton Hong Kong, Singapour seulement si HK vide (Taïwan retiré), clique, le numéro s'affiche, le code arrive tout seul (vérif toutes les 5 s). Compte créé → activation terminée. Échec ou « Annuler » sans code → remboursé.

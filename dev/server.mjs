@@ -74,7 +74,7 @@ async function fakeFetch(url, opts = {}) {
   if (u.hostname === "hero-sms.com") {
     if (u.pathname.endsWith("/handler_api.php")) return new Response(u.searchParams.get("api_key") === "HERO_TEST" ? "ACCESS_BALANCE:9.5" : "BAD_KEY", { status: 200 });
     if (opts.headers?.Authorization !== "ApiKey HERO_TEST") return new Response(JSON.stringify({ title: "Unauthenticated." }), { status: 401 });
-    if (u.pathname.endsWith("/activations/offers/sms")) return Response.json({ data: { ig: { 14: { prices: { default: 0.035 }, counts: { total: 934 } }, 196: { prices: { default: 0.2102 }, counts: { total: 117 } }, 55: { prices: { default: 0.75 }, counts: { total: 0 } } } } });
+    if (u.pathname.endsWith("/activations/offers/sms")) return Response.json({ data: { ig: { 78: { prices: { default: 0.12 }, counts: { total: 934 } }, 187: { prices: { default: 0.1 }, counts: { total: 500 } }, 14: { prices: { default: 0.035 }, counts: { total: 934 } }, 196: { prices: { default: 0.2102 }, counts: { total: 117 } }, 55: { prices: { default: 0.75 }, counts: { total: 0 } } } } });
     if (u.pathname.endsWith("/activations") && opts.method === "POST") {
       const b = JSON.parse(opts.body);
       if (b.country === 55) return new Response(JSON.stringify({ title: "NO_NUMBERS" }), { status: 404 });

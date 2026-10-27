@@ -63,7 +63,7 @@ const prices = ok(await call("sms/prices"), "prix");
 assert.equal(prices.find((c) => c.id === 14).price, 0.035);
 assert.equal(ok(await call("sms/balance"), "solde").balance, 9.5);
 assert.equal((await call("sms/buy", { country: 55 })).s, 400, "Taïwan retiré");
-assert.equal(prices.length, 2, "seulement Hong Kong et Singapour");
+assert.deepEqual(prices.map((c) => c.id), [78, 187, 14, 196], "France, USA, Hong Kong, Singapour");
 const act = ok(await call("sms/buy", { country: 14 }), "achat");
 assert.match(act.phone, /^\+8529/);
 assert.equal(act.status, "attente");
