@@ -51,6 +51,11 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
   - `relais` : aucun lien ; le compte cite le post épinglé du compte pivot (`settings.hub`) et épingle la citation.
   Un compte remplaçant garde la stratégie du compte sauté. Les bios viennent de `settings.bioBank[strategie]`.
 
+## Bios
+- 3 banques (épinglé, lien, relais) dans `settings.bioBank`. Chaque bio ne sert qu'une fois : au « Setup fini », la bio tirée (`bioPick`) et la bio finale sortent de la banque et vont dans `settings.biosUsed`. Une sauvegarde de Contenu ne peut pas les remettre (filtrée côté serveur).
+- `public/seed-bios.json` : 250 bios par stratégie écrites le 27/10/2026 (chinois traditionnel, sans nom de plateforme, « lien » finit toujours par 👇, jamais 置頂 ; épinglé et relais renvoient au 置頂).
+- Alerte admin dans Aujourd'hui sous 20 bios restantes dans une banque.
+
 ## Hero SMS (numéros pour créer les comptes)
 - Base : `https://hero-sms.com/api/v1`. Auth : header `Authorization: ApiKey <clé>`. Clé dans Réglages > Connexions, champ 6 (secret, jamais dans le repo).
 - Service Instagram+Threads = `ig`. Pays : Hong Kong 14, Singapour 196, Taïwan 55 (liste publique : `/stubs/handler_api.php?action=getCountries`).

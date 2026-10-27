@@ -343,6 +343,8 @@ const VIEWS = {
     const conf = S.data.configured;
     const stt = S.data.settings;
     const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Hero SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)"].filter(Boolean);
+    const lowBios = Object.entries(stt.bioBank || {}).filter(([, v]) => (v || []).length < 20).map(([k, v]) => `${(S.data.strategyLabels || {})[k] || k} : ${(v || []).length}`);
+    if (isAdmin() && lowBios.length) cards.push(task("", "c-red", "Bios bientôt épuisées", lowBios.join(" · ") + " (chaque bio ne sert qu'une fois)", "content", "Ajouter"));
     if (isAdmin() && miss.length) cards.push(task("", "c-red", "Réglages à finir", miss.join(" · "), "settings", "Ouvrir"));
     // ordre de priorite : d'abord que chaque compte poste (remplacer, reconnecter), puis le reste
     // regle : 1) ce qui empeche un compte de poster, 2) finir ce qui est commence (le plus proche de poster d'abord), 3) preparer la suite
@@ -619,10 +621,10 @@ const VIEWS = {
         <label class="f">Lien du post épinglé du pivot <small>(facultatif, pour que la VA le retrouve vite)</small></label><input data-hub="postUrl" value="${esc(st.hub?.postUrl || "")}" />
         <label class="f">Texte de la citation (comptes relais) <small>({pivot} = pseudo du pivot)</small></label><textarea data-set="relayText" style="min-height:70px">${esc(st.relayText || "")}</textarea></div>
       <div class="card"><h3 style="margin-top:0">Banque de bios</h3><p class="muted">Une bio par bloc, séparées par une ligne vide. Le CRM en tire une au hasard selon la stratégie du compte.</p>
-        <label class="f">Bios « Post épinglé » <small>(${(st.bioBank?.epingle || []).length})</small></label><textarea data-bank="epingle" style="min-height:200px">${esc((st.bioBank?.epingle || []).join("\n\n"))}</textarea>
-        <label class="f">Bios « Lien dans la bio » <small>(${(st.bioBank?.lien || []).length})</small></label><textarea data-bank="lien" style="min-height:200px">${esc((st.bioBank?.lien || []).join("\n\n"))}</textarea>
-        <label class="f">Bios « Relais » <small>(${(st.bioBank?.relais || []).length})</small></label><textarea data-bank="relais" style="min-height:200px">${esc((st.bioBank?.relais || []).join("\n\n"))}</textarea>
-        <label class="f">Bios de secours <small>(utilisées si une banque est vide)</small></label><textarea data-set="bios" style="min-height:120px">${esc((st.bios || []).join("\n\n"))}</textarea>
+        <p class="muted">Chaque bio ne sert qu'une fois : dès qu'un setup est fini, elle sort de la banque. ${(st.biosUsed || []).length} déjà utilisée(s).</p><label class="f">Bios « Post épinglé » <small>(${(st.bioBank?.epingle || []).length} restantes)</small></label><textarea data-bank="epingle" style="min-height:200px">${esc((st.bioBank?.epingle || []).join("\n\n"))}</textarea>
+        <label class="f">Bios « Lien dans la bio » <small>(${(st.bioBank?.lien || []).length} restantes)</small></label><textarea data-bank="lien" style="min-height:200px">${esc((st.bioBank?.lien || []).join("\n\n"))}</textarea>
+        <label class="f">Bios « Relais » <small>(${(st.bioBank?.relais || []).length} restantes)</small></label><textarea data-bank="relais" style="min-height:200px">${esc((st.bioBank?.relais || []).join("\n\n"))}</textarea>
+
         <h3>Post épinglé</h3><p class="muted">Partie 1 = le post. Partie 2 = la réponse avec le lien. Mots remplacés tout seuls : <code>{pseudo}</code> et <code>{lien}</code>.</p><label class="f">Partie 1</label><textarea data-set="pinnedPost">${esc(st.pinnedPost || "")}</textarea><label class="f">Partie 2</label><textarea data-set="pinnedReply">${esc(st.pinnedReply || "")}</textarea>
         <h3>Liens (un par compte)</h3><p class="muted">Un lien TinyURL par ligne. Chaque nouveau compte prend le prochain lien libre.</p><textarea data-set="links">${esc((st.links || []).join("\n"))}</textarea>
         <p class="muted">${(st.links || []).map((l) => (usedLinks.has(l) ? `${esc(l)} @${esc(usedLinks.get(l))}` : `${esc(l)} libre`)).join("<br>")}</p>
@@ -796,8 +798,8 @@ function setupWizard(a) {
   const st = S.data.settings;
   const s = S.setup;
   const strat = a.strategy || "epingle";
-  const bank = (st.bioBank && st.bioBank[strat] && st.bioBank[strat].length ? st.bioBank[strat] : st.bios) || [];
-  if (!s.bio) s.bio = bank[Math.floor(Math.random() * bank.length)] || "";
+  const bank = (st.bioBank && st.bioBank[strat]) || [];
+  if (!s.bio && bank.length) s.bio = s.bioPick = bank[Math.floor(Math.random() * bank.length)];
   const pfps = S.data.media.filter((m) => m.kind === "pfp");
   if (!s.pfp && pfps.length) s.pfp = pfps[Math.floor(Math.random() * pfps.length)].id;
   const fill = (t) => String(t || "").replaceAll("{pseudo}", a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT").replaceAll("{pivot}", st.hub?.pseudo || "PIVOT MANQUANT");
@@ -829,7 +831,7 @@ function setupWizard(a) {
       <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</div>
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
-    <div class="card"><div class="stepnum">3. Bio</div><p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} ». Copie-la telle quelle.</p><textarea data-setupbio>${esc(s.bio)}</textarea><div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
+    <div class="card"><div class="stepnum">3. Bio</div>${bank.length ? `<p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} » (${bank.length} restantes). Copie-la telle quelle : une fois le setup fini, elle sort de la banque.</p>` : '<div class="alert c-red">Plus aucune bio dans cette banque. Préviens Awen ou Bilot (Contenu, Bios).</div>'}<textarea data-setupbio>${esc(s.bio)}</textarea><div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
     ${linkStep}${pinStep}
     <div class="card"><div class="checklist" data-scheck>${checks.map((x) => `<label><input type="checkbox" /> ${x}</label>`).join("")}</div>
       <button class="btn big ok" data-act="setupDone" data-id="${a.id}" data-wait="...">Setup fini</button><div class="row" style="margin-top:10px"><button class="btn ghost" data-act="setupCancel">Retour à la liste</button></div></div>`;
@@ -969,8 +971,8 @@ const ACT = {
       await api("accounts/failed", { phone: S.wiz.f.phone, smsId: S.wiz.f.smsId || "", reason: $("#failwhy").value });
       closeModal();
       S.wiz = { step: 1, f: { geelarkProfile: S.wiz.f.geelarkProfile } };
-      toast("Noté. Change l'IP et on recommence");
       await refresh();
+      toast("Noté. Change l'IP et on recommence");
     });
   },
   startTimer(b) {
@@ -1009,8 +1011,9 @@ const ACT = {
   otherBio() {
     const st = S.data.settings;
     const strat = acc(S.setup.id)?.strategy || "epingle";
-    const bios = (st.bioBank && st.bioBank[strat] && st.bioBank[strat].length ? st.bioBank[strat] : st.bios) || [];
-    S.setup.bio = bios[Math.floor(Math.random() * bios.length)] || "";
+    const bios = ((st.bioBank && st.bioBank[strat]) || []).filter((x) => x !== S.setup.bioPick);
+    if (!bios.length) return toast("Pas d'autre bio dans cette banque.", true);
+    S.setup.bio = S.setup.bioPick = bios[Math.floor(Math.random() * bios.length)];
     render();
   },
   copyBio() {
@@ -1018,8 +1021,9 @@ const ACT = {
   },
   async setupDone(b) {
     if ([...document.querySelectorAll("[data-scheck] input")].some((x) => !x.checked)) return toast("Coche toutes les cases d'abord.", true);
+    if (!$("[data-setupbio]").value.trim()) return toast("Mets une bio d'abord.", true);
     await run(b, async () => {
-      await api(`accounts/${b.dataset.id}/setup`, { bio: $("[data-setupbio]").value });
+      await api(`accounts/${b.dataset.id}/setup`, { bio: $("[data-setupbio]").value, bioPick: S.setup?.bioPick || "" });
       S.setup = null;
       let msg = "Setup fini ! Prochaine étape : Metricool.";
       if (S.data.configured.metricool) {
@@ -1049,8 +1053,8 @@ const ACT = {
       const act = await api("sms/buy", { country: Number(b.dataset.v) || 14 });
       S.wiz.f.phone = act.phone;
       S.wiz.f.smsId = act.id;
-      toast(`Numéro pris : ${act.phone}`);
       await refresh();
+      toast(`Numéro pris : ${act.phone}`);
     });
   },
   async smsCode(b) {
@@ -1082,15 +1086,15 @@ const ACT = {
           fails.push(`${f.name} : ${e.message}`);
         }
       }
-      toast(`${ok} photo(s) importée(s)` + (fails.length ? ` · ${fails.length} échec(s) : ${fails[0]}` : ""), !!fails.length);
       await refresh();
+      toast(`${ok} photo(s) importée(s)` + (fails.length ? ` · ${fails.length} échec(s) : ${fails[0]}` : ""), !!fails.length);
     });
   },
   async tinyModel(b) {
     await run(b, async () => {
       const r = await api("tiny/model", {});
-      toast("Lien créé : " + r.link);
       await refresh();
+      toast("Lien créé : " + r.link);
     });
   },
   async tinyScan(b) {
@@ -1116,8 +1120,8 @@ const ACT = {
   async smsDone(b) {
     await run(b, async () => {
       await api(`sms/${S.data.sms.id}/finish`, {});
-      toast("Numéro fermé. Tu peux en prendre un autre.");
       await refresh();
+      toast("Numéro fermé. Tu peux en prendre un autre.");
     });
   },
   async smsCancel(b) {
@@ -1126,15 +1130,15 @@ const ACT = {
       await api(`sms/${S.data.sms.id}/cancel`, {});
       S.wiz.f.phone = "";
       S.wiz.f.smsId = "";
-      toast("Remboursé. Reprends un numéro Hong Kong.");
       await refresh();
+      toast("Remboursé. Reprends un numéro Hong Kong.");
     });
   },
   async mcConnect(b) {
     await run(b, async () => {
       await api(`accounts/${b.dataset.id}/mcconnect`, {});
-      toast("Marque créée. Suis les étapes pour connecter Threads.");
       await refresh();
+      toast("Marque créée. Suis les étapes pour connecter Threads.");
     });
   },
   async mcVerify(b) {
@@ -1142,8 +1146,8 @@ const ACT = {
       const r = await api(`accounts/${b.dataset.id}/mcverify`, {});
       if (!r.connected) return toast("Threads n'est pas encore connecté sur Metricool. Finis les étapes puis reclique.", true);
       const p = r.plan || { created: [], problems: [] };
-      toast(`Threads connecté (@${r.threads}). ${p.created.length} post(s) programmé(s)` + (p.problems.length ? " · " + p.problems[0] : ""), !!p.problems.length);
       await refresh();
+      toast(`Threads connecté (@${r.threads}). ${p.created.length} post(s) programmé(s)` + (p.problems.length ? " · " + p.problems[0] : ""), !!p.problems.length);
     });
   },
   async loadBrands(b) {
@@ -1168,15 +1172,15 @@ const ACT = {
   async plan(b) {
     await run(b, async () => {
       const r = await planFull(b.dataset.id, Number(b.dataset.days) || 3, b);
-      toast(`${r.created} post(s) programmé(s)` + (r.problems.length ? " · " + r.problems[0] : ""), !!r.problems.length);
       await refresh();
+      toast(`${r.created} post(s) programmé(s)` + (r.problems.length ? " · " + r.problems[0] : ""), !!r.problems.length);
     });
   },
   async postsSync(b) {
     await run(b, async () => {
       const r = await api("posts/sync", {});
-      toast(`Vérifié : ${r.accounts} compte(s), ${r.changed} post(s) mis à jour` + (r.errors.length ? " · " + r.errors[0] : ""), !!r.errors.length);
       await refresh();
+      toast(`Vérifié : ${r.accounts} compte(s), ${r.changed} post(s) mis à jour` + (r.errors.length ? " · " + r.errors[0] : ""), !!r.errors.length);
     });
   },
   dayPosts(b) {
@@ -1226,8 +1230,8 @@ const ACT = {
     const followers = $(`[data-followers="${b.dataset.id}"]`)?.value;
     await run(b, async () => {
       await api(`accounts/${b.dataset.id}/check`, { status: b.dataset.st, followers });
-      toast("Noté");
       await refresh();
+      toast("Noté");
     });
   },
   dead(b) {
@@ -1263,16 +1267,16 @@ const ACT = {
     await run(b, async () => {
       await api(`accounts/${b.dataset.id}/edit`, body);
       closeModal();
-      toast("Enregistré");
       await refresh();
+      toast("Enregistré");
     });
   },
   async unlink(b) {
     await run(b, async () => {
       await api(`accounts/${b.dataset.id}/unlink`, {});
       closeModal();
-      toast("Délié de Metricool");
       await refresh();
+      toast("Délié de Metricool");
     });
   },
   async delAcc(b) {
@@ -1280,29 +1284,29 @@ const ACT = {
     await run(b, async () => {
       await api(`accounts/${b.dataset.id}/delete`, {});
       closeModal();
-      toast("Supprimé");
       await refresh();
+      toast("Supprimé");
     });
   },
   async makeLink(b) {
     await run(b, async () => {
       const r = await api(`accounts/${b.dataset.id}/makelink`, { linkDomain: b.dataset.v });
-      toast("Lien créé : " + r.link);
       await refresh();
+      toast("Lien créé : " + r.link);
     });
   },
   async linkStats(b) {
     await run(b, async () => {
       const r = await api("links/stats", {});
-      toast(`${Object.keys(r.links).length} lien(s) relevé(s)` + (r.errors.length ? ` · ${r.errors.length} souci(s)` : ""), !!r.errors.length);
       await refresh();
+      toast(`${Object.keys(r.links).length} lien(s) relevé(s)` + (r.errors.length ? ` · ${r.errors.length} souci(s)` : ""), !!r.errors.length);
     });
   },
   async health(b) {
     await run(b, async () => {
       const r = await api("metricool/health", {});
-      toast(r.length ? `${r.length} alerte(s)` : "Tout est connecté", !!r.length);
       await refresh();
+      toast(r.length ? `${r.length} alerte(s)` : "Tout est connecté", !!r.length);
     });
   },
   async bulk(b) {
@@ -1310,8 +1314,8 @@ const ACT = {
     const lines = $(`[data-bulk="${g}"]`).value;
     await run(b, async () => {
       const r = await api("texts/bulk", { group: g, lines });
-      toast(`${r.added} texte(s) ajouté(s)`);
       await refresh();
+      toast(`${r.added} texte(s) ajouté(s)`);
     });
   },
   async seed(b) {
@@ -1319,8 +1323,8 @@ const ACT = {
     await run(b, async () => {
       const list = await (await fetch("/seed-textes.json")).json();
       const r = await api("texts/bulk", { group: g, lines: list.map((x) => `${x.text} || ${x.fr}`).join("\n") });
-      toast(`${r.added} texte(s) importé(s) dans ${group(g).name}`);
       await refresh();
+      toast(`${r.added} texte(s) importé(s) dans ${group(g).name}`);
     });
   },
   async toggleText(b) {
@@ -1347,13 +1351,12 @@ const ACT = {
     const lines = (k) => $(`[data-set="${k}"]`).value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     await run(b, async () => {
       const blocks = (sel) => $(sel).value.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
-      const bios = blocks('[data-set="bios"]');
       const bioBank = { epingle: blocks('[data-bank="epingle"]'), lien: blocks('[data-bank="lien"]'), relais: blocks('[data-bank="relais"]') };
       const strategies = { epingle: Number($('[data-strat="epingle"]').value) || 0, lien: Number($('[data-strat="lien"]').value) || 0, relais: Number($('[data-strat="relais"]').value) || 0 };
       const hub = { pseudo: $('[data-hub="pseudo"]').value.trim().replace(/^@/, ""), postUrl: $('[data-hub="postUrl"]').value.trim() };
-      await api("settings", { bios, bioBank, strategies, hub, relayText: $('[data-set="relayText"]').value.trim(), links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
-      toast("Enregistré");
+      await api("settings", { bioBank, strategies, hub, relayText: $('[data-set="relayText"]').value.trim(), links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
       await refresh();
+      toast("Enregistré");
     });
   },
   async saveSecrets(b) {
@@ -1365,8 +1368,8 @@ const ACT = {
       delete body.proxy;
       if (proxy) await api("settings", { proxy });
       if (Object.keys(body).length) await api("secrets", body);
-      toast("Enregistré (caché pour la sécurité)");
       await refresh();
+      toast("Enregistré (caché pour la sécurité)");
     });
   },
   async testMc(b) {
@@ -1405,16 +1408,16 @@ const ACT = {
     };
     await run(b, async () => {
       await api("settings", body);
-      toast("Réglages enregistrés");
       await refresh();
+      toast("Réglages enregistrés");
     });
   },
   async saveUser(b) {
     const v = (k) => $(`[data-u="${k}"]`).value.trim();
     await run(b, async () => {
       await api("users", { name: v("name"), pin: v("pin"), role: v("role") });
-      toast("Accès enregistré");
       await refresh();
+      toast("Accès enregistré");
     });
   },
   async delUser(b) {
@@ -1494,8 +1497,8 @@ document.addEventListener("change", async (e) => {
         toast(`${f.name} : ${err.message}`, true);
       }
     }
-    toast(`${ok} photo(s) ajoutée(s)`);
     await refresh();
+    toast(`${ok} photo(s) ajoutée(s)`);
   }
 });
 document.addEventListener("keydown", (e) => {

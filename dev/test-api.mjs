@@ -110,7 +110,18 @@ step("stratégies réparties, relais sans lien");
 assert.equal((await call(`accounts/${a1.id}/setup`, {})).s, 400);
 step("setup refusé avant le warm-up");
 for (const a of [a1, a2, a3]) ok(await call(`accounts/${a.id}/warmup`, {}), "warmup");
-for (const a of [a1, a2, a3]) ok(await call(`accounts/${a.id}/setup`, { bio: "bio" }), "setup VA");
+const pickOf = { epingle: "b1", lien: "b2", relais: "b3" };
+for (const a of [a1, a2, a3]) ok(await call(`accounts/${a.id}/setup`, { bio: pickOf[a.strategy] + " (modifiée)", bioPick: pickOf[a.strategy] }), "setup VA");
+{
+  const bank = ok(await call("state"), "state").settings.bioBank;
+  assert.deepEqual([bank.epingle.length, bank.lien.length, bank.relais.length], [0, 0, 0], "bio utilisée = sortie de la banque");
+  tok = admin;
+  ok(await call("settings", { bioBank: { epingle: ["b1", "b4"], lien: ["b2", "b5"], relais: ["b3", "b6"] } }), "resauvegarde avec vieilles bios");
+  const bank2 = ok(await call("state"), "state").settings.bioBank;
+  assert.deepEqual(bank2, { epingle: ["b4"], lien: ["b5"], relais: ["b6"] }, "une bio déjà utilisée ne revient jamais");
+  tok = va;
+}
+step("bios : chaque bio ne sert qu'une fois, même si une vieille page la renvoie");
 step("setup par la VA juste après le warm-up (pas d'attente)");
 tok = admin;
 
