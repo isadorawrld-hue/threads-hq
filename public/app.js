@@ -192,7 +192,7 @@ const HELP = {
   geelark: {
     t: "Nouveau téléphone GeeLark",
     hint: "Nouveau profil GeeLark, colle le proxy du CRM, allume le téléphone.",
-    more: ["Ouvre l'appli GeeLark sur le PC.", "Crée un nouveau profil (jamais un ancien).", "Onglet Proxy : type HTTP (notre proxy ne prend pas le SOCKS5).", "Colle hôte, port, utilisateur, mot de passe avec les boutons Copier du CRM.", "Teste le proxy, puis lance le téléphone.", "Note le nom du profil dans le CRM."],
+    more: ["Ouvre l'appli GeeLark sur le PC.", "Crée un nouveau profil (jamais un ancien).", "Onglet Proxy : le type indiqué par le CRM (Socks5), puis le port du CRM. Mauvais port = test rouge.", "Colle hôte, port, utilisateur, mot de passe avec les boutons Copier du CRM.", "Teste le proxy, puis lance le téléphone.", "Note le nom du profil dans le CRM."],
     trap: "Réutiliser un ancien profil. 1 profil = 1 compte, toujours.",
   },
   numero: {
@@ -403,9 +403,9 @@ const VIEWS = {
         ${nav(ip && !ipUsed)}</div>${sopBlock("rotation")}`;
     if (w.step === 2)
       return `${head}<div class="card"><div class="stepnum">Étape 2 sur 5</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
-        <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous (type <b>HTTP</b>, notre proxy ne prend pas le SOCKS5).</li></ol>
+        <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous : type <b>${S.data.settings.socksPort ? "Socks5" : "HTTP"}</b>.</li></ol>
         <a class="btn light" href="${esc(S.data.settings.geelarkUrl)}" target="_blank" rel="noopener">Ouvrir GeeLark</a>
-        ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
+        ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", S.data.settings.socksPort || proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
         <label class="f">Nom du profil GeeLark <small>(facultatif)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : profil 12" />
         ${videoEmbed(S.data.settings.videos?.creation)}${nav(true)}</div>`;
     if (w.step === 3) {
@@ -643,6 +643,7 @@ const VIEWS = {
         <label class="f">2. Token API Metricool ${c.mcToken ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(dans Metricool : Paramètres du compte, onglet API, Copier)</small></label><input type="password" data-sec="mcToken" placeholder="${c.mcToken ? "enregistré (colle un autre token pour le remplacer)" : "colle le token"}" autocomplete="off" />
         <label class="f">3. userId Metricool ${c.mcUserId ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(le nombre, ou colle simplement l'adresse de Metricool)</small></label><input data-sec="mcUserId" placeholder="${c.mcUserId ? "enregistré" : "ex : 5978155 ou https://app.metricool.com/...userId=..."}" autocomplete="off" />
         <label class="f">4. Proxy ${c.proxy ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxy" placeholder="${c.proxy ? "enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
+        <label class="f">Port SOCKS5 pour GeeLark <small>(bouton SOCKS5 du proxy ; vide = la VA met le proxy en HTTP)</small></label><input data-st="socksPort" inputmode="numeric" value="${esc(st.socksPort || "")}" placeholder="ex : 17157" />
         <label class="f">5. Token TinyURL ${c.tiny ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(TinyURL : Account, API tokens)</small></label><input type="password" data-sec="tinyToken" placeholder="${c.tiny ? "enregistré (colle un autre token pour le remplacer)" : "facultatif, pour les clics dans Stats"}" autocomplete="off" />
         <label class="f">6. Clé API Hero SMS ${c.sms ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(hero-sms.com : Obtenir la clé API)</small></label><input type="password" data-sec="heroToken" placeholder="${c.sms ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API"}" autocomplete="off" />
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester le proxy</button></div></div>
@@ -1373,11 +1374,13 @@ const ACT = {
   async saveSecrets(b) {
     const body = {};
     document.querySelectorAll("[data-sec]").forEach((el) => el.value.trim() && (body[el.dataset.sec] = el.value.trim()));
-    if (!Object.keys(body).length) return toast("Rien à enregistrer.", true);
+    const sp = ($('[data-st="socksPort"]')?.value || "").replace(/\D/g, "");
+    const spChanged = sp !== String(S.data.settings.socksPort || "");
+    if (!Object.keys(body).length && !spChanged) return toast("Rien à enregistrer.", true);
     await run(b, async () => {
       const proxy = body.proxy;
       delete body.proxy;
-      if (proxy) await api("settings", { proxy });
+      if (proxy || spChanged) await api("settings", { ...(proxy ? { proxy } : {}), ...(spChanged ? { socksPort: sp } : {}) });
       if (Object.keys(body).length) await api("secrets", body);
       await refresh();
       toast("Enregistré (caché pour la sécurité)");
