@@ -148,7 +148,7 @@ const SOP = {
   },
   numero: {
     t: "Prendre un numéro",
-    steps: ["Onglet Numéro (ou étape 3 de Créer un compte) : clique le gros bouton (France).", "Pas de code ? Rembourse, puis prends le pays suivant (USA).", "Dans Threads : « Utiliser un numéro de mobile », l'indicatif affiché par le CRM, puis le numéro sans indicatif (bouton Copier).", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Threads.", "Pas de code après 2 à 3 minutes : « Pas de code : rembourser », puis reprends un numéro.", "Jamais 2 comptes sur le même numéro."],
+    steps: ["Onglet Numéro (ou étape 3 de Créer un compte) : clique le gros bouton (France).", "Pas de code ? Rembourse, puis prends le pays suivant (USA).", "Dans Threads : « Utiliser un numéro de mobile », colle le numéro complet AVEC le +33 (bouton Copier) : Threads ne le rajoute pas tout seul.", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Threads.", "Pas de code après 2 à 3 minutes : « Pas de code : rembourser », puis reprends un numéro.", "Jamais 2 comptes sur le même numéro."],
   },
   creation: {
     t: "Créer un compte",
@@ -201,13 +201,13 @@ const HELP = {
   geelark: {
     t: "Nouveau téléphone GeeLark",
     hint: "Nouveau profil GeeLark, colle le proxy du CRM, allume le téléphone.",
-    more: ["Ouvre l'appli GeeLark sur le PC.", "Crée un nouveau profil (jamais un ancien).", "Onglet Proxy : le type indiqué par le CRM (Socks5), puis le port du CRM. Mauvais port = test rouge.", "Colle hôte, port, utilisateur, mot de passe avec les boutons Copier du CRM.", "Teste le proxy, puis lance le téléphone.", "Note le nom du profil dans le CRM."],
+    more: ["Ouvre l'appli GeeLark sur le PC.", "Crée un nouveau profil (jamais un ancien).", "Onglet Proxy : le type indiqué par le CRM (Socks5), puis le port du CRM. Mauvais port = test rouge.", "Colle hôte, port, utilisateur, mot de passe avec les boutons Copier du CRM.", "Teste le proxy (« Check proxy »).", "Advanced settings : Location et Cloud phone language sur « Based on IP ».", "Create, puis Start pour allumer le téléphone.", "Note le nom du profil dans le CRM."],
     trap: "Réutiliser un ancien profil. 1 profil = 1 compte, toujours.",
   },
   numero: {
     t: "Prendre un numéro",
     hint: "Clique le gros bouton (France). Le code SMS arrive ici tout seul.",
-    more: ["Clique le gros bouton (France, même pays que le proxy).", "Pas de code en 3 min : rembourse, puis prends USA.", "Dans Threads, touche « Utiliser un numéro de mobile ».", "Choisis l'indicatif affiché par le CRM (+33 pour la France), colle le numéro sans indicatif (bouton Copier).", "Le code s'affiche dans le CRM en 5 à 60 s. Copie-le dans Threads.", "Rien après 3 min : « Pas de code : rembourser », puis reprends un numéro."],
+    more: ["Clique le gros bouton (France, même pays que le proxy).", "Pas de code en 3 min : rembourse, puis prends USA.", "Dans Threads, touche « Utiliser un numéro de mobile ».", "Colle le numéro complet, AVEC l'indicatif (+33 pour la France) : Threads ne le rajoute pas tout seul.", "Le code s'affiche dans le CRM en 5 à 60 s. Copie-le dans Threads.", "Rien après 3 min : « Pas de code : rembourser », puis reprends un numéro."],
     trap: "Utiliser 2 fois le même numéro.",
   },
   compte: {
@@ -420,7 +420,7 @@ const VIEWS = {
         ${nav(ip && !ipUsed)}</div>${sopBlock("rotation")}`;
     if (w.step === 2)
       return `${head}<div class="card"><div class="stepnum">Étape 2 sur 5</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
-        <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous : type <b>${S.data.settings.socksPort ? "Socks5" : "HTTP"}</b>.</li></ol>
+        <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous : type <b>${S.data.settings.socksPort ? "Socks5" : "HTTP"}</b>, puis « Check proxy ».</li><li>Advanced settings : <b>Location</b> et <b>Cloud phone language</b> sur <b>Based on IP</b>.</li><li>Create, puis Start pour allumer le téléphone.</li></ol>
         <a class="btn light" href="${esc(S.data.settings.geelarkUrl)}" target="_blank" rel="noopener">Ouvrir GeeLark</a>
         ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", S.data.settings.socksPort || proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
         <label class="f">Nom du profil GeeLark <small>(facultatif)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : profil 12" />
@@ -802,8 +802,8 @@ function smsCard(cur) {
   const left = Math.max(0, Math.round((new Date(cur.expiredAt).getTime() - Date.now()) / 1000));
   const mm = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
   return `<div class="alert c-blue"><b>Numéro ${esc(cur.countryName)}</b> · ${cur.price ? cur.price.toFixed(3).replace(/0+$/, "") + " $" : ""} · expire dans <span data-smsleft>${mm}</span></div>
-    ${copyLine("Numéro complet", cur.phone)}${cur.local && cur.local !== cur.phone.slice(1) ? copyLine(`Sans indicatif (${cur.dial})`, cur.local) : ""}
-    <p>Dans Threads (« Utiliser un numéro de mobile »), choisis l'indicatif <b>${esc(cur.dial || cur.countryName)}</b> puis colle le numéro sans indicatif. Le code arrive ici tout seul, sans rien ouvrir.</p>
+    ${copyLine("Numéro complet", cur.phone)}
+    <p>Dans Threads (« Utiliser un numéro de mobile »), colle le numéro complet, <b>avec ${esc(cur.dial || "l'indicatif")}</b> : Threads ne le rajoute pas tout seul. Le code arrive ici tout seul, sans rien ouvrir.</p>
     ${cur.code ? `<div class="alert c-green" style="font-size:22px;font-weight:700;letter-spacing:2px">${esc(cur.code)} <button class="btn sm light" data-act="copy" data-v="${esc(cur.code)}" style="letter-spacing:0;font-size:13px">Copier</button></div>${cur.smsText ? `<p class="muted">${esc(cur.smsText)}</p>` : ""}` : `<div class="alert c-yellow" data-smswait>En attente du SMS... <span class="muted">(vérifié toutes les 5 secondes)</span></div>`}
     <div class="row" style="margin-top:10px">${cur.code ? (S.tab === "numero" ? `<button class="btn sm light" data-act="smsDone" data-wait="...">Numéro utilisé, j'en veux un autre</button>` : "") : `<button class="btn sm light" data-act="smsCode" data-wait="...">Vérifier maintenant</button><button class="btn sm bad" data-act="smsCancel" data-wait="Remboursement...">Pas de code : rembourser</button>`}</div>`;
 }
