@@ -278,6 +278,8 @@ step("import Google Drive : liste, image, pas de doublon");
 tok = va;
 assert.equal((await call("tiny/cleanup")).s, 403, "VA : interdit");
 tok = admin;
+const ml = ok(await call("tiny/model", {}), "lien perso de la modèle");
+assert.equal(ml.link, "https://chauna.live/chloe", "accents retirés");
 const scan = ok(await call("tiny/cleanup"), "scan");
 const crmLinks = ok(await call("state"), "state").accounts.filter((a) => a.link.startsWith("https://chauna.live/")).length;
 assert.ok(crmLinks >= 1);
@@ -288,6 +290,7 @@ const clean = ok(await call("tiny/cleanup", { confirm: "chauna.live" }), "ménag
 assert.equal(clean.deleted, 31);
 const tz = await (await fetch(B + "/__tiny")).json();
 assert.ok(!tz.deleted.includes("taipeilily_2"), "lien d'un compte jamais supprimé");
+assert.ok(!tz.deleted.includes("chloe"), "lien perso jamais supprimé");
 assert.equal(ok(await call("tiny/cleanup"), "rescan").count, 1, "reste seulement l'archivé du mock");
 step("ménage TinyURL : 31 vieux liens supprimés, liens des comptes gardés");
 st = ok(await call("state"), "state admin");

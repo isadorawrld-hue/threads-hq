@@ -620,7 +620,9 @@ const VIEWS = {
         <h3>Modèle en cours</h3>
         <label class="f">Prénom de la modèle</label><input data-model="name" value="${esc(st.model?.name || "")}" />
         <label class="f">Lien de la modèle <small>(la destination : chaque compte reçoit son propre lien court qui pointe dessus)</small></label><input data-model="link" value="${esc(st.model?.link || "")}" />
-        <label class="f">Domaine TinyURL <small>(le lien de chaque compte sera domaine/pseudo)</small></label><input data-st="tinyDomain" value="${esc(st.tinyDomain || "")}" /></div>
+        <label class="f">Domaine TinyURL <small>(le lien de chaque compte sera domaine/pseudo)</small></label><input data-st="tinyDomain" value="${esc(st.tinyDomain || "")}" />
+        ${c.tiny && st.model?.link ? `<div class="row" style="margin-top:10px"><button class="btn light" data-act="tinyModel" data-wait="Création...">Créer ${esc(st.tinyDomain || "")}/${esc((st.model?.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())} vers sa page</button></div>` : ""}
+        ${(S.data.extraLinks || []).map((x) => copyLine("Lien perso", x.link)).join("")}</div>
       <div class="card"><h3 style="margin-top:0">Planification</h3>
         <label class="f">Fuseau horaire de la cible <small>(Asia/Taipei = Taïwan, Singapour, Hong Kong)</small></label><input data-st="timezone" value="${esc(st.timezone)}" />
         <label class="f">Posts par jour et par compte</label><input type="number" min="1" max="10" data-st="postsPerDay" value="${esc(st.postsPerDay)}" />
@@ -1030,6 +1032,13 @@ const ACT = {
         }
       }
       toast(`${ok} photo(s) importée(s)` + (fails.length ? ` · ${fails.length} échec(s) : ${fails[0]}` : ""), !!fails.length);
+      await refresh();
+    });
+  },
+  async tinyModel(b) {
+    await run(b, async () => {
+      const r = await api("tiny/model", {});
+      toast("Lien créé : " + r.link);
       await refresh();
     });
   },
