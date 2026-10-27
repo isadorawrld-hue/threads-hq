@@ -267,6 +267,7 @@ const ICONS = {
   sop: '<path d="M5 4h10l4 4v12H5z"/><path d="M14 4v5h5"/>',
   dash: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   stats: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+  planning: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   content: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>',
   rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
@@ -289,6 +290,7 @@ function render() {
     ]],
     ["Suivi", [
       ["accounts", "Comptes", 0],
+      ["planning", "Planning", (t.postErrors || []).length + (t.postLate || []).length],
       ["stats", "Stats", 0],
       ["sop", "Guides (SOP)", 0],
     ]],
@@ -354,6 +356,8 @@ const VIEWS = {
       pri.push(["c-red", `Finir le remplaçant @${subs[0].pseudo}${subs.length > 1 ? ` (+${subs.length - 1})` : ""}`, "Il remplace un compte sauté : va jusqu'à Metricool, les posts repartent dès la connexion.", tab, btn]);
     }
     if (t.toReplace.length) pri.push(["c-red", `Remplacer ${t.toReplace.length} compte(s) sauté(s)`, "Un compte sauté ne poste plus. Crée le remplaçant tout de suite : il reprend sa place et sa marque Metricool.", "create", "Remplacer"]);
+    const notOut = (t.postErrors || []).length + (t.postLate || []).length;
+    if (notOut) pri.push(["c-red", `${notOut} post(s) pas sorti(s)`, "Erreur Metricool ou post en retard. Regarde le planning : souvent un compte à reconnecter.", "planning", "Voir"]);
     if ((t.toReconnect || []).length) pri.push(["c-red", `Reconnecter ${t.toReconnect.length} compte(s) à Metricool`, "Threads s'est déconnecté : ses posts ne sortent plus. 2 min pour le reconnecter.", "metricool", "Reconnecter"]);
     if (t.toPlan.length) pri.push(["c-green", `Planifier ${t.toPlan.length} compte(s)`, "Moins de 2 jours de posts devant lui. 1 clic.", "metricool", "Planifier"]);
     if (t.toCheck.length) pri.push(["c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Repère vite les comptes qui ont sauté.", "check", "Commencer"]);
@@ -481,7 +485,7 @@ const VIEWS = {
         return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div><div class="row">${gpill(a.group)}${pill(a.status)}</div>
           <span class="muted">${up.length} post(s) programmé(s)${a.plannedUntil ? ` · jusqu'au ${esc(a.plannedUntil)}` : ""}</span>
           ${up.slice(0, 3).map((p) => `<span class="muted">${esc(p.local.replace("T", " ").slice(0, 16))}</span>`).join("")}
-          <div class="row"><button class="btn sm" data-act="plan" data-id="${a.id}" data-days="3" data-wait="...">+3 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="7" data-wait="...">+7 jours</button><button class="btn sm ghost" data-act="manual" data-id="${a.id}">Post à la main</button></div></div>`;
+          <div class="row"><button class="btn sm" data-act="plan" data-id="${a.id}" data-days="3" data-wait="...">+3 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="7" data-wait="...">+7 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="14" data-wait="...">14 jours</button><button class="btn sm ghost" data-act="manual" data-id="${a.id}">Post à la main</button></div></div>`;
       }).join("")}</div>${sopBlock("metricool")}`;
   },
 
@@ -512,6 +516,35 @@ const VIEWS = {
         <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button><button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}"></button></div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
   },
 
+  planning() {
+    const st = S.data.settings;
+    const today = S.data.today;
+    const days = Array.from({ length: 16 }, (_, i) => addDaysLocal(today, i - 2));
+    const live = S.data.accounts.filter((a) => a.blogId && ["actif", "shadowban", "restreint", "setup_ok"].includes(a.status));
+    const now = Date.now();
+    const state = (p) => (p.status === "programme" && new Date(p.at).getTime() < now - 2 * 3600e3 ? "retard" : p.status);
+    const posts = S.data.posts.filter((p) => p.status !== "annule");
+    const last24 = posts.filter((p) => new Date(p.at).getTime() <= now && new Date(p.at).getTime() > now - 864e5);
+    const pub24 = last24.filter((p) => p.status === "publie").length;
+    const bad = posts.filter((p) => ["erreur", "retard"].includes(state(p)) && new Date(p.at).getTime() > now - 3 * 864e5).length;
+    const full = live.filter((a) => a.plannedUntil && a.plannedUntil >= addDaysLocal(today, 13)).length;
+    const perDay = Number(st.postsPerDay) || 3;
+    const textDays = (a) => Math.floor(S.data.texts.filter((x) => x.group === a.group && !x.off && !posts.some((p) => p.accountId === a.id && p.textId === x.id)).length / perDay);
+    const cell = (a, d) => {
+      const ps = posts.filter((p) => p.accountId === a.id && p.day === d).sort((x, y) => (x.at < y.at ? -1 : 1));
+      const future = d >= today;
+      if (!ps.length) return `<td class="pc ${future ? "hole" : ""}" title="${future ? "Rien de prévu" : ""}"></td>`;
+      return `<td class="pc" data-act="dayPosts" data-id="${a.id}" data-v="${d}">${ps.map((p) => `<i class="pd s-${state(p)}"></i>`).join("")}</td>`;
+    };
+    const fmt = (d) => { const x = new Date(d + "T12:00:00Z"); return `<b>${["D", "L", "M", "M", "J", "V", "S"][x.getUTCDay()]}</b>${x.getUTCDate()}`; };
+    return `<h2>Planning</h2><p class="lead">Chaque point = un post. Vert : publié. Bleu : prévu. Rouge : erreur. Orange : en retard. Case rose : rien de prévu.</p>
+      <div class="stats">${stat("c-green", `${pub24}/${last24.length}`, "publiés (24 h)")}${stat("c-red", bad, "pas sortis (3 j)")}${stat("c-blue", `${full}/${live.length}`, "comptes prévus 14 j")}</div>
+      <div class="row" style="margin-bottom:12px"><button class="btn" data-act="planAll" data-days="14" data-wait="Planification...">Remplir 14 jours pour tous</button><button class="btn light" data-act="postsSync" data-wait="Vérification...">Vérifier sur Metricool</button><span class="muted">${S.data.postsSyncAt ? "Vérifié " + ago(S.data.postsSyncAt) + " (tout seul toutes les 20 min)" : "Jamais vérifié"}</span></div>
+      ${live.length ? `<div class="card" style="padding:0;overflow-x:auto"><table class="plan"><thead><tr><th class="pa">Compte</th>${days.map((d) => `<th class="${d === today ? "td" : d < today ? "past" : ""}">${fmt(d)}</th>`).join("")}<th>Textes</th></tr></thead>
+        <tbody>${live.map((a) => { const td = textDays(a); return `<tr><td class="pa"><b>@${esc(a.pseudo)}</b><span>${pill(a.status)}</span></td>${days.map((d) => cell(a, d)).join("")}<td class="tx ${td < 3 ? "low" : ""}">${td} j</td></tr>`; }).join("")}</tbody></table></div>
+        <p class="muted">« Textes » : jours de posts encore possibles sans répéter un texte sur ce compte. Sous 3 jours, ajoute des textes (Contenu).</p>`
+      : '<div class="card done-all"><b>Aucun compte branché à Metricool pour l\'instant.</b></div>'}`;
+  },
   stats() {
     const ls = S.data.linkStats;
     const now = Date.now();
@@ -677,6 +710,24 @@ function logDetails(l) {
 function task(n, color, title, desc, tab, btn, first) {
   const num = n === "" ? `<span class="dot ${color}"></span>` : `<span class="prio ${color}">${esc(n)}</span>`;
   return `<div class="task ${first ? "first" : ""}">${num}<div class="task-text"><b>${esc(title)}</b><span>${esc(desc)}</span></div><button class="btn sm ${first ? "accent" : ""}" data-tab="${tab}">${esc(btn)}</button></div>`;
+}
+// planifie un compte en plusieurs appels si besoin (le serveur rend la main avant 10 s)
+async function planFull(accountId, days, btn, label) {
+  let created = 0;
+  let problems = [];
+  for (let i = 0; i < 30; i++) {
+    const r = await api("metricool/plan", { accountId, days });
+    created += r.created.length;
+    problems = r.problems;
+    if (btn) btn.innerHTML = `<span class="spin"></span> ${label ? label + " · " : ""}${created} post(s)...`;
+    if (!r.partial || r.problems.length) break;
+  }
+  return { created, problems };
+}
+function addDaysLocal(day, n) {
+  const d = new Date(day + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
 }
 function stat(color, n, label) {
   return `<div class="stat"><b>${esc(n)}</b><span><i class="dot ${color}"></i>${esc(label)}</span></div>`;
@@ -1116,10 +1167,31 @@ const ACT = {
   },
   async plan(b) {
     await run(b, async () => {
-      const r = await api("metricool/plan", { accountId: b.dataset.id, days: Number(b.dataset.days) || 3 });
-      toast(`${r.created.length} post(s) programmé(s)` + (r.problems.length ? " · " + r.problems[0] : ""), !!r.problems.length);
+      const r = await planFull(b.dataset.id, Number(b.dataset.days) || 3, b);
+      toast(`${r.created} post(s) programmé(s)` + (r.problems.length ? " · " + r.problems[0] : ""), !!r.problems.length);
       await refresh();
     });
+  },
+  async postsSync(b) {
+    await run(b, async () => {
+      const r = await api("posts/sync", {});
+      toast(`Vérifié : ${r.accounts} compte(s), ${r.changed} post(s) mis à jour` + (r.errors.length ? " · " + r.errors[0] : ""), !!r.errors.length);
+      await refresh();
+    });
+  },
+  dayPosts(b) {
+    const a = acc(b.dataset.id);
+    const now = Date.now();
+    const ps = S.data.posts.filter((p) => p.accountId === a.id && p.day === b.dataset.v && p.status !== "annule").sort((x, y) => (x.at < y.at ? -1 : 1));
+    const lab = { publie: ["c-green", "Publié"], erreur: ["c-red", "Erreur"], programme: ["c-blue", "Prévu"], retard: ["c-yellow", "En retard"] };
+    modal(`<h3>@${esc(a.pseudo)} · ${esc(b.dataset.v)}</h3>${ps.map((p) => {
+      const k = p.status === "programme" && new Date(p.at).getTime() < now - 2 * 3600e3 ? "retard" : p.status;
+      const [c, l] = lab[k] || ["", k];
+      const t = S.data.texts.find((x) => x.id === p.textId);
+      return `<div class="card" style="margin:8px 0"><div class="row"><b>${esc((p.local || "").slice(11, 16))}</b><span class="pill ${c}">${l}</span>${p.url ? `<a class="btn sm light" href="${esc(p.url)}" target="_blank" rel="noopener">Voir le post</a>` : ""}</div>
+        ${t ? `<p style="margin:8px 0 0">${esc(t.text)}</p>${t.fr ? `<p class="muted" style="margin:4px 0 0">${esc(t.fr)}</p>` : ""}` : ""}${p.mediaId ? `<div class="thumbs" style="max-width:120px;margin-top:8px"><figure><img src="/api/media/${p.mediaId}" /></figure></div>` : ""}
+        ${p.error ? `<div class="alert c-red" style="margin-top:8px">${esc(p.error)}</div>` : ""}${k === "retard" ? '<div class="alert c-yellow" style="margin-top:8px">L\'heure est passée et Metricool ne l\'a pas encore publié. Clique « Vérifier sur Metricool ». Si ça reste orange : regarde si le compte doit être reconnecté.</div>' : ""}</div>`;
+    }).join("")}`);
   },
   async planAll(b) {
     await run(b, async () => {
@@ -1127,8 +1199,8 @@ const ACT = {
       const probs = [];
       for (const a of S.data.accounts.filter((x) => x.status === "actif" && x.blogId)) {
         try {
-          const r = await api("metricool/plan", { accountId: a.id, days: 3 });
-          n += r.created.length;
+          const r = await planFull(a.id, Number(b.dataset.days) || 3, b, `@${a.pseudo}`);
+          n += r.created;
           if (r.problems.length) probs.push(`@${a.pseudo} : ${r.problems[0]}`);
         } catch (e) {
           probs.push(`@${a.pseudo} : ${e.message}`);

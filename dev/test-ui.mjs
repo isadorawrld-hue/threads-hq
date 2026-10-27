@@ -176,6 +176,18 @@ await v.click('[data-act="mcVerify"]');
 await waitToast(v, /post\(s\) programmé/);
 await v.waitForSelector(".mnav .nav.on");
 await shot(v, "11-metricool-active");
+// planning 14 jours : remplir, puis ouvrir le detail d'un jour
+await tab(v, "planning");
+await v.waitForSelector("table.plan");
+await v.click('[data-act="planAll"]');
+await waitToast(v, /post\(s\) programmé/);
+await v.waitForSelector("table.plan td.pc .pd");
+await shot(v, "11b-planning");
+await v.click("table.plan td.pc[data-act=dayPosts] >> nth=3");
+await v.waitForSelector("#modal:not(.hidden)");
+await shot(v, "11c-planning-jour");
+await v.click(".modal-x");
+await tab(v, "metricool");
 await v.click('[data-act="manual"]');
 await v.waitForSelector("#modal:not(.hidden)");
 await shot(v, "12-manual");

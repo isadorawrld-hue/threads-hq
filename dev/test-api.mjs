@@ -182,6 +182,23 @@ for (const p of mc.posts) {
   const mins = h * 60 + m;
   assert.ok([8 * 60, 12 * 60 + 30, 20 * 60 + 30].some((s) => Math.abs(s - mins) <= 25), "créneau " + p.publicationDate.dateTime);
 }
+// statut des posts relu sur Metricool : publié (avec lien) et erreur
+{
+  const mine = mc.posts.filter((p) => p.blogId === "222");
+  await fetch(B + `/__dev/mcstatus?id=${mine[0].id}&s=PUBLISHED`);
+  await fetch(B + `/__dev/mcstatus?id=${mine[1].id}&s=ERROR`);
+  const sy = ok(await call("posts/sync", {}), "sync posts");
+  assert.ok(sy.changed >= 2);
+  const sp = ok(await call("state"), "state").posts;
+  const p0 = sp.find((p) => String(p.mcId) === String(mine[0].id));
+  const p1 = sp.find((p) => String(p.mcId) === String(mine[1].id));
+  assert.equal(p0.status, "publie");
+  assert.match(p0.url, /threads\.com/);
+  assert.equal(p1.status, "erreur");
+  assert.equal(p1.error, "Token Threads expiré");
+  assert.ok(ok(await call("state"), "state").tasks.postErrors.includes(p1.id), "post en erreur remonte");
+  step("posts relus sur Metricool : publié avec lien, erreur avec raison");
+}
 const again = ok(await call("metricool/plan", { accountId: (photosAcc).id, days: 3 }), "replanif");
 assert.equal(again.created.length, 0, "pas de doublon de créneau");
 step(`planif Metricool OK (${mc.posts.length} posts, créneaux Taïwan, pas de doublon)`);

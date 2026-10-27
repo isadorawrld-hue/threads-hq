@@ -26,6 +26,7 @@ const tinyDeleted = [];
 const mcPosts = [];
 const mcCalls = [];
 let mcLinkFor = null;
+const mcStatus = {};
 let smsN = 0;
 let smsAct = null;
 const brands = [
@@ -107,6 +108,10 @@ async function fakeFetch(url, opts = {}) {
     if (u.pathname.endsWith("/admin/update-label-blog")) { const b = brands.find((x) => String(x.id) === u.searchParams.get("blogId")); if (b) b.label = u.searchParams.get("newName"); return Response.json({}); }
     // simulation : la VA "connecte" Threads sur la marque via /__dev/connect?blogId=&username=
     if (u.pathname.endsWith("/actions/normalize/image/url")) return Response.json("https://static.metricool.test/" + encodeURIComponent(u.searchParams.get("url")));
+    if (u.pathname.endsWith("/v2/scheduler/posts") && (opts.method || "GET") === "GET") {
+      const bid = u.searchParams.get("blogId");
+      return Response.json({ data: mcPosts.filter((p) => p.blogId === bid).map((p) => ({ id: p.id, publicationDate: p.publicationDate, text: p.text, providers: [{ network: "threads", status: mcStatus[p.id] || "PENDING", publicUrl: mcStatus[p.id] === "PUBLISHED" ? `https://www.threads.com/@x/post/${p.id}` : "", detailedStatus: mcStatus[p.id] === "ERROR" ? "Token Threads expiré" : "" }] })) });
+    }
     if (u.pathname.endsWith("/v2/scheduler/posts") && opts.method === "POST") {
       const id = 9000 + mcPosts.length;
       mcPosts.push({ id, ...JSON.parse(opts.body), blogId: u.searchParams.get("blogId") });
@@ -124,7 +129,7 @@ async function fakeProxyFetch(url, proxy) {
   return Response.json({ ip: `82.64.12.${ipN}`, country: "FR", city: "Paris", org: "SFR" });
 }
 
-const env = { store, fetch: fakeFetch, proxyFetch: fakeProxyFetch, rotateWaitMs: 3000, rotatePollMs: 200 };
+const env = { store, fetch: fakeFetch, proxyFetch: fakeProxyFetch, rotateWaitMs: 3000, rotatePollMs: 200, planBudgetMs: Number(process.env.PLAN_BUDGET_MS || 7000) };
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".webm": "video/webm", ".png": "image/png" };
 
 http
@@ -141,6 +146,10 @@ http
     }
     if (url.pathname === "/__tiny") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ deleted: tinyDeleted, left: oldTiny })); }
     if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }
+    if (url.pathname === "/__dev/mcstatus") {
+      mcStatus[url.searchParams.get("id")] = url.searchParams.get("s");
+      res.writeHead(200); return res.end("ok");
+    }
     if (url.pathname === "/__mc") {
       res.writeHead(200, { "content-type": "application/json" });
       return res.end(JSON.stringify({ posts: mcPosts, calls: mcCalls }));

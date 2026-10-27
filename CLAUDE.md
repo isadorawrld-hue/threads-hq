@@ -72,6 +72,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Déconnecter Threads d'une marque : `DELETE /v2/settings/brands/connections/threads?blogId=...`
 - Renommer une marque : `GET /admin/update-label-blog?blogId=...&newName=...`
 - Supprimer une marque : `DELETE /v2/settings/brands/{id}?blogId=...` corps `{maxRecoveryDays: 1}`.
+- Statut réel des posts : `GET /v2/scheduler/posts?blogId=&start=YYYY-MM-DDT00:00:00&end=...&timezone=` → `data[].providers[].status` (PUBLISHED, PUBLISHING, PENDING, AWAITING_CONFIRMATION, ERROR, DRAFT), `publicUrl`, `detailedStatus`. Le CRM relit tout toutes les 20 min (`postsSync`) : publié (avec lien), erreur (avec raison), en retard (heure passée de 2 h sans publication). Onglet Planning = grille 16 jours par compte.
+- Planifier : une fonction Netlify coupe vers 10 s, donc `planAccount` rend la main après ~7 s (`partial: true`) et le navigateur relance (`planFull`). Un post publié ou en erreur garde son créneau (pas de doublon).
 - Flux CRM : setup fini → `accounts/:id/mcconnect` (crée ou reprend la marque + lien) → la VA ouvre le lien dans le téléphone GeeLark → `accounts/:id/mcverify` (vérifie le pseudo, passe en actif, planifie 3 jours). Un compte sauté libère sa marque (Threads déconnecté), son remplaçant la reprend et la renomme.
 - Si tu touches à Metricool, vérifie le contrat dans `https://app.metricool.com/api/swagger.json`.
 

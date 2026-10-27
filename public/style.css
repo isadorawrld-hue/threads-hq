@@ -258,3 +258,24 @@ details.card[open] > summary { margin-bottom: 8px; }
 .prio.c-pink { background: var(--pink); }
 .task.first { background: #f5f7ff; }
 .card.urgent { border-color: var(--red); }
+
+/* planning 14 jours */
+table.plan { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.plan th, table.plan td { border-bottom: 1px solid var(--line); text-align: center; padding: 8px 4px; white-space: nowrap; }
+table.plan th { font-weight: 500; color: var(--graphite); min-width: 34px; }
+table.plan th b { display: block; font-weight: 600; font-size: 11px; color: var(--mute); }
+table.plan th.td { color: var(--accent); }
+table.plan th.td b { color: var(--accent); }
+table.plan th.past { opacity: 0.6; }
+table.plan .pa { text-align: left; padding-left: 14px; position: sticky; left: 0; background: var(--paper); min-width: 150px; }
+table.plan .pa span { display: block; margin-top: 2px; }
+table.plan td.pc { cursor: pointer; min-width: 34px; line-height: 1; }
+table.plan td.pc:hover { background: var(--wash); }
+table.plan td.hole { background: #fdf0f6; cursor: default; }
+table.plan td.tx { color: var(--graphite); padding-right: 12px; }
+table.plan td.tx.low { color: var(--red); font-weight: 600; }
+.pd { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 1px; background: var(--blue); }
+.pd.s-publie { background: var(--green); }
+.pd.s-erreur { background: var(--red); }
+.pd.s-retard { background: var(--amber); }
+.stat .dot.c-blue, .dot.c-blue { background: var(--blue); }
