@@ -393,7 +393,7 @@ step("traduction FR des textes chinois, avec cache (serveur ou navigateur)");
   tok = admin;
   let s0 = ok(await call("state"), "state").settings;
   assert.ok(s0.pseudoBank.length >= 300, "banque seedée : " + s0.pseudoBank.length);
-  assert.ok(s0.pseudoBank.every((p) => /^[a-z0-9._]{3,30}$/.test(p) && p.includes("chloe")), "format pseudo");
+  assert.ok(s0.pseudoBank.every((p) => /^[a-z0-9._]{3,30}$/.test(p) && /c\.?hloe/.test(p) && /\d/.test(p)), "format pseudo (chloe + chiffres)");
   assert.equal(new Set(s0.pseudoBank).size, s0.pseudoBank.length, "pas de doublon");
   const pick = s0.pseudoBank[0];
   const oldBank = s0.pseudoBank;
