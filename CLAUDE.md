@@ -89,6 +89,14 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Un lien mis dans Réglages > Vidéos des SOP passe avant le fichier.
 - La VA crée le compte directement dans Threads (« Utiliser un numéro de mobile »), pas via Instagram : les textes du CRM le disent.
 
+## Test engagement (5 comptes)
+- `acc.engage` = compte dans le groupe test : la VA y fait 10 min d'engagement par jour (répondre, liker, commenter, rien publier). Les autres comptes Metricool = témoins.
+- Admin : Stats > « Lancer le test : 5 comptes au hasard » (`POST /api/engage/pick`, stratégies alternées) ; bouton « Mettre en test / Sortir du test » sur chaque carte Comptes.
+- VA : onglet « Engagement (test) » (visible seulement si le test tourne), tâche du jour, bouton « Fait (10 min) » + followers (`accounts/:id/engaged`, 1 fois par jour). `followersLog` garde l'historique (check du matin aussi).
+- Un compte test qui saute : son remplaçant hérite du test, qui démarre le jour où il est branché à Metricool (`engagePending`).
+- Stats : tableau Test vs Témoins (clics 7/30 j, followers, followers gagnés, sautés). Lire après 14 jours.
+- Tests : `dev/test-api.mjs`, puis `node dev/test-engage-ui.mjs` sur les mêmes données.
+
 ## Traduction FR
 - Tout texte chinois montré à la VA (post épinglé, réponse, citation relais, bio) a sa traduction FR dessous (`frSlot`).
 - Route `POST /api/tr {texts}` : Google Translate (gtx), cache par texte dans le store (`tr/<sha1>`).

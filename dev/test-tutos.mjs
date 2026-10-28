@@ -15,7 +15,7 @@ await p.evaluate(() => [...document.querySelectorAll("a,button")].find((e) => /^
 await p.waitForTimeout(800);
 const want = {
   complet: "creation.mp4", rotation: "geelark.mp4", numero: "numero.mp4", creation: "compte.mp4", warmup: "warmup.mp4",
-  strategies: null, setup: "setup.mp4", metricool: "metricool.mp4", planning: "planning.mp4", check: "check.webm", remplacement: "remplacement.webm",
+  strategies: null, setup: "setup.mp4", metricool: "metricool.mp4", planning: "planning.mp4", engage: null, check: "check.webm", remplacement: "remplacement.webm",
 };
 const sops = await p.evaluate(() => [...document.querySelectorAll("details.sop")].map((d) => ({ k: d.dataset.sop, t: d.querySelector("summary").textContent.trim(), v: d.querySelector("video")?.getAttribute("src") || null })));
 assert.deepEqual(sops.map((s) => s.k), Object.keys(want), "ordre des sections");

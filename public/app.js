@@ -178,6 +178,10 @@ const SOP = {
     t: "7. Le planning",
     steps: ["Onglet Planning : un point = un post. Bleu prévu, vert publié, rouge erreur, orange en retard.", "Case rose = jour vide : clique « Remplir 14 jours pour tous ».", "« +3 jours » / « +7 jours » : ajoutent des posts après le dernier jour prévu.", "Clique un jour pour voir ses textes et leur traduction.", "Colonne Textes en rouge : il manque des textes, préviens ton manager."],
   },
+  engage: {
+    t: "Engagement (test sur 5 comptes)",
+    steps: ["Seulement les comptes marqués « Test engagement ». Les autres : on n'y touche pas.", "Allume le téléphone GeeLark du compte (même téléphone, jamais un autre).", "Réponds à tous les commentaires sous ses posts (Google Traduction, chinois traditionnel, court et gentil).", "Like 5 posts de filles de la niche, commente-en 3.", "Ne publie rien : les posts partent tout seuls avec Metricool.", "10 min max, puis éteins le téléphone.", "Dans le CRM : note les followers et clique « Fait (10 min) »."],
+  },
   check: {
     t: "Check du matin",
     steps: ["Pour chaque compte : ouvre son profil.", "Le compte marche et ses posts sortent : OK.", "Les posts ne se voient plus depuis un autre compte : Shadowban.", "Message « action limitée » : Restreint.", "Compte suspendu / supprimé / demande de vérification impossible : Sauté."],
@@ -246,6 +250,12 @@ const HELP = {
     hint: "Threads s'est déconnecté : regarde si le compte vit encore, puis reconnecte.",
     more: ["Ouvre le profil Threads du compte.", "Le compte a sauté (suspendu, introuvable) : clique « Il a sauté ». Le CRM le remplacera.", "Le compte marche : clique « Reconnecter », puis fais comme une connexion Metricool normale, dans le téléphone GeeLark du compte.", "À la fin, « J'ai connecté Threads » : les posts repartent tout seuls."],
   },
+  engage: {
+    t: "Engagement (test)",
+    hint: "10 min par compte test : réponds, like, commente. Ne publie rien.",
+    more: ["Seulement les comptes du test (5 comptes).", "Téléphone GeeLark du compte, jamais un autre.", "Réponds à tous les commentaires sous ses posts.", "Like 5 posts de la niche, commentes-en 3 (Google Traduction, chinois traditionnel).", "Rien à publier : Metricool s'en occupe.", "Note les followers, clique « Fait (10 min) », éteins le téléphone."],
+    trap: "Faire l'engagement sur un compte qui n'est pas dans le test : le test ne veut plus rien dire.",
+  },
   check: {
     t: "Check du matin",
     hint: "Ouvre chaque profil, clique le bouton qui correspond.",
@@ -285,6 +295,7 @@ const ICONS = {
   setup: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
   metricool: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   check: '<path d="m5 12 4.5 4.5L19 7"/>',
+  engage: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9.5h8M8 12.5h5"/>',
   accounts: '<path d="M4 6h16M4 12h16M4 18h10"/>',
   sop: '<path d="M5 4h10l4 4v12H5z"/><path d="M14 4v5h5"/>',
   dash: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
@@ -309,6 +320,7 @@ function render() {
       ["setup", "Setup", t.setupReady.length],
       ["metricool", "Metricool", t.toConnect.length + t.toPlan.length],
       ["check", "Check du matin", t.toCheck.length],
+      ...(S.data.accounts.some((a) => a.engage && a.status !== "saute") ? [["engage", "Engagement (test)", (t.toEngage || []).length]] : []),
     ]],
     ["Suivi", [
       ["accounts", "Comptes", 0],
@@ -385,6 +397,7 @@ const VIEWS = {
     if ((t.toReconnect || []).length) pri.push(["c-red", `Reconnecter ${t.toReconnect.length} compte(s) à Metricool`, "Threads s'est déconnecté : ses posts ne sortent plus. 2 min pour le reconnecter.", "metricool", "Reconnecter"]);
     if (t.toPlan.length) pri.push(["c-green", `Planifier ${t.toPlan.length} compte(s)`, "Moins de 2 jours de posts devant lui. 1 clic.", "metricool", "Planifier"]);
     if (t.toCheck.length) pri.push(["c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Repère vite les comptes qui ont sauté.", "check", "Commencer"]);
+    if ((t.toEngage || []).length) pri.push(["c-blue", `Engagement du jour : ${t.toEngage.length} compte(s) test`, "10 min par compte : répondre, liker, commenter. Rien à publier.", "engage", "Commencer"]);
     if (notSub(t.toConnect)) pri.push(["c-violet", `Connecter ${notSub(t.toConnect)} compte(s) à Metricool`, "Setup fini mais pas encore branché : il ne poste pas encore.", "metricool", "Connecter"]);
     if (notSub(t.setupReady)) pri.push(["c-blue", `Setup de ${notSub(t.setupReady)} compte(s)`, "Photo, bio, puis lien ou post épinglé selon la stratégie.", "setup", "Faire le setup"]);
     if (notSub(t.warmup)) pri.push(["c-yellow", `Warm-up de ${notSub(t.warmup)} compte(s)`, "Finis le warm-up, puis le setup dans la foulée.", "warmup", "Ouvrir"]);
@@ -522,6 +535,24 @@ const VIEWS = {
       ${sopBlock("check")}${sopBlock("remplacement")}`;
   },
 
+  engage() {
+    const today = S.data.today;
+    const list = S.data.accounts.filter((a) => a.engage && ["actif", "shadowban", "restreint"].includes(a.status));
+    const todo = list.filter((a) => a.lastEngageDay !== today);
+    const done = list.filter((a) => a.lastEngageDay === today);
+    const card = (a) => {
+      const n = (a.engageDays || []).length;
+      const isDone = a.lastEngageDay === today;
+      return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span><div class="spacer"></div>${isDone ? '<span class="status st-actif"><i></i>Fait aujourd\'hui</span>' : pill(a.status)}</div>
+        <span class="muted">Dans le test depuis le ${esc(a.engageSince || "?")} · ${n} jour(s) d'engagement faits · téléphone GeeLark : ${esc(a.geelarkProfile || "celui du compte")}</span>
+        ${isDone ? "" : `<div class="row"><a class="btn light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Voir le profil</a><input type="number" min="0" placeholder="Followers (facultatif)" data-efollowers="${a.id}" style="max-width:220px" /><button class="btn ok" data-act="engaged" data-id="${a.id}" data-wait="...">Fait (10 min)</button></div>`}</div>`;
+    };
+    return `<h2>Engagement (test)</h2><p class="lead">On teste si 10 min d'engagement par jour font plus de clics et de followers. Seulement sur ces comptes-là.</p>${hint("engage")}
+      <div class="card"><ol class="helpsteps">${SOP.engage.steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
+      ${todo.length ? todo.map(card).join("") : '<div class="card done-all"><b>Engagement du jour terminé. Bravo.</b></div>'}
+      ${done.length ? `<h3>Déjà faits aujourd'hui</h3>${done.map(card).join("")}` : ""}`;
+  },
+
   accounts() {
     const f = S.filter;
     const q = S.search.toLowerCase();
@@ -534,10 +565,10 @@ const VIEWS = {
       <div class="chips">${chips.map(([k, l]) => `<button class="chip ${f === k ? "on" : ""}" data-filter="${k}">${esc(l)} <b>${k === "vivants" ? S.data.accounts.filter((a) => a.status !== "saute").length : k === "tous" ? S.data.accounts.length : S.data.accounts.filter((a) => a.status === k).length}</b></button>`).join("")}</div>
       <input placeholder="Chercher (pseudo, numéro, IP...)" data-search value="${esc(S.search)}" style="margin-bottom:14px" />
       <div class="grid">${list.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span><span class="ps">@${esc(a.pseudo)}</span></div>
-        <div class="row">${pill(a.status)}${gpill(a.group)}${spill(a.strategy)}</div>
+        <div class="row">${pill(a.status)}${gpill(a.group)}${spill(a.strategy)}${a.engage ? '<span class="pill">Test engagement</span>' : ""}</div>
         <span class="muted">Créé ${ago(a.createdAt)} par ${esc(a.createdBy)} · IP ${esc(a.ip || "?")}</span>
         ${a.replaces ? `<span class="muted">Remplace @${esc(acc(a.replaces)?.pseudo || "?")}</span>` : ""}${a.replacedBy ? `<span class="muted">Remplacé par @${esc(acc(a.replacedBy)?.pseudo || "?")}</span>` : ""}
-        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button><button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}"></button></div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
+        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button><button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}"></button>${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Sortir du test" : "Mettre en test"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
   },
 
   planning() {
@@ -585,8 +616,9 @@ const VIEWS = {
       <div class="stats">${stat("c-blue", sum("clicks7"), "clics (7 j)")}${stat("c-blue", sum("clicks30"), "clics (30 j)")}${stat("c-green", totalFollowers, "followers")}${stat("c-violet", rows.reduce((n, r) => n + r.up, 0), "posts à venir")}</div>
       <div class="row" style="margin-bottom:12px"><span class="muted">${ls ? "Clics relevés " + ago(ls.at) : "Clics jamais relevés"}</span><div class="spacer"></div>${isAdmin() ? '<button class="btn sm" data-act="linkStats" data-wait="Relevé...">Mettre à jour les clics</button>' : ""}</div>
       ${ls?.errors?.length ? `<div class="alert c-red">${esc(ls.errors[0])}${ls.errors.length > 1 ? ` (+${ls.errors.length - 1})` : ""}</div>` : ""}
+      ${engageCompare()}
       <div class="card" style="overflow:auto"><table class="tbl"><tr><th>Compte</th><th>Groupe</th><th>Stratégie</th><th>Statut</th><th>Lien</th><th>Clics 7 j</th><th>Clics 30 j</th><th>Followers</th><th>Posts publiés</th><th>À venir</th></tr>
-      ${rows.map(({ a, l, up, done }) => `<tr><td>@${esc(a.pseudo)}</td><td>${gpill(a.group)}</td><td class="muted">${esc((S.data.strategyLabels || {})[a.strategy] || "")}</td><td>${pill(a.status)}</td><td class="muted">${esc(a.link || "")}</td><td>${l ? l.clicks7 : ""}</td><td>${l ? l.clicks30 : ""}</td><td>${a.followers ?? ""}</td><td>${done}</td><td>${up}</td></tr>`).join("") || '<tr><td colspan="10" class="muted">Aucun compte.</td></tr>'}</table></div>`;
+      ${rows.map(({ a, l, up, done }) => `<tr><td>@${esc(a.pseudo)}${a.engage ? ' <span class="pill">Test</span>' : ""}</td><td>${gpill(a.group)}</td><td class="muted">${esc((S.data.strategyLabels || {})[a.strategy] || "")}</td><td>${pill(a.status)}</td><td class="muted">${esc(a.link || "")}</td><td>${l ? l.clicks7 : ""}</td><td>${l ? l.clicks30 : ""}</td><td>${a.followers ?? ""}</td><td>${done}</td><td>${up}</td></tr>`).join("") || '<tr><td colspan="10" class="muted">Aucun compte.</td></tr>'}</table></div>`;
   },
 
   sop() {
@@ -751,6 +783,39 @@ async function planFull(accountId, days, btn, label, mode) {
     if (!r.partial || r.problems.length) break;
   }
   return { created, problems };
+}
+const POSTING = ["actif", "shadowban", "restreint"];
+// test engagement : comptes test vs comptes témoins (branchés Metricool, sans engagement), depuis le début du test
+function engageCompare() {
+  const A = S.data.accounts;
+  const testers = A.filter((a) => a.engage);
+  const start = testers.map((a) => a.engageSince).filter(Boolean).sort()[0];
+  const admin = isAdmin() ? `<button class="btn sm" data-act="engagePick" data-wait="Tirage...">${testers.some((a) => a.status !== "saute") ? "Compléter le test à 5 comptes" : "Lancer le test : 5 comptes au hasard"}</button>` : "";
+  if (!start) return isAdmin() ? `<div class="card"><h3 style="margin-top:0">Test engagement</h3><p class="muted">Pas encore lancé. 5 comptes actifs tirés au hasard (stratégies mélangées) : la VA y fait 10 min d'engagement par jour. Les autres servent de témoins.</p>${admin}</div>` : "";
+  const ls = S.data.linkStats;
+  const grp = (isTest) => {
+    const g = A.filter((a) => (isTest ? a.engage : !a.engage && a.blogId) && (a.status !== "saute" || (a.deadAt && a.deadAt.slice(0, 10) >= start)));
+    const alive = g.filter((a) => POSTING.includes(a.status));
+    const avg = (f) => (alive.length ? Math.round((alive.reduce((n, a) => n + (f(a) || 0), 0) / alive.length) * 10) / 10 : 0);
+    const gain = (a) => {
+      const log = (a.followersLog || []).filter((x) => x.day >= start);
+      return log.length >= 2 ? log[log.length - 1].n - log[0].n : 0;
+    };
+    return { n: alive.length, dead: g.filter((a) => a.status === "saute").length, c7: avg((a) => ls?.links?.[a.link]?.clicks7), c30: avg((a) => ls?.links?.[a.link]?.clicks30), fol: avg((a) => Number(a.followers)), gain: avg(gain) };
+  };
+  const t = grp(true);
+  const w = grp(false);
+  const days = Math.max(1, Math.round((Date.now() - new Date(start + "T00:00:00").getTime()) / 864e5));
+  const since = (d) => Math.max(1, Math.round((Date.now() - new Date(d + "T00:00:00").getTime()) / 864e5));
+  const live = testers.filter((a) => POSTING.includes(a.status));
+  const doneN = live.reduce((n, a) => n + (a.engageDays || []).filter((d) => d >= a.engageSince).length, 0);
+  const dueN = live.reduce((n, a) => n + since(a.engageSince || start), 0);
+  const row = (l, a, b) => `<tr><td>${l}</td><td><b>${a}</b></td><td>${b}</td></tr>`;
+  return `<div class="card"><h3 style="margin-top:0">Test engagement · jour ${days}</h3>
+    <p class="muted">Moyenne par compte qui poste (actif, shadowban, restreint). Un remplaçant entre dans le test quand il est branché. Témoins = comptes branchés à Metricool sans engagement. Regarde le résultat après 14 jours, pas avant. Engagement fait : ${doneN} fois sur ${dueN} prévues.</p>
+    <table class="tbl"><tr><th></th><th>Test (engagement)</th><th>Témoins</th></tr>
+      ${row("Comptes vivants", t.n, w.n)}${row("Sautés depuis le début", t.dead, w.dead)}${row("Clics 7 j", t.c7, w.c7)}${row("Clics 30 j", t.c30, w.c30)}${row("Followers", t.fol, w.fol)}${row("Followers gagnés", t.gain, w.gain)}</table>
+    ${admin ? `<div class="row" style="margin-top:10px">${admin}</div>` : ""}</div>`;
 }
 function addDaysLocal(day, n) {
   const d = new Date(day + "T00:00:00Z");
@@ -1305,6 +1370,28 @@ const ACT = {
     modal(`<h3>Post à la main pour @${esc(a.pseudo)}</h3><p class="muted">Si Metricool bloque : copie, colle dans Metricool, programme.</p>
       ${t ? `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t.text)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t.text)}">Copier</button></div>${t.fr ? `<p class="muted">${esc(t.fr)}</p>` : ""}` : '<p class="muted">Plus de texte libre.</p>'}
       ${m ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${m.id}" /></figure></div><a class="btn light" href="/api/media/${m.id}" download>Télécharger la photo</a>` : ""}`);
+  },
+  async engaged(b) {
+    const followers = $(`[data-efollowers="${b.dataset.id}"]`)?.value;
+    await run(b, async () => {
+      await api(`accounts/${b.dataset.id}/engaged`, { followers });
+      await refresh();
+      toast("Engagement noté");
+    });
+  },
+  async engageToggle(b) {
+    await run(b, async () => {
+      await api(`accounts/${b.dataset.id}/engage`, { on: b.dataset.v === "1" });
+      await refresh();
+      toast(b.dataset.v === "1" ? "Compte mis dans le test" : "Compte sorti du test");
+    });
+  },
+  async engagePick(b) {
+    await run(b, async () => {
+      const r = await api("engage/pick", { n: 5 });
+      await refresh();
+      toast(r.picked.length ? `Test : ${r.picked.map((p) => "@" + p).join(", ")}` : `Rien à tirer (${r.total} compte(s) déjà en test, ou pas assez de comptes actifs)`, !r.picked.length);
+    });
   },
   async check(b) {
     const followers = $(`[data-followers="${b.dataset.id}"]`)?.value;

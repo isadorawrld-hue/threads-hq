@@ -348,6 +348,46 @@ assert.equal(ok(await call("tr", { texts: ["我想你"] }), "lu du cache")["我�
 assert.equal((await (await fetch(B + "/__tr")).json()).calls, n2, "pas d'appel Google");
 tok = admin;
 step("traduction FR des textes chinois, avec cache (serveur ou navigateur)");
+// test engagement : tirage au hasard, tache du jour, fait une fois par jour, remplaçant garde la place
+{
+  tok = va;
+  assert.equal((await call("engage/pick", { n: 5 })).s, 403, "VA : tirage interdit");
+  tok = admin;
+  const before = ok(await call("state"), "state").accounts.filter((a) => a.status === "actif" && a.blogId);
+  const pk = ok(await call("engage/pick", { n: 5 }), "tirage");
+  assert.equal(pk.picked.length, Math.min(5, before.length), "tirage : " + JSON.stringify(pk));
+  let s2 = ok(await call("state"), "state");
+  const tested = s2.accounts.filter((a) => a.engage);
+  assert.equal(tested.length, pk.picked.length);
+  assert.ok(tested.every((a) => a.status === "actif" && a.engageSince));
+  assert.equal(s2.tasks.toEngage.length, tested.length, "tâche du jour");
+  assert.equal(ok(await call("engage/pick", { n: 5 }), "re-tirage").picked.length, 0, "pas de doublon si déjà plein");
+  tok = va;
+  const t0 = tested[0];
+  ok(await call(`accounts/${t0.id}/engaged`, { followers: 42 }), "engagement fait");
+  ok(await call(`accounts/${t0.id}/engaged`, {}), "2e fois le même jour");
+  s2 = ok(await call("state"), "state VA");
+  const t0b = s2.accounts.find((a) => a.id === t0.id);
+  assert.equal(t0b.engageDays.length, 1, "un seul jour compté");
+  assert.equal(t0b.followers, 42);
+  assert.ok(!s2.tasks.toEngage.includes(t0.id), "plus à faire aujourd'hui");
+  const notTest = s2.accounts.find((a) => !a.engage && a.status !== "saute");
+  if (notTest) assert.equal((await call(`accounts/${notTest.id}/engaged`, {})).s, 400, "hors test refusé");
+  assert.equal((await call(`accounts/${t0.id}/engage`, { on: false })).s, 403, "VA : sortir du test interdit");
+  tok = admin;
+  ok(await call(`accounts/${t0.id}/engage`, { on: false }), "sortir du test");
+  assert.ok(!ok(await call("state"), "state").tasks.toEngage.includes(t0.id));
+  ok(await call(`accounts/${t0.id}/engage`, { on: true }), "remettre en test");
+  // un compte test qui saute : son remplaçant hérite du test
+  ok(await call(`accounts/${t0.id}/check`, { status: "saute" }), "compte test sauté");
+  ok(await call("rotate", {}), "rotation");
+  ok(await call("accounts/create", { pseudo: "remplacant_test", phone: "+33600000077", password: "Azerty12!x" }), "remplaçant");
+  const s3 = ok(await call("state"), "state");
+  const r3 = s3.accounts.find((a) => a.pseudo === "remplacant_test");
+  assert.equal(r3.replaces, t0.id, "remplace bien le compte test");
+  assert.equal(r3.engage, true, "le remplaçant hérite du test");
+  step("test engagement : tirage, tâche du jour, une fois par jour, remplaçant gardé dans le test");
+}
 st = ok(await call("state"), "state admin");
 const actions = new Set(st.logs.map((l) => l.action));
 for (const a of ["premier_acces", "connexion", "ip_changee", "compte_cree", "creation_ratee", "warmup_fait", "setup_fait", "metricool_relie", "marque_creee", "lien_metricool", "planif", "check", "compte_saute"]) assert.ok(actions.has(a), "log manquant " + a);
