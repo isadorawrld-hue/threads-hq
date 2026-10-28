@@ -259,8 +259,8 @@ const HELP = {
   },
 };
 // Tutos filmes (vraie creation d'un compte, voix FR) : /help/<fichier>.mp4. Les autres cles gardent leur mini video .webm.
-const HELP_TUTOS = { geelark: "geelark", numero: "numero", compte: "compte", marche: "compte", warmup: "warmup", setup: "setup", metricool: "metricool", planning: "planning", creation: "creation", strategies: "setup" };
-const HELP_VIDEOS = ["today", "rotation", "reconnect", "check", "remplacement"];
+const HELP_TUTOS = { rotation: "geelark", geelark: "geelark", numero: "numero", compte: "compte", marche: "compte", warmup: "warmup", setup: "setup", metricool: "metricool", planning: "planning", creation: "creation", strategies: "setup" };
+const HELP_VIDEOS = ["today", "reconnect", "check", "remplacement"];
 const tutoVideo = (k) => S.data.settings.videos?.[k] || (HELP_TUTOS[k] ? `/help/${HELP_TUTOS[k]}.mp4` : "");
 const hint = (k) => (HELP[k] ? `<div class="hint"><span class="hint-k">Indice</span><span class="hint-t">${esc(HELP[k].hint)}</span><button class="qbtn" data-act="help" data-k="${k}" aria-label="Plus d'aide">?</button></div>` : "");
 const helpVideo = (k) => tutoVideo(k) || (HELP_VIDEOS.includes(k) ? `/help/${k}.webm` : "");
