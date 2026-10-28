@@ -84,7 +84,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 
 ## Tutos vidéo (bouton « ? » et page SOP)
 - `public/help/<clé>.mp4` : vrais tutos filmés par Awen (Loom), montés avec voix FR ElevenLabs (via Higgsfield), mots de passe / numéros / codes floutés. Clés : geelark, numero, compte, warmup, setup, metricool, planning, creation (tout enchaîné).
-- Mapping dans `HELP_TUTOS` (app.js) : `rotation`, `today`, `check`, `reconnect`, `remplacement` gardent leurs mini vidéos `.webm`.
+- Mapping dans `HELP_TUTOS` (app.js). Page SOP : 1 section = 1 tuto court (même ordre que le tuto complet), plus « Tuto complet » en haut (creation.mp4). `today`, `check`, `reconnect`, `remplacement` gardent leurs vieilles mini vidéos `.webm` muettes (pas encore filmées). « Les 3 stratégies » : texte seul.
+- Le rafraîchissement auto (60 s) ne tourne pas pendant qu'une vidéo joue ; les guides ouverts restent ouverts (`S.sopOpen`).
 - Un lien mis dans Réglages > Vidéos des SOP passe avant le fichier.
 - La VA crée le compte directement dans Threads (« Utiliser un numéro de mobile »), pas via Instagram : les textes du CRM le disent.
 

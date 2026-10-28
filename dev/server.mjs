@@ -136,7 +136,7 @@ async function fakeProxyFetch(url, proxy) {
 }
 
 const env = { store, fetch: fakeFetch, proxyFetch: fakeProxyFetch, rotateWaitMs: 3000, rotatePollMs: 200, planBudgetMs: Number(process.env.PLAN_BUDGET_MS || 7000) };
-const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".webm": "video/webm", ".png": "image/png" };
+const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".webm": "video/webm", ".mp4": "video/mp4", ".png": "image/png" };
 
 http
   .createServer(async (req, res) => {

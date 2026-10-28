@@ -142,37 +142,41 @@ const threadsUrl = (p) => `https://www.threads.com/@${encodeURIComponent(p)}`;
 
 // ------------------------------------------------------------ SOP (textes par defaut)
 const SOP = {
+  complet: {
+    t: "Tuto complet : créer un compte de A à Z (7 min)",
+    steps: ["Les 7 tutos ci-dessous, à la suite.", "Regarde-le une fois en entier.", "Ensuite, utilise les tutos courts (ou le bouton ? de chaque étape) quand tu bloques."],
+  },
   rotation: {
-    t: "Changer l'IP",
-    steps: ["Avant chaque compte, clique sur « Changer l'IP ».", "Attends que la nouvelle IP s'affiche.", "Jamais 2 comptes sur la même IP. Le CRM bloque si tu oublies."],
+    t: "1. Changer l'IP + nouveau téléphone GeeLark",
+    steps: ["Clique « Changer l'IP ».", "Attends la nouvelle IP en vert, puis « Étape suivante ».", "GeeLark : nouveau profil (1 profil = 1 compte).", "Copie hôte, port, utilisateur, mot de passe depuis le CRM.", "Type Socks5, puis « Check proxy » : IP en France.", "Advanced settings : Location et Cloud phone language sur « Based on IP ».", "Clique « Create », puis « Start ».", "Note le nom du profil dans le CRM, puis « Étape suivante »."],
   },
   numero: {
-    t: "Prendre un numéro",
-    steps: ["Onglet Numéro (ou étape 3 de Créer un compte) : clique le gros bouton (France).", "Pas de code ? Rembourse, puis prends le pays suivant (USA).", "Dans Threads : « Utiliser un numéro de mobile », colle le numéro complet AVEC le +33 (bouton Copier) : Threads ne le rajoute pas tout seul.", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Threads.", "Pas de code après 2 à 3 minutes : « Pas de code : rembourser », puis reprends un numéro.", "Jamais 2 comptes sur le même numéro."],
+    t: "2. Prendre un numéro",
+    steps: ["Clique le gros bouton « Numéro France ».", "Ouvre l'appli Threads, touche « Utiliser un numéro de mobile ».", "Copie le numéro complet dans le CRM.", "Colle-le AVEC le +33 : Threads ne le rajoute pas tout seul.", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Threads.", "Pas de code après 3 min : bouton rouge « Pas de code : rembourser », puis reprends un numéro (USA si la France bloque).", "Jamais 2 comptes sur le même numéro."],
   },
   creation: {
-    t: "Créer un compte",
-    steps: ["Change l'IP.", "GeeLark : nouveau profil, 1 profil = 1 compte. Mets le proxy (infos à copier dans le CRM).", "Clique « Prendre un numéro » : le numéro s'affiche, le code SMS arrive tout seul dans le CRM.", "Ouvre Threads, « Utiliser un numéro de mobile », colle le numéro puis le code SMS.", "Le compte marche : clique « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
+    t: "3. Créer le compte",
+    steps: ["Mot de passe du compte (retiens-le).", "Date de naissance : plus de 21 ans. Puis le nom.", "Profil public, accepte les conditions, autorise les notifications.", "CRM étape 4 : écris le pseudo (le lien se crée tout seul) et le mot de passe.", "Tu vois le fil Threads sans blocage : « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
   },
   warmup: {
-    t: "Warm-up (10 min)",
-    steps: ["Juste après la création, dans le même profil GeeLark.", "10 min de scroll sur Threads : lis, like 5 à 10 posts, suis 3 à 5 comptes de la niche.", "Pendant ces 10 min : zéro post, zéro lien, zéro changement de profil.", "Doucement, comme une vraie personne. Puis tu passes direct au setup."],
+    t: "4. Warm-up (10 min)",
+    steps: ["Juste après la création, dans le même téléphone.", "Clique « Lancer le chrono 10 min » dès le début.", "Scrolle Threads, like 5 à 10 posts, abonne-toi à 3 à 5 comptes de la niche.", "Un commentaire ? Écris-le dans Google Traduction en chinois traditionnel.", "Pendant ces 10 min : zéro post, zéro lien, zéro changement de profil.", "Chrono fini : coche les cases, « Warm-up fini »."],
   },
   strategies: {
     t: "Les 3 stratégies de setup",
     steps: ["Chaque compte a une stratégie, écrite sur sa carte. Suis celle-là, pas une autre.", "Post épinglé : pas de lien dans la bio. Le lien est dans la réponse au post épinglé.", "Lien dans la bio : le lien va dans le champ Lien du profil.", "Relais : aucun lien. Tu cites le post épinglé du compte pivot et tu épingles ta citation.", "Pourquoi : si un compte saute, on ne perd jamais le lien. Et Threads voit 3 profils différents, pas 15 clones."],
   },
   setup: {
-    t: "Setup (juste après le warm-up)",
-    steps: ["Même profil GeeLark, même IP : pas de rotation entre le warm-up et le setup.", "Photo de profil.", "Bio (le CRM te la donne selon la stratégie du compte).", "Lien ou post épinglé ou relais : le CRM te dit quoi faire selon la stratégie.", "Clique Setup fini."],
+    t: "5. Setup du profil",
+    steps: ["Même téléphone, même IP : ne change pas l'IP.", "Photo : « Télécharger » dans le CRM, puis « Upload » dans GeeLark, puis Modifier le profil.", "Bio : « Copier la bio », colle-la, Terminé.", "Post épinglé : publie la partie 1, puis colle la partie 2 (le lien) en réponse juste en dessous.", "Coche les cases, « Setup fini »."],
   },
   metricool: {
-    t: "Metricool",
-    steps: ["Après le setup, le CRM crée la marque Metricool tout seul et te donne un lien.", "Copie le lien, ouvre-le dans le navigateur du téléphone GeeLark du compte (même IP).", "Connect a Threads account, connecte-toi avec le pseudo et le mot de passe du CRM, accepte tout.", "Reviens dans le CRM, clique « J'ai connecté Threads » : le CRM vérifie et programme 3 jours de posts tout seul."],
+    t: "6. Connecter Metricool",
+    steps: ["Copie le lien Metricool dans le CRM.", "Ouvre-le dans Chrome du téléphone GeeLark du compte. Jamais sur ton PC.", "Touche « Connect a Threads account », autorise les cookies.", "« Connexion », puis pseudo et mot de passe du CRM (boutons Copier).", "Accepte tout. Reviens dans le CRM : « J'ai connecté Threads ». Le CRM programme 3 jours de posts tout seul."],
   },
   planning: {
-    t: "Le planning",
-    steps: ["Onglet Planning : un point = un post. Bleu prévu, vert publié, rouge erreur, orange en retard.", "Case rose = jour vide : clique « Remplir 14 jours pour tous ».", "Clique un jour pour voir ses textes et leur traduction.", "Colonne Textes en rouge : il manque des textes, préviens ton manager."],
+    t: "7. Le planning",
+    steps: ["Onglet Planning : un point = un post. Bleu prévu, vert publié, rouge erreur, orange en retard.", "Case rose = jour vide : clique « Remplir 14 jours pour tous ».", "« +3 jours » / « +7 jours » : ajoutent des posts après le dernier jour prévu.", "Clique un jour pour voir ses textes et leur traduction.", "Colonne Textes en rouge : il manque des textes, préviens ton manager."],
   },
   check: {
     t: "Check du matin",
@@ -259,7 +263,7 @@ const HELP = {
   },
 };
 // Tutos filmes (vraie creation d'un compte, voix FR) : /help/<fichier>.mp4. Les autres cles gardent leur mini video .webm.
-const HELP_TUTOS = { rotation: "geelark", geelark: "geelark", numero: "numero", compte: "compte", marche: "compte", warmup: "warmup", setup: "setup", metricool: "metricool", planning: "planning", creation: "creation", strategies: "setup" };
+const HELP_TUTOS = { complet: "creation", rotation: "geelark", geelark: "geelark", numero: "numero", creation: "compte", compte: "compte", marche: "compte", warmup: "warmup", setup: "setup", metricool: "metricool", planning: "planning" };
 const HELP_VIDEOS = ["today", "reconnect", "check", "remplacement"];
 const tutoVideo = (k) => S.data.settings.videos?.[k] || (HELP_TUTOS[k] ? `/help/${HELP_TUTOS[k]}.mp4` : "");
 const hint = (k) => (HELP[k] ? `<div class="hint"><span class="hint-k">Indice</span><span class="hint-t">${esc(HELP[k].hint)}</span><button class="qbtn" data-act="help" data-k="${k}" aria-label="Plus d'aide">?</button></div>` : "");
@@ -269,7 +273,7 @@ const sopBlock = (key, open) => {
   const s = SOP[key];
   const v = helpVideo(key);
   const isOpen = S.sopOpen ? S.sopOpen.has(key) : open;
-  return `<details class="card sop" data-sop="${key}" ${isOpen ? "open" : ""}><summary><b>${s.t}</b> ${v ? "" : ""}</summary>${videoEmbed(v)}<ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
+  return `<details class="card sop" data-sop="${key}" ${isOpen ? "open" : ""}><summary><b>${s.t}</b> ${v ? "" : ""}</summary>${v ? videoEmbed(v) : ""}<ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
 };
 
 // ------------------------------------------------------------ rendu principal
