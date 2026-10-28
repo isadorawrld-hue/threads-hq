@@ -98,11 +98,18 @@ step("compte créé, même IP refusée pour le suivant");
 ok(await call("accounts/failed", { phone: "3", reason: "Numéro refusé" }), "échec");
 
 await call("rotate", {});
+await fetch(B + "/__dev/ipage?min=50");
 const a2 = ok(await call("accounts/create", { pseudo: "tw_girl2", phone: "+886 2", password: "pw2" }), "création 2");
+await call("rotate", {});
+await fetch(B + "/__dev/ipage?min=300");
+r = await call("accounts/create", { pseudo: "tw_girl3", phone: "+886 3", password: "pw3" });
+assert.equal(r.s, 400, "IP de plus de 4 h refusée");
+assert.ok(/4 h/.test(r.j.error), "message clair : " + JSON.stringify(r.j));
 await call("rotate", {});
 const a3 = ok(await call("accounts/create", { pseudo: "tw_girl3", phone: "+886 3", password: "pw3" }), "création 3");
 assert.notEqual(a1.group, a2.group);
 assert.notEqual(a2.group, a3.group);
+step("IP changée il y a 50 min acceptée à l'enregistrement, 5 h refusée");
 step("groupes répartis : " + [a1.group, a2.group, a3.group].join(", "));
 assert.deepEqual([a1.strategy, a2.strategy, a3.strategy].sort(), ["epingle", "lien", "relais"], "3 stratégies réparties");
 const relay = [a1, a2, a3].find((a) => a.strategy === "relais");

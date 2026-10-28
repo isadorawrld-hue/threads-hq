@@ -203,8 +203,8 @@ const HELP = {
   rotation: {
     t: "Changer l'IP",
     hint: "Clique « Changer l'IP » et attends l'IP en vert.",
-    more: ["1 compte = 1 IP. Toujours une nouvelle IP avant de créer un compte.", "Clique « Changer l'IP » en haut de l'écran.", "Vert : IP neuve, tu peux continuer.", "Rouge : cette IP a déjà servi, reclique.", "L'IP reste valable 15 min. Au-delà, rechange-la."],
-    trap: "Créer le compte plus de 15 min après le changement d'IP. Le CRM bloque.",
+    more: ["1 compte = 1 IP. Toujours une nouvelle IP avant de créer un compte.", "Clique « Changer l'IP » en haut de l'écran.", "Vert : IP neuve, tu peux continuer.", "Rouge : cette IP a déjà servi, reclique.", "Change l'IP juste avant de commencer : elle doit dater de moins de 15 min pour passer à l'étape 2. Ensuite tu as 4 h pour finir le compte."],
+    trap: "Rechanger l'IP au milieu de la création. Le compte change d'IP en plein milieu : change-la une seule fois, à l'étape 1.",
   },
   geelark: {
     t: "Nouveau téléphone GeeLark",

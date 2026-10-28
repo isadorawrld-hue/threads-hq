@@ -146,6 +146,11 @@ http
       if (b) b.networksData = url.searchParams.get("username") ? { threads: { username: url.searchParams.get("username") } } : {};
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__dev/ipage") {
+      const ip = mem.get("lastip");
+      if (ip) ip.at = new Date(Date.now() - Number(url.searchParams.get("min") || 0) * 60e3).toISOString();
+      res.writeHead(200); return res.end("ok");
+    }
     if (url.pathname === "/__dev/sms") {
       if (smsAct) smsAct.code = url.searchParams.get("code") || "123456";
       res.writeHead(200); return res.end("ok");
