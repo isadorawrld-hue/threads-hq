@@ -180,7 +180,7 @@ const SOP = {
   },
   engage: {
     t: "Engagement (test sur 5 comptes)",
-    steps: ["Seulement les comptes marqués « Test engagement ». Les autres : on n'y touche pas.", "Allume le téléphone GeeLark du compte (même téléphone, jamais un autre).", "Réponds à tous les commentaires sous ses posts (Google Traduction, chinois traditionnel, court et gentil).", "Like 5 posts de filles de la niche, commente-en 3.", "Ne publie rien : les posts partent tout seuls avec Metricool.", "10 min max, puis éteins le téléphone.", "Dans le CRM : note les followers et clique « Fait (10 min) »."],
+    steps: ["Seulement les 5 comptes marqués « Test engagement ». Les autres : on n'y touche pas.", "Allume le téléphone GeeLark du compte (le sien, jamais un autre).", "10 minutes sur Threads, pas plus.", "Like 3 à 4 posts d'autres modèles de la niche. Maximum 4.", "Commente 3 à 4 posts d'autres modèles, en chinois traditionnel (Google Traduction), court et gentil. Maximum 4.", "Suis 2 personnes maximum.", "Ne publie rien : les posts partent tout seuls avec Metricool. Pas de spam.", "Éteins le téléphone. Dans le CRM : note les followers et clique « Fait (10 min) »."],
   },
   check: {
     t: "Check du matin",
@@ -252,9 +252,9 @@ const HELP = {
   },
   engage: {
     t: "Engagement (test)",
-    hint: "10 min par compte test : réponds, like, commente. Ne publie rien.",
-    more: ["Seulement les comptes du test (5 comptes).", "Téléphone GeeLark du compte, jamais un autre.", "Réponds à tous les commentaires sous ses posts.", "Like 5 posts de la niche, commentes-en 3 (Google Traduction, chinois traditionnel).", "Rien à publier : Metricool s'en occupe.", "Note les followers, clique « Fait (10 min) », éteins le téléphone."],
-    trap: "Faire l'engagement sur un compte qui n'est pas dans le test : le test ne veut plus rien dire.",
+    hint: "10 min par compte test : 3-4 likes, 3-4 commentaires, 2 abonnements max. Rien à publier.",
+    more: ["Seulement les 5 comptes du test.", "Téléphone GeeLark du compte, jamais un autre.", "10 minutes, pas plus.", "3 à 4 likes maximum sur des posts d'autres modèles.", "3 à 4 commentaires maximum, en chinois traditionnel (Google Traduction).", "2 abonnements maximum.", "Rien à publier : Metricool s'en occupe.", "Note les followers, clique « Fait (10 min) », éteins le téléphone."],
+    trap: "Spammer (plus de 4 likes, 4 commentaires ou 2 abonnements) : le compte risque de sauter et le test ne veut plus rien dire.",
   },
   check: {
     t: "Check du matin",
@@ -547,7 +547,7 @@ const VIEWS = {
         <span class="muted">Dans le test depuis le ${esc(a.engageSince || "?")} · ${n} jour(s) d'engagement faits · téléphone GeeLark : ${esc(a.geelarkProfile || "celui du compte")}</span>
         ${isDone ? "" : `<div class="row"><a class="btn light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Voir le profil</a><input type="number" min="0" placeholder="Followers (facultatif)" data-efollowers="${a.id}" style="max-width:220px" /><button class="btn ok" data-act="engaged" data-id="${a.id}" data-wait="...">Fait (10 min)</button></div>`}</div>`;
     };
-    return `<h2>Engagement (test)</h2><p class="lead">On teste si 10 min d'engagement par jour font plus de clics et de followers. Seulement sur ces comptes-là.</p>${hint("engage")}
+    return `<h2>Engagement (test)</h2><p class="lead">On teste si 10 min d'engagement par jour font plus de clics et de followers, sans faire sauter plus de comptes. Toujours les 5 mêmes comptes.</p>${hint("engage")}
       <div class="card"><ol class="helpsteps">${SOP.engage.steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
       ${todo.length ? todo.map(card).join("") : '<div class="card done-all"><b>Engagement du jour terminé. Bravo.</b></div>'}
       ${done.length ? `<h3>Déjà faits aujourd'hui</h3>${done.map(card).join("")}` : ""}`;
@@ -791,7 +791,7 @@ function engageCompare() {
   const testers = A.filter((a) => a.engage);
   const start = testers.map((a) => a.engageSince).filter(Boolean).sort()[0];
   const admin = isAdmin() ? `<button class="btn sm" data-act="engagePick" data-wait="Tirage...">${testers.some((a) => a.status !== "saute") ? "Compléter le test à 5 comptes" : "Lancer le test : 5 comptes au hasard"}</button>` : "";
-  if (!start) return isAdmin() ? `<div class="card"><h3 style="margin-top:0">Test engagement</h3><p class="muted">Pas encore lancé. 5 comptes actifs tirés au hasard (stratégies mélangées) : la VA y fait 10 min d'engagement par jour. Les autres servent de témoins.</p>${admin}</div>` : "";
+  if (!start) return isAdmin() ? `<div class="card"><h3 style="margin-top:0">Test engagement</h3><p class="muted">Pas encore lancé. 5 comptes actifs tirés au hasard, toujours les mêmes : la VA y fait 10 min d'engagement par jour. Les autres servent de témoins.</p>${admin}</div>` : "";
   const ls = S.data.linkStats;
   const grp = (isTest) => {
     const g = A.filter((a) => (isTest ? a.engage : !a.engage && a.blogId) && (a.status !== "saute" || (a.deadAt && a.deadAt.slice(0, 10) >= start)));

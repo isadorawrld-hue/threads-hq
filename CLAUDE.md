@@ -90,8 +90,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - La VA crée le compte directement dans Threads (« Utiliser un numéro de mobile »), pas via Instagram : les textes du CRM le disent.
 
 ## Test engagement (5 comptes)
-- `acc.engage` = compte dans le groupe test : la VA y fait 10 min d'engagement par jour (répondre, liker, commenter, rien publier). Les autres comptes Metricool = témoins.
-- Admin : Stats > « Lancer le test : 5 comptes au hasard » (`POST /api/engage/pick`, stratégies alternées) ; bouton « Mettre en test / Sortir du test » sur chaque carte Comptes.
+- `acc.engage` = compte dans le groupe test : la VA y fait 10 min d'engagement par jour (3-4 likes max, 3-4 commentaires max en chinois, 2 abonnements max, rien publier). Les autres comptes Metricool = témoins.
+- Admin : Stats > « Lancer le test : 5 comptes au hasard » (`POST /api/engage/pick`, pur hasard, toujours les mêmes) ; bouton « Mettre en test / Sortir du test » sur chaque carte Comptes.
 - VA : onglet « Engagement (test) » (visible seulement si le test tourne), tâche du jour, bouton « Fait (10 min) » + followers (`accounts/:id/engaged`, 1 fois par jour). `followersLog` garde l'historique (check du matin aussi).
 - Un compte test qui saute : son remplaçant hérite du test, qui démarre le jour où il est branché à Metricool (`engagePending`).
 - Stats : tableau Test vs Témoins (clics 7/30 j, followers, followers gagnés, sautés). Lire après 14 jours.
