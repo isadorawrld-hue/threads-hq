@@ -268,7 +268,8 @@ const helpVideo = (k) => tutoVideo(k) || (HELP_VIDEOS.includes(k) ? `/help/${k}.
 const sopBlock = (key, open) => {
   const s = SOP[key];
   const v = helpVideo(key);
-  return `<details class="card sop" ${open ? "open" : ""}><summary><b>${s.t}</b> ${v ? "" : ""}</summary>${videoEmbed(v)}<ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
+  const isOpen = S.sopOpen ? S.sopOpen.has(key) : open;
+  return `<details class="card sop" data-sop="${key}" ${isOpen ? "open" : ""}><summary><b>${s.t}</b> ${v ? "" : ""}</summary>${videoEmbed(v)}<ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
 };
 
 // ------------------------------------------------------------ rendu principal
@@ -1543,6 +1544,13 @@ document.addEventListener("click", async (e) => {
   }
   if (e.target.id === "modal") closeModal();
 });
+// garde les guides ouverts/fermes d'un rendu a l'autre
+document.addEventListener("toggle", (e) => {
+  const k = e.target?.dataset?.sop;
+  if (!k) return;
+  if (!S.sopOpen) S.sopOpen = new Set([...document.querySelectorAll("details[data-sop][open]")].map((d) => d.dataset.sop));
+  e.target.open ? S.sopOpen.add(k) : S.sopOpen.delete(k);
+}, true);
 document.addEventListener("input", (e) => {
   // on garde chaque champ de l'assistant en mémoire à chaque frappe (pas seulement au clic suivant)
   if (e.target.matches("[data-f]") && S.wiz) S.wiz.f[e.target.dataset.f] = e.target.value.trim();
@@ -1620,6 +1628,8 @@ async function onPin(k) {
   // rafraichit les compteurs chaque minute, mais jamais au milieu d'un assistant ou d'une saisie
   setInterval(() => {
     const working = ["create", "warmup", "setup", "content", "settings"].includes(S.tab) || S.setup;
-    if (S.token && S.data && !S.busy && !working && $("#modal").classList.contains("hidden") && !document.activeElement?.matches("input,textarea,select")) refresh().catch(() => {});
+    // une video en lecture (ou en plein ecran) ne doit jamais etre coupee par le rafraichissement
+    const watching = document.fullscreenElement || [...document.querySelectorAll("video")].some((v) => !v.paused && !v.ended);
+    if (S.token && S.data && !S.busy && !working && !watching && $("#modal").classList.contains("hidden") && !document.activeElement?.matches("input,textarea,select")) refresh().catch(() => {});
   }, 60000);
 })();
