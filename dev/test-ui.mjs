@@ -101,6 +101,15 @@ await v.fill('[data-f="geelarkProfile"]', "profil 1");
 await v.click('[data-act="wizNext"]');
 await v.fill('[data-f="phone"]', "+886 912 345 678");
 await v.click('[data-act="wizNext"]');
+// pseudo propose par la banque : Utiliser remplit le champ, Un autre en change
+const sug1 = await v.textContent(".pseudosug b");
+if (!/chloe/.test(sug1)) throw new Error("pas de pseudo proposé : " + sug1);
+await v.click('[data-act="otherPseudo"]');
+const sug2 = await v.textContent(".pseudosug b");
+if (sug2 === sug1) throw new Error("« Un autre » ne change pas le pseudo");
+await v.click('[data-act="usePseudo"]');
+if ((await v.inputValue('[data-f="pseudo"]')) !== sug2) throw new Error("« Utiliser » ne remplit pas le pseudo");
+await shot(v, "06g-pseudo-banque");
 await v.fill('[data-f="pseudo"]', "taipei_lily");
 await v.click('[data-act="genPass"]');
 await v.click('[data-act="wizNext"]');

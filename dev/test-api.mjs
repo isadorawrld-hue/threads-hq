@@ -388,6 +388,30 @@ step("traduction FR des textes chinois, avec cache (serveur ou navigateur)");
   assert.equal(r3.engage, true, "le remplaçant hérite du test");
   step("test engagement : tirage, tâche du jour, une fois par jour, remplaçant gardé dans le test");
 }
+// banque de pseudos : seedée, un pseudo pris sort de la banque, jamais remis par une vieille page
+{
+  tok = admin;
+  let s0 = ok(await call("state"), "state").settings;
+  assert.ok(s0.pseudoBank.length >= 300, "banque seedée : " + s0.pseudoBank.length);
+  assert.ok(s0.pseudoBank.every((p) => /^[a-z0-9._]{3,30}$/.test(p) && p.includes("chloe")), "format pseudo");
+  assert.equal(new Set(s0.pseudoBank).size, s0.pseudoBank.length, "pas de doublon");
+  const pick = s0.pseudoBank[0];
+  const oldBank = s0.pseudoBank;
+  ok(await call("rotate", {}), "rotation");
+  tok = va;
+  ok(await call("accounts/create", { pseudo: "@" + pick.toUpperCase(), phone: "+33600000088", password: "Azerty12!y" }), "création avec pseudo de la banque");
+  tok = admin;
+  s0 = ok(await call("state"), "state").settings;
+  assert.ok(!s0.pseudoBank.includes(pick), "pseudo sorti de la banque");
+  assert.ok(s0.pseudosUsed.includes(pick), "pseudo noté utilisé");
+  ok(await call("settings", { pseudoBank: [...oldBank, "Nouveau.Pseudo", "pas valide !", "remplacant_test"] }), "vieille page Contenu");
+  s0 = ok(await call("state"), "state").settings;
+  assert.ok(!s0.pseudoBank.includes(pick), "pas remis par une vieille page");
+  assert.ok(s0.pseudoBank.includes("nouveau.pseudo"), "ajout en minuscules");
+  assert.ok(!s0.pseudoBank.includes("remplacant_test"), "pseudo d'un compte existant refusé");
+  assert.ok(!s0.pseudoBank.some((x) => x.includes(" ")), "pseudo invalide refusé");
+  step("banque de pseudos chloe : " + oldBank.length + " pseudos, un pseudo ne sert qu'une fois");
+}
 st = ok(await call("state"), "state admin");
 const actions = new Set(st.logs.map((l) => l.action));
 for (const a of ["premier_acces", "connexion", "ip_changee", "compte_cree", "creation_ratee", "warmup_fait", "setup_fait", "metricool_relie", "marque_creee", "lien_metricool", "planif", "check", "compte_saute"]) assert.ok(actions.has(a), "log manquant " + a);

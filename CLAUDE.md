@@ -97,6 +97,11 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Notes par compte : « Modifier / notes » (champ `notes`), affichées sur la carte.
 - Tests : `dev/test-api.mjs`, puis `node dev/test-engage-ui.mjs` sur les mêmes données.
 
+## Banque de pseudos
+- `settings.pseudoBank` : ~730 pseudos « chloe + un mot » générés (`buildPseudoBank`, valeur par défaut tant que la banque n'est pas enregistrée). Étape 4 de la création : « Pseudo proposé » + Utiliser / Copier / Un autre.
+- Un pseudo pris par un compte sort de la banque (`pseudosUsed`) ; une sauvegarde de Contenu ne peut pas le remettre, ni un pseudo d'un compte existant. Alerte admin sous 20.
+- Le lien TinyURL garde lettres, chiffres, - et _ (les points sautent) : `aliasOf` côté écran = `tinyCreate` côté serveur.
+
 ## Traduction FR
 - Tout texte chinois montré à la VA (post épinglé, réponse, citation relais, bio) a sa traduction FR dessous (`frSlot`).
 - Route `POST /api/tr {texts}` : Google Translate (gtx), cache par texte dans le store (`tr/<sha1>`).

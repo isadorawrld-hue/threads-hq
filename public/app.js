@@ -371,6 +371,7 @@ const VIEWS = {
     const stt = S.data.settings;
     const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Hero SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)", !(stt.warmupTargets || []).length && "Comptes à suivre au warm-up (Contenu)"].filter(Boolean);
     const lowBios = Object.entries(stt.bioBank || {}).filter(([, v]) => (v || []).length < 20).map(([k, v]) => `${(S.data.strategyLabels || {})[k] || k} : ${(v || []).length}`);
+    if (isAdmin() && (stt.pseudoBank || []).length < 20) cards.push(task("", "c-red", "Pseudos bientôt épuisés", `${(stt.pseudoBank || []).length} restant(s) dans la banque (chaque pseudo ne sert qu'une fois)`, "content", "Ajouter"));
     if (isAdmin() && lowBios.length) cards.push(task("", "c-red", "Bios bientôt épuisées", lowBios.join(" · ") + " (chaque bio ne sert qu'une fois)", "content", "Ajouter"));
     if (isAdmin() && miss.length) cards.push(task("", "c-red", "Réglages à finir", miss.join(" · "), "settings", "Ouvrir"));
     // ordre de priorite : d'abord que chaque compte poste (remplacer, reconnecter), puis le reste
@@ -453,9 +454,9 @@ const VIEWS = {
     }
     if (w.step === 4)
       return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Threads</h3>${hint("compte")}
-        <label class="f">Pseudo</label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
+        <label class="f">Pseudo</label>${pseudoSuggest(w)}<input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
-        <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(w.f.pseudo || "pseudo")}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(w.f.pseudo || "pseudo")}</button></div>
+        <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(aliasOf(w.f.pseudo))}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(aliasOf(w.f.pseudo))}</button></div>
         <label class="f">Mot de passe <button class="btn sm light" data-act="genPass">Générer</button></label><input data-f="password" value="${esc(w.f.password || "")}" autocapitalize="off" />
         <label class="f">Email <small>(facultatif)</small></label><input data-f="email" value="${esc(w.f.email || "")}" autocapitalize="off" />
         <label class="f">Mot de passe email <small>(facultatif)</small></label><input data-f="emailPassword" value="${esc(w.f.emailPassword || "")}" autocapitalize="off" />
@@ -656,6 +657,7 @@ const VIEWS = {
         <label class="f">Bios « Lien dans la bio » <small>(${(st.bioBank?.lien || []).length} restantes)</small></label><textarea data-bank="lien" style="min-height:200px">${esc((st.bioBank?.lien || []).join("\n\n"))}</textarea>
         <label class="f">Bios « Relais » <small>(${(st.bioBank?.relais || []).length} restantes)</small></label><textarea data-bank="relais" style="min-height:200px">${esc((st.bioBank?.relais || []).join("\n\n"))}</textarea>
 
+        <h3>Banque de pseudos</h3><p class="muted">Un pseudo par ligne (minuscules, chiffres, point, tiret bas). Le CRM en propose un à la création ; dès qu'un compte le prend, il sort de la banque. ${(st.pseudosUsed || []).length} déjà utilisé(s).</p><label class="f">Pseudos <small>(${(st.pseudoBank || []).length} restants)</small></label><textarea data-set="pseudoBank" style="min-height:160px">${esc((st.pseudoBank || []).join("\n"))}</textarea>
         <h3>Post épinglé</h3><p class="muted">Partie 1 = le post. Partie 2 = la réponse avec le lien. Mots remplacés tout seuls : <code>{pseudo}</code> et <code>{lien}</code>.</p><label class="f">Partie 1</label><textarea data-set="pinnedPost">${esc(st.pinnedPost || "")}</textarea><label class="f">Partie 2</label><textarea data-set="pinnedReply">${esc(st.pinnedReply || "")}</textarea>
         <h3>Liens (un par compte)</h3><p class="muted">Un lien TinyURL par ligne. Chaque nouveau compte prend le prochain lien libre.</p><textarea data-set="links">${esc((st.links || []).join("\n"))}</textarea>
         <p class="muted">${(st.links || []).map((l) => (usedLinks.has(l) ? `${esc(l)} @${esc(usedLinks.get(l))}` : `${esc(l)} libre`)).join("<br>")}</p>
@@ -903,6 +905,15 @@ function setupWizard(a) {
     <div class="card"><div class="checklist" data-scheck>${checks.map((x) => `<label><input type="checkbox" /> ${x}</label>`).join("")}</div>
       <button class="btn big ok" data-act="setupDone" data-id="${a.id}" data-wait="...">Setup fini</button><div class="row" style="margin-top:10px"><button class="btn ghost" data-act="setupCancel">Retour à la liste</button></div></div>`;
 }
+// pseudo propose depuis la banque (chloe + un mot), chaque pseudo ne sert qu'une fois
+// meme regle que le serveur (tinyCreate) : le lien garde lettres, chiffres, - et _ (les points sautent)
+const aliasOf = (p) => String(p || "").toLowerCase().replace(/[^a-z0-9_-]+/g, "").slice(0, 28) || "pseudo";
+function pseudoSuggest(w) {
+  const bank = S.data.settings.pseudoBank || [];
+  if (!bank.length) return isAdmin() ? '<div class="alert c-yellow">Banque de pseudos vide (Contenu).</div>' : "";
+  if (!w.pseudoPick || !bank.includes(w.pseudoPick)) w.pseudoPick = bank[Math.floor(Math.random() * bank.length)];
+  return `<div class="pseudosug"><span class="muted">Pseudo proposé</span><b>${esc(w.pseudoPick)}</b><button class="btn sm" data-act="usePseudo">Utiliser</button><button class="btn sm light" data-act="copy" data-v="${esc(w.pseudoPick)}">Copier</button><button class="btn sm ghost" data-act="otherPseudo">Un autre</button><span class="muted">${bank.length} dispo · déjà pris sur Threads ? « Un autre »</span></div>`;
+}
 function genPass() {
   const a = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
   const n = new Uint8Array(12);
@@ -1049,6 +1060,17 @@ const ACT = {
     if (w.step === 3 && !w.f.phone) return toast("Mets le numéro.", true);
     if (w.step === 4 && (!w.f.pseudo || !w.f.password)) return toast("Mets le pseudo et le mot de passe.", true);
     w.step++;
+    render();
+  },
+  usePseudo() {
+    readWizFields();
+    S.wiz.f.pseudo = S.wiz.pseudoPick;
+    render();
+  },
+  otherPseudo() {
+    readWizFields();
+    const bank = (S.data.settings.pseudoBank || []).filter((x) => x !== S.wiz.pseudoPick);
+    if (bank.length) S.wiz.pseudoPick = bank[Math.floor(Math.random() * bank.length)];
     render();
   },
   wizBack() {
@@ -1498,7 +1520,7 @@ const ACT = {
       const bioBank = { epingle: blocks('[data-bank="epingle"]'), lien: blocks('[data-bank="lien"]'), relais: blocks('[data-bank="relais"]') };
       const strategies = { epingle: Number($('[data-strat="epingle"]').value) || 0, lien: Number($('[data-strat="lien"]').value) || 0, relais: Number($('[data-strat="relais"]').value) || 0 };
       const hub = { pseudo: $('[data-hub="pseudo"]').value.trim().replace(/^@/, ""), postUrl: $('[data-hub="postUrl"]').value.trim() };
-      await api("settings", { bioBank, strategies, hub, relayText: $('[data-set="relayText"]').value.trim(), warmupTargets: [...new Set($('[data-set="warmupTargets"]').value.split(/\n/).map((x) => x.trim().replace(/^.*threads\.(?:com|net)\/@?/i, "").replace(/^@/, "").replace(/[/?#].*$/, "")).filter(Boolean))], links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim() });
+      await api("settings", { bioBank, strategies, hub, relayText: $('[data-set="relayText"]').value.trim(), warmupTargets: [...new Set($('[data-set="warmupTargets"]').value.split(/\n/).map((x) => x.trim().replace(/^.*threads\.(?:com|net)\/@?/i, "").replace(/^@/, "").replace(/[/?#].*$/, "")).filter(Boolean))], links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim(), pseudoBank: $('[data-set="pseudoBank"]').value.split(/\n/).map((x) => x.trim()).filter(Boolean) });
       await refresh();
       toast("Enregistré");
     });
