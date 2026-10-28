@@ -283,3 +283,13 @@ table.plan td.tx.low { color: var(--red); font-weight: 600; }
 /* traduction FR sous les textes chinois */
 .frtr { display: flex; gap: 8px; align-items: flex-start; margin: -2px 0 10px; padding: 8px 12px; border-radius: 10px; background: #f6f7fb; color: #4b5060; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
 .frtr .frk { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 2px 6px; border-radius: 6px; background: #e4e7f2; color: #3a3f55; }
+
+/* pseudos violets : comptes a warm-up tous les jours */
+.ps-warm { color: #7c3aed !important; cursor: pointer; text-decoration: underline dotted 2px; text-underline-offset: 3px; }
+.warmpill { background: #f1eaff; color: #6d28d9; }
+.warmcard { border-color: #e4d7ff; background: #faf7ff; }
+.warmcard .ps-warm { margin-right: 10px; font-weight: 600; }
+.warmpop { position: fixed; left: 50%; top: 22px; transform: translate(-50%, -20px); opacity: 0; pointer-events: none; z-index: 9999; background: #6d28d9; color: #fff; padding: 14px 20px; border-radius: 14px; box-shadow: 0 12px 30px rgba(76, 29, 149, .35); font-size: 15px; line-height: 1.5; text-align: center; transition: opacity .2s, transform .2s; max-width: 90vw; }
+.warmpop span { opacity: .85; font-size: 13px; }
+.warmpop.show { opacity: 1; transform: translate(-50%, 0); }
+.accnote { white-space: pre-wrap; background: #fffbea; border: 1px solid #f5e7b0; border-radius: 10px; padding: 8px 10px; font-size: 13px; color: #5c4a12; }
