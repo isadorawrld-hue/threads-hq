@@ -31,6 +31,8 @@ const mcStatus = {};
 let smsN = 0;
 let smsAct = null;
 let heroFail = 0;
+let heroComDown = false;
+const heroHosts = [];
 let soN = 0;
 let so = null;
 let heroLose = 0;
@@ -99,7 +101,9 @@ async function fakeFetch(url, opts = {}) {
     if (u.pathname === "/v3/customers/U1/balance") return Response.json({ ok: true, body: { userId: "U1", balance: 7.5 } });
     return new Response(JSON.stringify({ ok: false, body: "not found" }), { status: 404 });
   }
-  if (u.hostname === "hero-sms.com") {
+  if (u.hostname === "hero-sms.com" && heroComDown) { const e = new TypeError("fetch failed"); e.cause = { code: "ENOTFOUND", message: "getaddrinfo ENOTFOUND hero-sms.com" }; throw e; }
+  if (u.hostname === "hero-sms.com" || u.hostname === "hero-sms.io") {
+    heroHosts.push(u.hostname);
     if (heroFail > 0) { heroFail--; throw new TypeError("fetch failed"); }
     if (u.pathname.endsWith("/activations") && opts.method === "POST" && heroLose > 0) { heroLose--; heroLost = true; }
     if (u.pathname.endsWith("/handler_api.php")) return new Response(u.searchParams.get("api_key") === "HERO_TEST" ? "ACCESS_BALANCE:9.5" : "BAD_KEY", { status: 200 });
@@ -190,9 +194,11 @@ http
     if (url.pathname === "/__dev/heroflaky") {
       heroFail = Number(url.searchParams.get("fail") || 0);
       heroLose = Number(url.searchParams.get("lose") || 0);
+      if (url.searchParams.has("comdown")) heroComDown = url.searchParams.get("comdown") === "1";
+      heroHosts.length = 0;
       res.writeHead(200); return res.end("ok");
     }
-    if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN })); }
+    if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN, hosts: heroHosts })); }
     if (url.pathname === "/__dev/so") { if (so) so.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__so") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: soN, so })); }
     if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }

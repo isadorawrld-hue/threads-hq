@@ -106,7 +106,16 @@ r = await call("sms/balance");
 assert.equal(r.s, 503);
 assert.match(r.j.error, /ne répond pas/);
 await fetch(B + "/__dev/heroflaky?fail=0");
-step("Hero SMS qui coupe : 3 essais, pas de double achat, message clair");
+// domaine principal mort (NXDOMAIN) : bascule sur hero-sms.io et on y reste
+await fetch(B + "/__dev/heroflaky?comdown=1");
+assert.equal(ok(await call("sms/balance"), "solde via hero-sms.io").balance, 9.5);
+const act5 = ok(await call("sms/buy", { country: 14 }), "achat via hero-sms.io");
+ok(await call(`sms/${act5.id}/cancel`, {}), "annulation 5");
+const hosts = (await (await fetch(B + "/__heroN")).json()).hosts;
+assert.ok(hosts.includes("hero-sms.io"), "bascule sur .io");
+assert.equal(hosts.filter((h) => h === "hero-sms.com").length, 0, "une fois .io trouvé, plus d'essai sur le .com mort");
+await fetch(B + "/__dev/heroflaky?comdown=0");
+step("Hero SMS qui coupe : 3 essais, pas de double achat, message clair, bascule sur hero-sms.io si .com mort");
 assert.equal(a1.pseudo, "tw_girl1");
 assert.equal(a1.ip, ip1.ip);
 assert.equal(a1.link, "https://tinyurl.com/a1");
