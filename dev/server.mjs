@@ -30,6 +30,10 @@ let mcLinkFor = null;
 const mcStatus = {};
 let smsN = 0;
 let smsAct = null;
+let heroFail = 0;
+let heroLose = 0;
+let heroLost = false;
+const heroActives = [];
 const brands = [
   { id: 111, label: "compte A", networksData: { threads: { username: "acc_a" } }, timezone: "Asia/Taipei" },
   { id: 222, label: "compte B", networksData: { threads: { username: "acc_b" } }, timezone: "Asia/Taipei" },
@@ -78,6 +82,8 @@ async function fakeFetch(url, opts = {}) {
     }
   }
   if (u.hostname === "hero-sms.com") {
+    if (heroFail > 0) { heroFail--; throw new TypeError("fetch failed"); }
+    if (u.pathname.endsWith("/activations") && opts.method === "POST" && heroLose > 0) { heroLose--; heroLost = true; }
     if (u.pathname.endsWith("/handler_api.php")) return new Response(u.searchParams.get("api_key") === "HERO_TEST" ? "ACCESS_BALANCE:9.5" : "BAD_KEY", { status: 200 });
     if (opts.headers?.Authorization !== "ApiKey HERO_TEST") return new Response(JSON.stringify({ title: "Unauthenticated." }), { status: 401 });
     if (u.pathname.endsWith("/activations/offers/sms")) return Response.json({ data: { ig: { 78: { prices: { default: 0.12 }, counts: { total: 934 } }, 187: { prices: { default: 0.1 }, counts: { total: 500 } }, 14: { prices: { default: 0.035 }, counts: { total: 934 } }, 196: { prices: { default: 0.2102 }, counts: { total: 117 } }, 55: { prices: { default: 0.75 }, counts: { total: 0 } } } } });
@@ -85,7 +91,13 @@ async function fakeFetch(url, opts = {}) {
       const b = JSON.parse(opts.body);
       if (b.country === 55) return new Response(JSON.stringify({ title: "NO_NUMBERS" }), { status: 404 });
       smsN++; smsAct = { id: String(7000 + smsN), phone: "8529" + String(1000000 + smsN), price: b.country === 14 ? 0.035 : 0.2102, expiredAt: new Date(Date.now() + 20 * 60e3).toISOString(), code: null, finished: false, cancelled: false };
-      return Response.json({ data: [{ id: smsAct.id, status: "waitOtp", phone: smsAct.phone, service: b.service, country: b.country, countryPhoneCode: 852, price: smsAct.price, createdAt: new Date().toISOString(), expiredAt: smsAct.expiredAt }] });
+      const item = { id: smsAct.id, status: "waitOtp", phone: smsAct.phone, service: b.service, country: b.country, countryPhoneCode: 852, price: smsAct.price, createdAt: new Date().toISOString(), expiredAt: smsAct.expiredAt };
+      heroActives.unshift(item);
+      if (heroLost) { heroLost = false; throw new TypeError("fetch failed"); }
+      return Response.json({ data: [item] });
+    }
+    if (u.pathname.endsWith("/activations") && (opts.method || "GET") === "GET") {
+      return Response.json({ data: heroActives.filter((x) => smsAct && x.id === smsAct.id && !smsAct.cancelled && !smsAct.finished) });
     }
     const m = u.pathname.match(/\/activations\/(\d+)(\/otp\/last|\/finish)?$/);
     if (m && smsAct && m[1] === smsAct.id) {
@@ -135,7 +147,7 @@ async function fakeProxyFetch(url, proxy) {
   return Response.json({ ip: `82.64.12.${ipN}`, country: "FR", city: "Paris", org: "SFR" });
 }
 
-const env = { store, fetch: fakeFetch, proxyFetch: fakeProxyFetch, rotateWaitMs: 3000, rotatePollMs: 200, planBudgetMs: Number(process.env.PLAN_BUDGET_MS || 7000) };
+const env = { store, fetch: fakeFetch, proxyFetch: fakeProxyFetch, rotateWaitMs: 3000, rotatePollMs: 200, heroRetryMs: 50, planBudgetMs: Number(process.env.PLAN_BUDGET_MS || 7000) };
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".webm": "video/webm", ".mp4": "video/mp4", ".png": "image/png" };
 
 http
@@ -157,6 +169,12 @@ http
     }
     if (url.pathname === "/__tr") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ calls: trCalls })); }
     if (url.pathname === "/__tiny") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ deleted: tinyDeleted, left: oldTiny })); }
+    if (url.pathname === "/__dev/heroflaky") {
+      heroFail = Number(url.searchParams.get("fail") || 0);
+      heroLose = Number(url.searchParams.get("lose") || 0);
+      res.writeHead(200); return res.end("ok");
+    }
+    if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN })); }
     if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }
     if (url.pathname === "/__dev/mcstatus") {
       mcStatus[url.searchParams.get("id")] = url.searchParams.get("s");

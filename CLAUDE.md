@@ -58,6 +58,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 
 ## Hero SMS (numéros pour créer les comptes)
 - Base : `https://hero-sms.com/api/v1`. Auth : header `Authorization: ApiKey <clé>`. Clé dans Réglages > Connexions, champ 6 (secret, jamais dans le repo).
+- Hero coupe parfois (« fetch failed », 502/503/504, 429) : `heroSend` retente 3 fois. Pour un achat, avant chaque nouvel essai on relit les activations : si Hero a créé le numéro malgré la réponse perdue, on le reprend (jamais 2 numéros achetés). Bug réel du 29 oct. : la VA ne recevait aucun numéro.
 - Service Instagram+Threads = `ig`. Pays (27/10/2026) : France 78 en premier (même pays que le proxy), USA 187, Hong Kong 14 (Instagram n'y envoie souvent pas le SMS), Singapour 196, Taïwan 55 retiré (liste publique : `/stubs/handler_api.php?action=getCountries`).
 - Prix/stock : `GET /activations/offers/sms?services=ig&countries=14,196,55`. Acheter : `POST /activations {service, country, amount:1, verificationType:"sms"}` → `data[0]` (id, phone sans +, countryPhoneCode, price, expiredAt).
 - Code : `GET /activations/{id}/otp/last` (404 tant que rien). Fin : `POST /activations/{id}/finish`. Annuler + rembourser (seulement sans code) : `DELETE /activations/{id}`. Solde : `/stubs/handler_api.php?action=getBalance&api_key=...` → `ACCESS_BALANCE:x`.
