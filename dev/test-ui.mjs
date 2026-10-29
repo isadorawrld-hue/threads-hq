@@ -97,6 +97,14 @@ await shot(v, "05-create-ip");
 await v.click('[data-act="wizNext"]');
 await v.waitForFunction(() => /Socks5/.test(document.querySelector("main").textContent) && /17157/.test(document.querySelector("main").textContent));
 await shot(v, "06-create-geelark");
+// en pleine creation, le bouton IP du haut previent au lieu de changer l'IP
+const ipBefore = await v.textContent(".ipnow b");
+await v.click('header [data-act="rotateGuard"]');
+await v.waitForSelector("#modal:not(.hidden) [data-act=\"rotateForce\"]");
+if (!/Création en cours/.test(await v.textContent(".ipnow small"))) throw new Error("indicateur création absent");
+await shot(v, "06b-ip-garde");
+await v.click('#modal [data-act="closeModal"]');
+if ((await v.textContent(".ipnow b")) !== ipBefore) throw new Error("l'IP a changé alors qu'on l'a gardée");
 await v.fill('[data-f="geelarkProfile"]', "profil 1");
 await v.click('[data-act="wizNext"]');
 await v.fill('[data-f="phone"]', "+886 912 345 678");

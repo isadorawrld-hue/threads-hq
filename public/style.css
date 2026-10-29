@@ -66,6 +66,7 @@ a { color: var(--ink); }
 .ipnow { display: flex; align-items: center; gap: 10px; }
 .ipnow i { width: 8px; height: 8px; border-radius: 50%; background: var(--mute); }
 .ipnow.fresh i { background: var(--green); box-shadow: 0 0 0 4px rgba(14, 159, 110, 0.15); }
+.ipnow.lock i { background: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15); }
 .ipnow b { display: block; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 14px; }
 .ipnow small { color: var(--graphite); font-size: 12px; }
 .mnav { display: none; }

@@ -90,6 +90,13 @@ function modal(html) {
   $("#modal-body").innerHTML = html;
   $("#modal").classList.remove("hidden");
 }
+// un compte est en train d'etre cree (assistant entre l'etape 2 et 5, ou numero SMS en cours) :
+// changer l'IP a ce moment fait voir a Meta une IP qui saute en pleine inscription => « demande de verification ».
+// Bug reel du 29-30 oct. : la VA rechangeait l'IP en pleine creation (point gris pris pour une IP morte).
+function creating() {
+  const w = S.wiz;
+  return !!((w && w.step >= 2 && w.step <= 5) || (S.data && S.data.sms && S.data.sms.status === "attente"));
+}
 function closeModal() {
   $("#modal").classList.add("hidden");
 }
@@ -342,8 +349,8 @@ function render() {
     </aside>
     <div class="body">
       <header class="bar">
-        <div class="ipnow ${fresh ? "fresh" : ""}"><i></i><div><b>${ip ? esc(ip.ip) : "Aucune IP"}</b><small>${ip ? `${esc(ip.country || "")}, changée ${ago(ip.at)}` : "Change l'IP avant chaque compte"}</small></div></div>
-        <button class="btn accent" data-act="rotate" data-wait="Changement de l'IP...">${icon("rotate")}Changer l'IP</button>
+        <div class="ipnow ${creating() ? "lock" : fresh ? "fresh" : ""}" title="Le point vert = IP changée il y a moins de 15 min. Gris = IP plus ancienne, elle marche toujours. Bleu = compte en création : garde cette IP."><i></i><div><b>${ip ? esc(ip.ip) : "Aucune IP"}</b><small>${!ip ? "Change l'IP avant chaque compte" : creating() ? "Création en cours : garde cette IP" : `${esc(ip.country || "")}, changée ${ago(ip.at)}${fresh ? "" : " · à changer avant le prochain compte"}`}</small></div></div>
+        <button class="btn accent" data-act="rotateGuard" data-wait="Changement de l'IP...">${icon("rotate")}Changer l'IP</button>
       </header>
       <nav class="mnav">${all.map(navBtn).join("")}</nav>
       <main>${VIEWS[S.tab]()}</main>
@@ -1048,6 +1055,17 @@ const ACT = {
   },
   closeModal,
   logout,
+  rotateGuard(b) {
+    if (!creating()) return ACT.rotate(b);
+    modal(`<h3>Un compte est en cours de création</h3><p>Si tu changes l'IP maintenant, Threads voit l'IP sauter en pleine inscription et demande une vérification. Le compte est presque toujours perdu.</p>
+      <p><b>Le point gris n'est pas un problème</b> : l'IP marche toujours. Il veut juste dire qu'elle a plus de 15 minutes.</p>
+      <p>Change l'IP seulement pour <b>commencer un nouveau compte</b> (après « Non, ça n'a pas marché »).</p>
+      <div class="row" style="margin-top:14px"><button class="btn" data-act="closeModal">Garder cette IP</button><button class="btn light" data-act="rotateForce" data-wait="Changement de l'IP...">Changer quand même</button></div>`);
+  },
+  async rotateForce(b) {
+    closeModal();
+    await ACT.rotate(b);
+  },
   async rotate(b) {
     await run(b, async () => {
       const r = await api("rotate", {});
