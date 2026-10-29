@@ -31,6 +31,8 @@ const mcStatus = {};
 let smsN = 0;
 let smsAct = null;
 let heroFail = 0;
+let soN = 0;
+let so = null;
 let heroLose = 0;
 let heroLost = false;
 const heroActives = [];
@@ -80,6 +82,22 @@ async function fakeFetch(url, opts = {}) {
       const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
       return new Response(png, { headers: { "content-type": "image/png" } });
     }
+  }
+  if (u.hostname === "api-x.smsonline.cloud") {
+    const key = u.searchParams.get("apiKey") || (opts.body ? JSON.parse(opts.body).apiKey : null);
+    if (key !== "SO_TEST") return new Response(JSON.stringify({ ok: false, body: "Invalid API key" }), { status: 401 });
+    let m;
+    if ((m = u.pathname.match(/^\/v3\/numbers\/lookup\/U1\/(\d+)\/any$/))) return Response.json({ ok: true, body: { data: m[1] === "55" ? [] : [{ id: "tg", name: "Telegram", price: 0.3, quantity: 50, m: "x", n: "y" }, { id: "ig", name: "Instagram + Threads", price: 0.42, quantity: 120, deliverability: 61, m: "MM", n: "NN" }] } });
+    if (u.pathname === "/v3/numbers/U1/order" && opts.method === "PUT") {
+      const b = JSON.parse(opts.body);
+      if (b.m !== "MM" || b.n !== "NN" || b.service !== "ig" || b.carrier !== "any") return new Response(JSON.stringify({ ok: false, body: "bad order " + opts.body }), { status: 400 });
+      soN++; so = { id: "so" + soN, code: null, refunded: false };
+      return Response.json({ ok: true, body: { orderId: so.id, phoneNumber: "+3361234567" + soN, expiredAtUTC: new Date(Date.now() + 20 * 60e3).toISOString(), purchasePrice: 0.42 } });
+    }
+    if ((m = u.pathname.match(/^\/v3\/numbers\/U1\/order\/(so\d+)$/)) && so && m[1] === so.id) return Response.json({ ok: true, body: [{ orderId: so.id, status: so.refunded ? "refunded" : "waitingForSMS", receivedSMS: so.code ? "Your Instagram code is " + so.code.slice(0, 3) + " " + so.code.slice(3) : "" }] });
+    if ((m = u.pathname.match(/^\/v3\/numbers\/U1\/order\/(so\d+)\/refund$/)) && opts.method === "PATCH" && so && m[1] === so.id) { if (so.code) return new Response(JSON.stringify({ ok: false, body: "already received" }), { status: 400 }); so.refunded = true; return Response.json({ ok: true, body: "ok" }); }
+    if (u.pathname === "/v3/customers/U1/balance") return Response.json({ ok: true, body: { userId: "U1", balance: 7.5 } });
+    return new Response(JSON.stringify({ ok: false, body: "not found" }), { status: 404 });
   }
   if (u.hostname === "hero-sms.com") {
     if (heroFail > 0) { heroFail--; throw new TypeError("fetch failed"); }
@@ -175,6 +193,8 @@ http
       res.writeHead(200); return res.end("ok");
     }
     if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN })); }
+    if (url.pathname === "/__dev/so") { if (so) so.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
+    if (url.pathname === "/__so") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: soN, so })); }
     if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }
     if (url.pathname === "/__dev/mcstatus") {
       mcStatus[url.searchParams.get("id")] = url.searchParams.get("s");

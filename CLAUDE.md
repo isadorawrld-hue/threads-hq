@@ -56,6 +56,12 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - `public/seed-bios.json` : 250 bios par stratégie écrites le 27/10/2026 (chinois traditionnel, sans nom de plateforme, « lien » finit toujours par 👇, jamais 置頂 ; épinglé et relais renvoient au 置頂).
 - Alerte admin dans Aujourd'hui sous 20 bios restantes dans une banque.
 
+## SMSOnline (2e fournisseur de numéros)
+- Doc : https://premium.smsonline.cloud/static/api.html. Base API : `https://api-x.smsonline.cloud/v3` (trouvée dans le JS du site, la doc ne la donne pas).
+- Réglages > Connexions, champs 7 (User ID) et 8 (clé API). Les deux remplis = tous les nouveaux numéros viennent de SMSOnline. Bouton « Revenir sur Hero SMS » pour effacer.
+- Achat : lookup `/numbers/lookup/{userId}/{pays}/any` (prix + hash m/n du service `ig`), puis `PUT /numbers/{userId}/order`. Code : `GET /numbers/{userId}/order/{orderId}` (champ receivedSMS). Remboursement : `PATCH .../order/{orderId}/refund`. Codes pays identiques à Hero (78 France, 187 USA, 14 HK, 196 Singapour).
+- Chaque numéro garde son fournisseur (`prov`), donc un numéro Hero en cours se finit chez Hero.
+
 ## Hero SMS (numéros pour créer les comptes)
 - Base : `https://hero-sms.com/api/v1`. Auth : header `Authorization: ApiKey <clé>`. Clé dans Réglages > Connexions, champ 6 (secret, jamais dans le repo).
 - Hero coupe parfois (« fetch failed », 502/503/504, 429) : `heroSend` retente 3 fois. Pour un achat, avant chaque nouvel essai on relit les activations : si Hero a créé le numéro malgré la réponse perdue, on le reprend (jamais 2 numéros achetés). Bug réel du 29 oct. : la VA ne recevait aucun numéro.

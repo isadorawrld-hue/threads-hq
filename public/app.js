@@ -369,7 +369,7 @@ const VIEWS = {
     const cards = [];
     const conf = S.data.configured;
     const stt = S.data.settings;
-    const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Hero SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)", !(stt.warmupTargets || []).length && "Comptes à suivre au warm-up (Contenu)"].filter(Boolean);
+    const miss = [!conf.proxy && "Proxy", !conf.rotation && "Lien de rotation", !conf.metricool && "Metricool", !conf.sms && "Numéros SMS", !conf.tiny && "TinyURL", !(stt.model && stt.model.link) && `Lien de ${stt.model?.name || "la modèle"}`, !(stt.hub && stt.hub.pseudo) && "Compte pivot (Contenu)", !(stt.warmupTargets || []).length && "Comptes à suivre au warm-up (Contenu)"].filter(Boolean);
     const lowBios = Object.entries(stt.bioBank || {}).filter(([, v]) => (v || []).length < 20).map(([k, v]) => `${(S.data.strategyLabels || {})[k] || k} : ${(v || []).length}`);
     if (isAdmin() && (stt.pseudoBank || []).length < 20) cards.push(task("", "c-red", "Pseudos bientôt épuisés", `${(stt.pseudoBank || []).length} restant(s) dans la banque (chaque pseudo ne sert qu'une fois)`, "content", "Ajouter"));
     if (isAdmin() && lowBios.length) cards.push(task("", "c-red", "Bios bientôt épuisées", lowBios.join(" · ") + " (chaque bio ne sert qu'une fois)", "content", "Ajouter"));
@@ -411,7 +411,7 @@ const VIEWS = {
       ${S.data.configured.sms ? `<div class="card">${cur ? smsCard(cur) : smsBuyBlock()}</div>
         ${cur ? `<p class="muted">Quand le compte est créé dans « Créer un compte », ce numéro se ferme tout seul.</p>` : ""}
         ${hist.length ? `<h3>Derniers numéros</h3><div class="card list">${hist.map((h) => `<div class="row" style="justify-content:space-between;padding:6px 0"><span><b>${esc(h.phone)}</b> <span class="muted">${esc(h.countryName)} · ${ago(h.createdAt)}${h.code ? " · code " + esc(h.code) : ""}</span></span>${(() => { const [c, l] = lab[h.status] || ["", h.status]; return `<span class="pill ${c}">${l}</span>`; })()}</div>`).join("")}</div>` : ""}`
-      : '<div class="alert c-red">Hero SMS pas encore branché (Réglages, admin).</div>'}${sopBlock("numero")}`;
+      : '<div class="alert c-red">Site de numéros pas encore branché (Réglages, admin).</div>'}${sopBlock("numero")}`;
   },
   create() {
     const w = S.wiz || (S.wiz = { step: 1, f: {} });
@@ -670,14 +670,17 @@ const VIEWS = {
     const vids = Object.keys(SOP);
     return `<h2>Réglages</h2>
       <div class="card"><h3 style="margin-top:0">Connexions <small class="muted">(cachées après enregistrement, c'est normal)</small></h3>
-        <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy], ["Hero SMS", c.sms]].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
+        <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy], [c.smsOnline ? "SMSOnline" : "Hero SMS", c.sms]].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
         <label class="f">1. Lien de rotation IP ${c.rotation ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotation ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy"}" autocomplete="off" />
         <label class="f">2. Token API Metricool ${c.mcToken ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(dans Metricool : Paramètres du compte, onglet API, Copier)</small></label><input type="password" data-sec="mcToken" placeholder="${c.mcToken ? "enregistré (colle un autre token pour le remplacer)" : "colle le token"}" autocomplete="off" />
         <label class="f">3. userId Metricool ${c.mcUserId ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(le nombre, ou colle simplement l'adresse de Metricool)</small></label><input data-sec="mcUserId" placeholder="${c.mcUserId ? "enregistré" : "ex : 5978155 ou https://app.metricool.com/...userId=..."}" autocomplete="off" />
         <label class="f">4. Proxy ${c.proxy ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxy" placeholder="${c.proxy ? "enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
         <label class="f">Port SOCKS5 pour GeeLark <small>(bouton SOCKS5 du proxy ; vide = la VA met le proxy en HTTP)</small></label><input data-st="socksPort" inputmode="numeric" value="${esc(st.socksPort || "")}" placeholder="ex : 17157" />
         <label class="f">5. Token TinyURL ${c.tiny ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(TinyURL : Account, API tokens)</small></label><input type="password" data-sec="tinyToken" placeholder="${c.tiny ? "enregistré (colle un autre token pour le remplacer)" : "facultatif, pour les clics dans Stats"}" autocomplete="off" />
-        <label class="f">6. Clé API Hero SMS ${c.sms ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(hero-sms.com : Obtenir la clé API)</small></label><input type="password" data-sec="heroToken" placeholder="${c.sms ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API"}" autocomplete="off" />
+        <label class="f">6. Clé API Hero SMS ${c.smsHero ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(hero-sms.com : Obtenir la clé API)</small></label><input type="password" data-sec="heroToken" placeholder="${c.smsHero ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API"}" autocomplete="off" />
+        <label class="f">7. SMSOnline : User ID ${c.smsOnline ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(premium.smsonline.cloud, page API ou compte. Rempli = les numéros viennent de SMSOnline, plus de Hero)</small></label><input data-sec="soUserId" placeholder="${c.smsOnline ? "enregistré" : "ton User ID SMSOnline"}" autocomplete="off" />
+        <label class="f">8. SMSOnline : clé API ${c.smsOnline ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="soKey" placeholder="${c.smsOnline ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API SMSOnline"}" autocomplete="off" />
+        ${c.smsOnline ? '<button class="btn light" style="margin-top:8px" data-act="clearSo" data-wait="...">Revenir sur Hero SMS (efface SMSOnline)</button>' : ""}
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester le proxy</button></div></div>
       ${c.tiny ? `<div class="card"><h3 style="margin-top:0">Ménage TinyURL</h3><p class="muted">Supprime les vieux liens du domaine ${esc(st.tinyDomain || "")}. Les liens des comptes du CRM ne sont jamais touchés.</p>
         <div class="row"><button class="btn light" data-act="tinyScan" data-wait="Comptage...">Compter les vieux liens</button>${S.tinyScan ? `<span class="muted">${S.tinyScan.count} lien(s) à supprimer · ${S.tinyScan.kept} gardé(s) (comptes du CRM)</span>` : ""}</div>
@@ -1523,6 +1526,14 @@ const ACT = {
       await api("settings", { bioBank, strategies, hub, relayText: $('[data-set="relayText"]').value.trim(), warmupTargets: [...new Set($('[data-set="warmupTargets"]').value.split(/\n/).map((x) => x.trim().replace(/^.*threads\.(?:com|net)\/@?/i, "").replace(/^@/, "").replace(/[/?#].*$/, "")).filter(Boolean))], links: lines("links"), pinnedPost: $('[data-set="pinnedPost"]').value.trim(), pinnedReply: $('[data-set="pinnedReply"]').value.trim(), pseudoBank: $('[data-set="pseudoBank"]').value.split(/\n/).map((x) => x.trim()).filter(Boolean) });
       await refresh();
       toast("Enregistré");
+    });
+  },
+  async clearSo(b) {
+    await run(b, async () => {
+      await api("secrets", { clear: "soKey" });
+      await api("secrets", { clear: "soUserId" });
+      toast("SMSOnline effacé : retour sur Hero SMS");
+      await refresh();
     });
   },
   async saveSecrets(b) {
