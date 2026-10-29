@@ -31,6 +31,7 @@ const mcStatus = {};
 let smsN = 0;
 let smsAct = null;
 let heroFail = 0;
+let heroEarly = false;
 let heroComDown = false;
 const heroHosts = [];
 let soN = 0;
@@ -123,8 +124,9 @@ async function fakeFetch(url, opts = {}) {
     }
     const m = u.pathname.match(/\/activations\/(\d+)(\/otp\/last|\/finish)?$/);
     if (m && smsAct && m[1] === smsAct.id) {
-      if (m[2] === "/otp/last") return smsAct.code ? Response.json({ data: { id: "1", smsCode: smsAct.code, smsText: "Your Instagram code is " + smsAct.code, receivedAt: new Date().toISOString(), type: "sms" } }) : new Response(JSON.stringify({ title: "Not found" }), { status: 404 });
+      if (m[2] === "/otp/last") return smsAct.code ? Response.json({ data: { id: "1", smsCode: smsAct.code, smsText: "Your Instagram code is " + smsAct.code, receivedAt: new Date().toISOString(), type: "sms" } }) : new Response(JSON.stringify({ title: "Waiting for the first sms or email" }), { status: 400 });
       if (m[2] === "/finish") { smsAct.finished = true; return new Response(null, { status: 204 }); }
+      if (opts.method === "DELETE" && heroEarly) { heroEarly = false; return new Response(JSON.stringify({ title: "You can't cancel activation in first 2 minutes" }), { status: 400 }); }
       if (opts.method === "DELETE") { if (smsAct.code) return new Response(JSON.stringify({ title: "UNPROCESSABLE" }), { status: 422 }); smsAct.cancelled = true; return new Response(null, { status: 204 }); }
     }
     return new Response(JSON.stringify({ title: "Not found" }), { status: 404 });
@@ -194,6 +196,7 @@ http
     if (url.pathname === "/__dev/heroflaky") {
       heroFail = Number(url.searchParams.get("fail") || 0);
       heroLose = Number(url.searchParams.get("lose") || 0);
+      if (url.searchParams.has("early")) heroEarly = true;
       if (url.searchParams.has("comdown")) heroComDown = url.searchParams.get("comdown") === "1";
       heroHosts.length = 0;
       res.writeHead(200); return res.end("ok");

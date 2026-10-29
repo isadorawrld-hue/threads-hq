@@ -83,6 +83,11 @@ st = ok(await call("state"), "state");
 assert.equal(st.sms, null, "plus de numéro en cours");
 // un numero annule est rembourse si aucun code
 const act2 = ok(await call("sms/buy", { country: 196 }), "achat 2");
+assert.equal(ok(await call(`sms/${act2.id}/code`, {}), "pas encore de SMS (400 Waiting) = pas d'erreur").code, null);
+await fetch(B + "/__dev/heroflaky?early=1");
+r = await call(`sms/${act2.id}/cancel`, {});
+assert.equal(r.s, 400);
+assert.match(r.j.error, /avant 2 minutes/, "message clair en français");
 ok(await call(`sms/${act2.id}/cancel`, {}), "annulation");
 assert.equal((await (await fetch(B + "/__sms")).json()).cancelled, true);
 // un echec de creation rembourse tout seul
