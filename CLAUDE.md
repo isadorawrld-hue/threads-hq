@@ -146,3 +146,9 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 ## Quand tu hésites
 - Pose la question avant une décision qui touche aux comptes réels, à Metricool ou aux secrets.
 - Pour le reste, fais, teste, puis rends compte en 3 lignes maximum.
+
+## Proxy UK (test du 30 oct.)
+- Réglages > « Proxy actif » : France ou Royaume-Uni. Proxy UK, port SOCKS5 UK et lien de rotation UK dans la même carte (proxy en réglage `proxyUk`, lien en secret `rotationUrlUk`).
+- En UK : la VA voit le proxy UK à l'étape GeeLark, le bouton IP fait tourner le proxy UK (une fois toutes les 5 min max, `IP_PROFILES.uk.minRotateMin`), et seuls les numéros UK sont proposés (Hero 16, SMSPool 2, SMSOnline 16).
+- Chaque compte garde `ipProfile` (fr/uk) pour comparer les résultats du test.
+- Le proxy France n'est jamais écrasé : l'état envoie le proxy actif dans `settings.proxy` et le proxy France dans `settings.proxyFr`.

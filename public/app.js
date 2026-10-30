@@ -21,7 +21,7 @@ const S = {
 let timerInt = null;
 
 // ------------------------------------------------------------ API
-const ALL_SMS_COUNTRIES = [{ id: 78, name: "France" }, { id: 187, name: "USA" }, { id: 14, name: "Hong Kong" }, { id: 196, name: "Singapour" }];
+const ALL_SMS_COUNTRIES = [{ id: 78, name: "France" }, { id: 187, name: "USA" }, { id: 14, name: "Hong Kong" }, { id: 196, name: "Singapour" }, { id: 16, name: "Royaume-Uni" }];
 async function api(path, body, method) {
   const r = await fetch("/api/" + path, {
     method: method || (body ? "POST" : "GET"),
@@ -679,11 +679,11 @@ const VIEWS = {
     return `<h2>Réglages</h2>
       <div class="card"><h3 style="margin-top:0">Connexions <small class="muted">(cachées après enregistrement, c'est normal)</small></h3>
         <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy], ...(c.smsProvs && c.smsProvs.length ? c.smsProvs.map((p) => [p.name, true]) : [["Numéros SMS", false]])].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
-        <label class="f">1. Lien de rotation IP ${c.rotation ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotation ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy"}" autocomplete="off" />
+        <label class="f">1. Lien de rotation IP (proxy France) ${c.rotationFr ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotationFr ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy"}" autocomplete="off" />
         <label class="f">2. Token API Metricool ${c.mcToken ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(dans Metricool : Paramètres du compte, onglet API, Copier)</small></label><input type="password" data-sec="mcToken" placeholder="${c.mcToken ? "enregistré (colle un autre token pour le remplacer)" : "colle le token"}" autocomplete="off" />
         <label class="f">3. userId Metricool ${c.mcUserId ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(le nombre, ou colle simplement l'adresse de Metricool)</small></label><input data-sec="mcUserId" placeholder="${c.mcUserId ? "enregistré" : "ex : 5978155 ou https://app.metricool.com/...userId=..."}" autocomplete="off" />
-        <label class="f">4. Proxy ${c.proxy ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxy" placeholder="${c.proxy ? "enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
-        <label class="f">Port SOCKS5 pour GeeLark <small>(bouton SOCKS5 du proxy ; vide = la VA met le proxy en HTTP)</small></label><input data-st="socksPort" inputmode="numeric" value="${esc(st.socksPort || "")}" placeholder="ex : 17157" />
+        <label class="f">4. Proxy France ${st.proxyFr ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxy" placeholder="${st.proxyFr ? "enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
+        <label class="f">Port SOCKS5 pour GeeLark <small>(bouton SOCKS5 du proxy ; vide = la VA met le proxy en HTTP)</small></label><input data-st="socksPort" inputmode="numeric" value="${esc(st.socksPortFr || "")}" placeholder="ex : 17157" />
         <label class="f">5. Token TinyURL ${c.tiny ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(TinyURL : Account, API tokens)</small></label><input type="password" data-sec="tinyToken" placeholder="${c.tiny ? "enregistré (colle un autre token pour le remplacer)" : "facultatif, pour les clics dans Stats"}" autocomplete="off" />
         <label class="f">6. Clé API Hero SMS ${c.smsHero ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(hero-sms.com : Obtenir la clé API)</small></label><input type="password" data-sec="heroToken" placeholder="${c.smsHero ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API"}" autocomplete="off" />
         <label class="f">7. SMSOnline : User ID ${c.smsOnline ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(premium.smsonline.cloud, page API ou compte. Rempli = les numéros viennent de SMSOnline, plus de Hero)</small></label><input data-sec="soUserId" placeholder="${c.smsOnline ? "enregistré" : "ton User ID SMSOnline"}" autocomplete="off" />
@@ -692,11 +692,18 @@ const VIEWS = {
         <label class="f">9. Clé API SMSPool ${c.smsPool ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(smspool.net : Settings, API key. Rempli = SMSPool proposé en premier)</small></label><input type="password" data-sec="spKey" placeholder="${c.smsPool ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API SMSPool"}" autocomplete="off" />
         ${c.smsPool ? '<button class="btn light" style="margin-top:8px" data-act="clearSp" data-wait="...">Débrancher SMSPool</button>' : ""}
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester le proxy</button></div></div>
+      <div class="card"><h3 style="margin-top:0">Proxy actif <small class="muted">(celui que la VA voit et fait tourner)</small></h3>
+        <div class="row">${Object.entries(st.ipProfiles || { fr: { name: "France" }, uk: { name: "Royaume-Uni" } }).map(([k, p]) => `<button class="btn ${st.ipProfile === k ? "" : "light"}" data-act="setIpProfile" data-v="${k}" data-wait="...">${st.ipProfile === k ? "✓ " : ""}${esc(p.name)}</button>`).join("")}</div>
+        <p class="muted">Royaume-Uni : numéros UK seulement, IP changeable toutes les 5 min. France : réglages habituels.</p>
+        <label class="f">Proxy UK ${c.proxyUk ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxyUk" placeholder="${c.proxyUk ? "enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
+        <label class="f">Port SOCKS5 UK pour GeeLark <small>(vide = HTTP)</small></label><input data-st="socksPortUk" inputmode="numeric" value="${esc(st.socksPortUk || "")}" placeholder="ex : 17157" />
+        <label class="f">Lien de rotation IP UK ${c.rotationUk ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrlUk" placeholder="${c.rotationUk ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy UK"}" autocomplete="off" />
+        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer le proxy UK</button></div></div>
       ${c.tiny ? `<div class="card"><h3 style="margin-top:0">Ménage TinyURL</h3><p class="muted">Supprime les vieux liens du domaine ${esc(st.tinyDomain || "")}. Les liens des comptes du CRM ne sont jamais touchés.</p>
         <div class="row"><button class="btn light" data-act="tinyScan" data-wait="Comptage...">Compter les vieux liens</button>${S.tinyScan ? `<span class="muted">${S.tinyScan.count} lien(s) à supprimer · ${S.tinyScan.kept} gardé(s) (comptes du CRM)</span>` : ""}</div>
         ${S.tinyScan && S.tinyScan.count ? `<p class="muted">Ex : ${S.tinyScan.sample.map(esc).join(", ")}</p><button class="btn bad" data-act="tinyClean" data-wait="Suppression...">Supprimer ces ${S.tinyScan.count} liens (définitif)</button>` : ""}</div>` : ""}
       <div class="card"><h3 style="margin-top:0">Liens</h3>
-        <label class="f">Pays des numéros <small>(décochés = la VA ne peut pas les prendre)</small></label><div class="row">${ALL_SMS_COUNTRIES.map((x) => `<label style="margin-right:14px"><input type="checkbox" data-smsc="${x.id}" ${(st.smsCountries && st.smsCountries.length ? st.smsCountries.map(Number) : ALL_SMS_COUNTRIES.map((y) => y.id)).includes(x.id) ? "checked" : ""}/> ${esc(x.name)}</label>`).join("")}</div>
+        <label class="f">Pays des numéros, proxy France <small>(décochés = la VA ne peut pas les prendre ; en proxy UK c'est toujours UK seulement)</small></label><div class="row">${ALL_SMS_COUNTRIES.map((x) => `<label style="margin-right:14px"><input type="checkbox" data-smsc="${x.id}" ${(st.smsCountries && st.smsCountries.length ? st.smsCountries.map(Number) : ALL_SMS_COUNTRIES.filter((y) => y.id !== 16).map((y) => y.id)).includes(x.id) ? "checked" : ""}/> ${esc(x.name)}</label>`).join("")}</div>
         <label class="f">Site SMS <small>(secours, si Hero SMS n'est pas branché)</small></label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
         <label class="f">Lien GeeLark</label><input data-st="geelarkUrl" value="${esc(st.geelarkUrl)}" />
         <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" />
@@ -1560,6 +1567,14 @@ const ACT = {
       toast("Enregistré");
     });
   },
+  async setIpProfile(b) {
+    await run(b, async () => {
+      await api("settings", { ipProfile: b.dataset.v });
+      S.smsPrices = null;
+      await refresh();
+      toast(`Proxy actif : ${b.dataset.v === "uk" ? "Royaume-Uni (numéros UK)" : "France"}. La VA doit changer l'IP avant le prochain compte.`);
+    });
+  },
   async clearSp(b) {
     await run(b, async () => {
       await api("secrets", { clear: "spKey" });
@@ -1579,12 +1594,17 @@ const ACT = {
     const body = {};
     document.querySelectorAll("[data-sec]").forEach((el) => el.value.trim() && (body[el.dataset.sec] = el.value.trim()));
     const sp = ($('[data-st="socksPort"]')?.value || "").replace(/\D/g, "");
-    const spChanged = sp !== String(S.data.settings.socksPort || "");
-    if (!Object.keys(body).length && !spChanged) return toast("Rien à enregistrer.", true);
+    const spChanged = sp !== String(S.data.settings.socksPortFr || "");
+    const spUkEl = $('[data-st="socksPortUk"]');
+    const spUk = (spUkEl?.value || "").replace(/\D/g, "");
+    const spUkChanged = !!spUkEl && spUk !== String(S.data.settings.socksPortUk || "");
+    if (!Object.keys(body).length && !spChanged && !spUkChanged) return toast("Rien à enregistrer.", true);
     await run(b, async () => {
       const proxy = body.proxy;
+      const proxyUk = body.proxyUk;
       delete body.proxy;
-      if (proxy || spChanged) await api("settings", { ...(proxy ? { proxy } : {}), ...(spChanged ? { socksPort: sp } : {}) });
+      delete body.proxyUk;
+      if (proxy || spChanged || proxyUk || spUkChanged) await api("settings", { ...(proxy ? { proxy } : {}), ...(spChanged ? { socksPort: sp } : {}), ...(proxyUk ? { proxyUk } : {}), ...(spUkChanged ? { socksPortUk: spUk } : {}) });
       if (Object.keys(body).length) await api("secrets", body);
       await refresh();
       toast("Enregistré (caché pour la sécurité)");
