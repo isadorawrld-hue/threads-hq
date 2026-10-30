@@ -32,6 +32,7 @@ let smsN = 0;
 let smsAct = null;
 let heroFail = 0;
 let emN = 0;
+let emOutlookEmpty = false;
 let em = null;
 const heroBuyOps = [];
 let heroOpEmpty = false;
@@ -139,6 +140,7 @@ async function fakeFetch(url, opts = {}) {
     if (u.pathname.endsWith("/emails") && opts.method === "POST") {
       const b = JSON.parse(opts.body);
       if (b.site !== "instagram.com" || !b.domain) return new Response(JSON.stringify({ title: "bad " + opts.body }), { status: 422 });
+      if (b.domain === "outlook.com" && emOutlookEmpty) return new Response(JSON.stringify({ title: "No numbers / mailboxes to buy for the specified parameters" }), { status: 400 });
       emN++; em = { id: 9000 + emN, email: "chloe.test" + emN + "@" + b.domain, status: "WAIT", value: null, cost: b.domain === "outlook.com" ? 0.06 : 0.3, cancelled: false };
       return Response.json({ data: { ...em } });
     }
@@ -250,6 +252,7 @@ http
     if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN, hosts: heroHosts, ops: heroBuyOps })); }
     if (url.pathname === "/__dev/sp") { if (url.searchParams.has("nobest")) { spNoBest = url.searchParams.get("nobest") === "1"; res.writeHead(200); return res.end("ok"); } if (url.searchParams.has("early")) spEarly = true; else if (sp) sp.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__sp") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: spN, sp, opts: spOpts })); }
+    if (url.pathname === "/__dev/emailempty") { emOutlookEmpty = url.searchParams.get("v") === "1"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/email") { if (em) { em.value = url.searchParams.get("code") || "123456"; em.status = "SUCCESS"; } res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__email") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(em)); }
     if (url.pathname === "/__dev/so") { if (so) so.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }

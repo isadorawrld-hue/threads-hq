@@ -160,7 +160,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 ## E-mail d'activation (Hero) — ajouté le 30 oct.
 - Pourquoi : les numéros virtuels ne reçoivent le code Instagram/Threads qu'environ 1 fois sur 13 en France (stats Hero). Le code par e-mail arrive presque toujours.
 - Étape 3 de « Créer un compte » : 2 onglets, « Avec un e-mail (conseillé) » par défaut, « Avec un numéro » en secours.
-- API Hero : `GET /emails/domains?site=instagram.com` (domaines, prix, stock), `POST /emails` {site, domain}, `GET /emails/{id}` (champ `value` = code), `DELETE /emails/{id}` (remboursement). Le CRM prend le domaine le moins cher qui a du stock.
+- API Hero : `GET /emails/domains?site=instagram.com` (domaines, prix, stock), `POST /emails` {site, domain}, `GET /emails/{id}` (champ `value` = code), `DELETE /emails/{id}` (remboursement). Le CRM essaie jusqu'à 8 domaines : grands webmails d'abord (hotmail, outlook, gmail…), puis le moins cher ; la liste Hero annonce parfois du stock fantôme (« No numbers / mailboxes »), alors on passe au suivant.
 - Code lu dans `value` (6 chiffres, espace accepté : « 384 120 »). Un e-mail en cours bloque le changement d'IP comme un numéro.
 - Un compte peut être créé avec un e-mail sans numéro (`phone` vide, `emailId` noté). Échec = e-mail remboursé tout seul.
 - Réglage `emailSite` (défaut instagram.com) si Hero range Threads sous un autre site.
