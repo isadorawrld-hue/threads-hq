@@ -659,6 +659,52 @@ assert.equal(boughtAcc.status, "warmup");
 tok = admin;
 step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invalide refusée");
 
+// --- stock de comptes achetes : import du fichier darkstore, prise auto, rendu, utilise, rate
+{
+  const file = "Заказ: 1000001\nСайт недоступен https://darkstore.contact\n====\n🚨 ВАЖНО! прокси https://x.y\n\n\nstk_one\tFakePass1\tGEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ\nstk.two\tFakePass2\tMFRG GZDF MZTW Q2LK\nachat_x\tpw\tJBSW Y3DP EHPK 3PXP\n";
+  tok = va;
+  assert.equal((await call("stock/import", { text: file })).s, 403, "import réservé à l'admin");
+  tok = admin;
+  let imp = ok(await call("stock/import", { text: file }), "import");
+  assert.equal(imp.added, 2, "2 comptes ajoutés (achat_x existe déjà dans le CRM)");
+  assert.equal(imp.skipped, 1);
+  imp = ok(await call("stock/import", { text: file }), "re-import");
+  assert.equal(imp.added, 0, "doublons ignorés");
+  assert.equal((await call("stock/import", { text: "rien d'utile ici" })).s, 400);
+  tok = va;
+  st = ok(await call("state"), "state VA");
+  assert.equal(st.stock.dispo, 2);
+  assert.equal(st.stock.list, undefined, "la VA ne voit pas la liste complète");
+  const t1 = ok(await call("stock/take", {}), "prendre");
+  assert.equal(t1.user, "stk_one");
+  assert.equal(t1.pass, "FakePass1");
+  assert.equal(t1.totp, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+  assert.equal(t1.order, "1000001");
+  assert.equal(ok(await call("stock/take", {}), "reprendre").id, t1.id, "le même compte tant qu'il n'est pas fini");
+  st = ok(await call("state"), "state");
+  assert.equal(st.stock.mine.id, t1.id, "compte en cours retrouvé après un rechargement");
+  ok(await call("stock/release", { id: t1.id }), "rendre au stock");
+  const t2 = ok(await call("stock/take", {}), "reprendre après rendu");
+  assert.equal(t2.id, t1.id);
+  ok(await call("accounts/failed", { bought: true, stockId: t2.id, geelarkProfile: "stk a", reason: "Mot de passe refusé" }), "connexion ratée");
+  const t3 = ok(await call("stock/take", {}), "compte suivant");
+  assert.equal(t3.user, "stk.two");
+  await call("rotate", {});
+  const sa = ok(await call("accounts/create", { pseudo: t3.user, password: t3.pass, totp: t3.totp, bought: true, stockId: t3.id, geelarkProfile: "stk b" }), "compte du stock créé");
+  assert.equal(sa.totp, "MFRGGZDFMZTWQ2LK");
+  tok = admin;
+  st = ok(await call("state"), "state admin");
+  assert.deepEqual([st.stock.dispo, st.stock.pris, st.stock.utilise, st.stock.rate], [0, 0, 1, 1]);
+  assert.equal(st.stock.list.find((x) => x.user === "stk_one").reason, "Mot de passe refusé");
+  assert.equal(st.stock.list.find((x) => x.user === "stk.two").accountId, sa.id);
+  tok = va;
+  r = await call("stock/take", {});
+  assert.equal(r.s, 400, "stock vide");
+  assert.match(r.j.error, /Plus de compte/);
+  tok = admin;
+  step("stock de comptes achetés : import du fichier (pub ignorée, doublons), prise auto, rendu, raté, utilisé, stock vide");
+}
+
 st = ok(await call("state"), "state admin");
 const actions = new Set(st.logs.map((l) => l.action));
 for (const a of ["premier_acces", "connexion", "ip_changee", "compte_cree", "creation_ratee", "warmup_fait", "setup_fait", "metricool_relie", "marque_creee", "lien_metricool", "planif", "check", "compte_saute"]) assert.ok(actions.has(a), "log manquant " + a);

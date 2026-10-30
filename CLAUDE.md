@@ -181,6 +181,11 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Serveur : `accounts/create` avec `bought: true` n'exige ni numéro ni e-mail, refuse une clé 2FA non vide invalide, stocke `bought`. Échec : motifs propres aux comptes achetés, `accounts/failed` avec `bought`.
 - Tests : API « compte acheté », UI captures 18-19 (dev : `/__dev/acc?pseudo=`, `window.totpCodeForTest`).
 
+## Stock de comptes achetés (30 oct.)
+- Réglages (admin) : carte « 📦 Comptes achetés » : fichiers .txt (plusieurs) ou liste collée, `stock/import` (parseBoughtList : « identifiant mdp CLÉ 2FA », pub et en-têtes ignorés, n° de commande gardé, doublons stock + CRM ignorés). Stocké dans `stock/bought` (statuts dispo / pris / utilise / rate).
+- VA : stock non vide → « J'ai déjà un compte » par défaut ; en passant à l'étape 3, `stock/take` réserve le premier compte dispo (le même tant qu'il n'est pas fini, retrouvé via `state.stock.mine`) et remplit identifiant, mdp, 2FA. « Rendre au stock » = `stock/release`. Création avec `stockId` → utilisé ; échec → raté (avec le motif).
+- Jamais de vrais identifiants dans le dépôt (tests = données factices).
+
 ## 2FA des comptes (31 oct.)
 - Comptes achetés = 2FA activée. Clé 2FA (TOTP) par compte : champ « Clé 2FA » dans « Modifier / notes » (clé brute avec ou sans espaces, ou lien otpauth://, nettoyée par `cleanTotp`).
 - Le code à 6 chiffres est calculé dans le navigateur (RFC 6238, SHA-1, 30 s, vérifié avec le vecteur officiel 287082), mis à jour chaque seconde avec le temps restant.

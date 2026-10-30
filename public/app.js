@@ -160,6 +160,8 @@ function cleanTotpC(v) {
   x = x.replace(/[\s-]/g, "").toUpperCase().replace(/=+$/, "");
   return /^[A-Z2-7]{8,128}$/.test(x) ? x : "";
 }
+// compte du stock -> champs de l'assistant
+const stockFill = (it) => ({ stockId: it.id, stockOrder: it.order || "", pseudo: it.user, password: it.pass, totp: it.totp });
 // "__wiz" = la cle tapee dans « J'ai déjà un compte », lue en direct dans le champ
 const totpSecret = (id) => {
   if (id === "__wiz") {
@@ -506,6 +508,9 @@ const VIEWS = {
     // l'IP doit etre dans le pays choisi (proxy UK => GB, proxy France => FR), sinon le numero et l'IP ne collent pas
     const wantCc = prof() === "uk" ? "GB" : "FR";
     const ipWrongCc = !!(ip && ip.country && ip.country !== wantCc);
+    const stk = S.data.stock || {};
+    // comptes achetes en stock : « J'ai déjà un compte » par defaut
+    if (!w.kind) w.kind = stk.dispo || stk.mine ? "have" : "new";
     const have = w.kind === "have";
     const N = have ? 4 : 5;
     const bar = `<div class="steps">${(have ? [1, 2, 3, 4] : [1, 2, 3, 4, 5]).map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
@@ -529,8 +534,13 @@ const VIEWS = {
         ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", S.data.settings.socksPort || proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
         <label class="f">Nom du NOUVEAU téléphone GeeLark <small>(obligatoire : 1 téléphone neuf par essai)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : chloe 23" />
         ${nav(true)}</div>`;
+    if (have && w.step === 3 && !w.f.stockId && stk.mine) Object.assign(w.f, stockFill(stk.mine));
+    const stockBox = !have ? "" : w.f.stockId
+      ? `<div class="alert c-green">📦 Compte acheté pris dans le stock${w.f.stockOrder ? ` (commande ${esc(w.f.stockOrder)})` : ""} : identifiant, mot de passe et 2FA déjà remplis. <button class="btn sm ghost" data-act="stockRelease" data-wait="...">Rendre au stock</button></div>`
+      : stk.dispo ? `<button class="btn big" data-act="stockTake" data-wait="...">📦 Prendre un compte acheté (${stk.dispo} en stock)</button><p class="muted">Tout se remplit tout seul (identifiant, mot de passe, 2FA).</p>`
+      : `<div class="alert c-yellow">Plus de compte acheté en stock : colle les infos du compte à la main, ou préviens Awen.</div>`;
     if (have && w.step === 3)
-      return `${head}<div class="card"><div class="stepnum">Étape 3 sur 4</div><h3>Connecte-toi au compte</h3>${hint("connexion")}
+      return `${head}<div class="card"><div class="stepnum">Étape 3 sur 4</div><h3>Connecte-toi au compte</h3>${hint("connexion")}${stockBox}
         <ol><li>Dans le téléphone GeeLark, ouvre l'appli <b>Instagram</b>.</li><li>« Se connecter » : colle l'identifiant, puis le mot de passe.</li><li>Instagram demande un code (« authentification », « code à 6 chiffres ») : copie le <b>Code 2FA</b> ci-dessous et colle-le tout de suite.</li><li>Une fois dans Instagram, ouvre Threads et connecte-toi avec ce compte.</li></ol>
         <label class="f">Identifiant (pseudo) <button class="btn sm light" data-act="copyField" data-v="pseudo">Copier</button></label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Mot de passe <button class="btn sm light" data-act="copyField" data-v="password">Copier</button></label><input data-f="password" value="${esc(w.f.password || "")}" autocapitalize="off" />
@@ -795,7 +805,16 @@ const VIEWS = {
     const st = S.data.settings;
     const c = S.data.configured;
     const vids = Object.keys(SOP);
+    const sk = S.data.stock || {};
+    const skLab = { dispo: ["c-green", "En stock"], pris: ["c-yellow", "En cours"], utilise: ["c-blue", "Utilisé"], rate: ["c-red", "Raté"] };
     return `<h2>Réglages</h2>
+      <div class="card"><h3 style="margin-top:0">📦 Comptes achetés (stock)</h3>
+        <p class="muted">Glisse le fichier .txt de la commande (ou colle la liste) : identifiant, mot de passe, clé 2FA par ligne. Les lignes de pub sont ignorées, les doublons aussi. Sandra clique « Prendre un compte acheté » et tout se remplit.</p>
+        <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag ok">${sk.dispo || 0} en stock</span><span class="tag">${sk.pris || 0} en cours</span><span class="tag">${sk.utilise || 0} utilisés</span><span class="tag ${sk.rate ? "miss" : ""}">${sk.rate || 0} ratés</span></div>
+        <label class="f">Fichiers de commande <small>(.txt, plusieurs d'un coup)</small></label><input type="file" id="stockFiles" accept=".txt,text/plain" multiple />
+        <label class="f">ou colle la liste</label><textarea data-set="stockText" placeholder="identifiant&#9;motdepasse&#9;CLE 2FA" style="min-height:90px"></textarea>
+        <button class="btn" data-act="stockImport" data-wait="Import...">Ajouter au stock</button>
+        ${(sk.list || []).length ? `<details style="margin-top:10px"><summary class="muted">Voir les ${sk.list.length} comptes</summary>${sk.list.map((x) => { const [c, l] = skLab[x.status] || ["", x.status]; return `<div class="row" style="justify-content:space-between;padding:4px 0"><span><b>${esc(x.user)}</b> <span class="muted">${x.order ? "cmd " + esc(x.order) : ""}${x.takenBy ? " · " + esc(x.takenBy) : ""}${x.reason ? " · " + esc(x.reason) : ""}</span></span><span class="pill ${c}">${l}</span></div>`; }).join("")}</details>` : ""}</div>
       <div class="card"><h3 style="margin-top:0">Connexions <small class="muted">(cachées après enregistrement, c'est normal)</small></h3>
         <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy], ...(c.smsProvs && c.smsProvs.length ? c.smsProvs.map((p) => [p.name, true]) : [["Numéros SMS", false]])].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
         <label class="f">1. Lien de rotation IP (proxy France) ${c.rotationFr ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotationFr ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy"}" autocomplete="off" />
@@ -1264,6 +1283,11 @@ const ACT = {
       const used = (S.data.geelarkBurned || []).includes(gp) || S.data.accounts.some((a) => String(a.geelarkProfile || "").trim().toLowerCase() === gp);
       if (used) return toast("Ce téléphone GeeLark a déjà servi. Crée un NOUVEAU téléphone dans GeeLark et donne-lui un autre nom.", true);
     }
+    if (w.kind === "have" && w.step === 2 && !w.f.stockId && S.data.stock?.dispo) {
+      w.step = 3;
+      render();
+      return ACT.stockTake(null);
+    }
     if (w.kind === "have" && w.step === 3) {
       if (!w.f.pseudo || !w.f.password) return toast("Mets l'identifiant et le mot de passe.", true);
       if (w.f.totp && !cleanTotpC(w.f.totp)) return toast("Clé 2FA invalide : colle la clé reçue avec le compte (lettres et chiffres).", true);
@@ -1308,7 +1332,7 @@ const ACT = {
   },
   async wizCreate(b) {
     await run(b, async () => {
-      const a = await api("accounts/create", { ...S.wiz.f, bought: S.wiz.kind === "have" });
+      const a = await api("accounts/create", { ...S.wiz.f, bought: S.wiz.kind === "have" || !!S.wiz.f.stockId });
       toast(`@${a.pseudo} enregistré` + (a.link ? " · lien " + a.link : a.linkNote ? " · lien non créé : " + a.linkNote : ""), !!a.linkNote);
       S.wiz = { step: 6, f: {}, createdId: a.id };
       await refresh();
@@ -1328,7 +1352,7 @@ const ACT = {
   },
   async wizFailSend(b) {
     await run(b, async () => {
-      await api("accounts/failed", { bought: S.wiz.kind === "have", phone: S.wiz.f.phone || S.wiz.f.email || S.wiz.f.pseudo || "", smsId: S.wiz.f.smsId || "", emailId: S.wiz.f.emailId || "", geelarkProfile: S.wiz.f.geelarkProfile || "", reason: $("#failwhy").value });
+      await api("accounts/failed", { bought: S.wiz.kind === "have", stockId: S.wiz.f.stockId || "", phone: S.wiz.f.phone || S.wiz.f.email || S.wiz.f.pseudo || "", smsId: S.wiz.f.smsId || "", emailId: S.wiz.f.emailId || "", geelarkProfile: S.wiz.f.geelarkProfile || "", reason: $("#failwhy").value });
       closeModal();
       // jamais le meme telephone GeeLark apres un echec ; on reste sur le meme type (achete / nouveau)
       S.wiz = { step: 1, f: {}, kind: S.wiz.kind };
@@ -1405,6 +1429,36 @@ const ACT = {
     const v = el ? el.value.trim().replace(b.dataset.v === "pseudo" ? /^@/ : /^$/, "") : "";
     if (!v) return toast("Champ vide : colle d'abord l'info du compte.", true);
     copy(v);
+  },
+  async stockTake(b) {
+    await run(b, async () => {
+      readWizFields();
+      const it = await api("stock/take", {});
+      Object.assign(S.wiz.f, stockFill(it));
+      toast(`Compte @${it.user} pris : tout est rempli`);
+      await refresh();
+    });
+  },
+  async stockRelease(b) {
+    await run(b, async () => {
+      await api("stock/release", { id: S.wiz.f.stockId });
+      for (const k of ["stockId", "stockOrder", "pseudo", "password", "totp"]) delete S.wiz.f[k];
+      toast("Compte rendu au stock");
+      await refresh();
+    });
+  },
+  async stockImport(b) {
+    const ta = $('[data-set="stockText"]');
+    const files = [...($("#stockFiles")?.files || [])];
+    let text = ta.value;
+    for (const f of files) text += "\n" + (await f.text());
+    if (!text.trim()) return toast("Colle la liste ou choisis les fichiers .txt.", true);
+    await run(b, async () => {
+      const r = await api("stock/import", { text });
+      toast(`${r.added} compte(s) ajouté(s)${r.skipped ? `, ${r.skipped} déjà connu(s)` : ""} · ${r.dispo} en stock`);
+      ta.value = "";
+      await refresh();
+    });
   },
   wizKind(b) {
     readWizFields();
