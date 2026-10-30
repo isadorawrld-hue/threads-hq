@@ -57,6 +57,13 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - `public/seed-bios.json` : 250 bios par stratégie écrites le 27/10/2026 (chinois traditionnel, sans nom de plateforme, « lien » finit toujours par 👇, jamais 置頂 ; épinglé et relais renvoient au 置頂).
 - Alerte admin dans Aujourd'hui sous 20 bios restantes dans une banque.
 
+## SMSPool (fournisseur de numéros proposé en premier)
+- Doc : SDK officiel `@smspool/sdk` (npm). Base `https://api.smspool.net`, POST en formulaire, clé en `Authorization: Bearer` + champ `key`.
+- Service 457 = « Instagram / Threads ». Pays SMSPool : France 23, USA 1 (`SPOOL_COUNTRY`).
+- Achat `/purchase/sms` (country, service, pricing_option=0), code `/sms/check` (orderid → champ `sms`), remboursement `/sms/cancel` (orderid), solde `/request/balance`, prix `/request/price`.
+- Réglages > Connexions champ 9. Plusieurs sites branchés = la VA voit un bouton par site (SMSPool, SMSOnline, Hero), le premier en gros.
+- Réglages > Liens : « Pays des numéros » (cases). Depuis le 30 oct. : France seulement (les numéros US faisaient sauter les comptes).
+
 ## SMSOnline (2e fournisseur de numéros)
 - Doc : https://premium.smsonline.cloud/static/api.html. Base API : `https://api-x.smsonline.cloud/v3` (trouvée dans le JS du site, la doc ne la donne pas).
 - Réglages > Connexions, champs 7 (User ID) et 8 (clé API). Les deux remplis = tous les nouveaux numéros viennent de SMSOnline. Bouton « Revenir sur Hero SMS » pour effacer.

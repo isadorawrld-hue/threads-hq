@@ -21,6 +21,7 @@ const S = {
 let timerInt = null;
 
 // ------------------------------------------------------------ API
+const ALL_SMS_COUNTRIES = [{ id: 78, name: "France" }, { id: 187, name: "USA" }, { id: 14, name: "Hong Kong" }, { id: 196, name: "Singapour" }];
 async function api(path, body, method) {
   const r = await fetch("/api/" + path, {
     method: method || (body ? "POST" : "GET"),
@@ -677,7 +678,7 @@ const VIEWS = {
     const vids = Object.keys(SOP);
     return `<h2>Réglages</h2>
       <div class="card"><h3 style="margin-top:0">Connexions <small class="muted">(cachées après enregistrement, c'est normal)</small></h3>
-        <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy], [c.smsOnline ? "SMSOnline" : "Hero SMS", c.sms]].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
+        <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy], ...(c.smsProvs && c.smsProvs.length ? c.smsProvs.map((p) => [p.name, true]) : [["Numéros SMS", false]])].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
         <label class="f">1. Lien de rotation IP ${c.rotation ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotation ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy"}" autocomplete="off" />
         <label class="f">2. Token API Metricool ${c.mcToken ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(dans Metricool : Paramètres du compte, onglet API, Copier)</small></label><input type="password" data-sec="mcToken" placeholder="${c.mcToken ? "enregistré (colle un autre token pour le remplacer)" : "colle le token"}" autocomplete="off" />
         <label class="f">3. userId Metricool ${c.mcUserId ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(le nombre, ou colle simplement l'adresse de Metricool)</small></label><input data-sec="mcUserId" placeholder="${c.mcUserId ? "enregistré" : "ex : 5978155 ou https://app.metricool.com/...userId=..."}" autocomplete="off" />
@@ -688,11 +689,14 @@ const VIEWS = {
         <label class="f">7. SMSOnline : User ID ${c.smsOnline ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(premium.smsonline.cloud, page API ou compte. Rempli = les numéros viennent de SMSOnline, plus de Hero)</small></label><input data-sec="soUserId" placeholder="${c.smsOnline ? "enregistré" : "ton User ID SMSOnline"}" autocomplete="off" />
         <label class="f">8. SMSOnline : clé API ${c.smsOnline ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="soKey" placeholder="${c.smsOnline ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API SMSOnline"}" autocomplete="off" />
         ${c.smsOnline ? '<button class="btn light" style="margin-top:8px" data-act="clearSo" data-wait="...">Revenir sur Hero SMS (efface SMSOnline)</button>' : ""}
+        <label class="f">9. Clé API SMSPool ${c.smsPool ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(smspool.net : Settings, API key. Rempli = SMSPool proposé en premier)</small></label><input type="password" data-sec="spKey" placeholder="${c.smsPool ? "enregistré (colle une autre clé pour la remplacer)" : "colle la clé API SMSPool"}" autocomplete="off" />
+        ${c.smsPool ? '<button class="btn light" style="margin-top:8px" data-act="clearSp" data-wait="...">Débrancher SMSPool</button>' : ""}
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer les connexions</button><button class="btn light" data-act="testMc" data-wait="Test...">Tester Metricool</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester le proxy</button></div></div>
       ${c.tiny ? `<div class="card"><h3 style="margin-top:0">Ménage TinyURL</h3><p class="muted">Supprime les vieux liens du domaine ${esc(st.tinyDomain || "")}. Les liens des comptes du CRM ne sont jamais touchés.</p>
         <div class="row"><button class="btn light" data-act="tinyScan" data-wait="Comptage...">Compter les vieux liens</button>${S.tinyScan ? `<span class="muted">${S.tinyScan.count} lien(s) à supprimer · ${S.tinyScan.kept} gardé(s) (comptes du CRM)</span>` : ""}</div>
         ${S.tinyScan && S.tinyScan.count ? `<p class="muted">Ex : ${S.tinyScan.sample.map(esc).join(", ")}</p><button class="btn bad" data-act="tinyClean" data-wait="Suppression...">Supprimer ces ${S.tinyScan.count} liens (définitif)</button>` : ""}</div>` : ""}
       <div class="card"><h3 style="margin-top:0">Liens</h3>
+        <label class="f">Pays des numéros <small>(décochés = la VA ne peut pas les prendre)</small></label><div class="row">${ALL_SMS_COUNTRIES.map((x) => `<label style="margin-right:14px"><input type="checkbox" data-smsc="${x.id}" ${(st.smsCountries && st.smsCountries.length ? st.smsCountries.map(Number) : ALL_SMS_COUNTRIES.map((y) => y.id)).includes(x.id) ? "checked" : ""}/> ${esc(x.name)}</label>`).join("")}</div>
         <label class="f">Site SMS <small>(secours, si Hero SMS n'est pas branché)</small></label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
         <label class="f">Lien GeeLark</label><input data-st="geelarkUrl" value="${esc(st.geelarkUrl)}" />
         <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" />
@@ -831,18 +835,28 @@ function warmupCard(a, withTimer) {
     <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini, passer au setup</button>
     ${withTimer ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizReset">Créer un autre compte</button></div>' : ""}</div>`;
 }
+async function loadBalances() {
+  const provs = S.data.configured.smsProvs || [];
+  const out = {};
+  await Promise.all(provs.map((p) => api("sms/balance?prov=" + p.k).then((b) => (out[p.k] = b.balance)).catch(() => {})));
+  S.smsBalances = out;
+}
 function smsBuyBlock() {
   const prices = S.smsPrices || null;
   const list = S.data.smsCountries || [];
-  const info = (p) => (p ? (p.price != null && p.stock ? `${p.price.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} $ · ${p.stock} dispo` : "plus de numéro") : "");
-  const priceOf = (c) => (prices ? prices.find((x) => x.id === c.id) : null);
-  const empty = (c) => { const p = priceOf(c); return p && !p.stock; };
-  const first = list.find((c) => !empty(c)) || list[0];
-  const btn = (c, big) => `<button class="btn ${big ? "big" : "light"}" data-act="smsBuy" data-v="${c.id}" data-wait="Achat du numéro..." ${empty(c) ? "disabled" : ""}>Numéro ${esc(c.name)} ${priceOf(c) ? `<small style="opacity:.7;font-weight:500">· ${esc(info(priceOf(c)))}</small>` : ""}</button>`;
-  return `<p>Clique sur <b>${esc(first?.name || "")}</b>. Le numéro et le code SMS arrivent ici, tu n'as rien d'autre à ouvrir.</p>
+  const provs = S.data.configured.smsProvs || [{ k: "hero", name: "Hero SMS" }];
+  // une offre = un pays chez un site ; avant le chargement des prix, une offre par pays et par site
+  const offers = prices && prices.length ? prices : provs.flatMap((p) => list.map((c) => ({ ...c, prov: p.k, provName: p.name })));
+  const empty = (o) => !!o.error || (o.stock === 0 && o.price == null) || o.stock === 0;
+  const info = (o) => (o.error ? "site en panne" : o.price == null && o.stock === 0 ? "plus de numéro" : [o.price != null ? `${o.price.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} $` : "", o.stock ? `${o.stock} dispo` : ""].filter(Boolean).join(" · "));
+  const first = offers.find((o) => !empty(o)) || offers[0];
+  const label = (o) => `Numéro ${esc(o.name)}${provs.length > 1 ? ` · ${esc(o.provName || "")}` : ""}`;
+  const btn = (o, big) => `<button class="btn ${big ? "big" : "light"}" data-act="smsBuy" data-v="${o.id}" data-prov="${esc(o.prov || "")}" data-wait="Achat du numéro..." ${empty(o) ? "disabled" : ""}>${label(o)} ${prices ? `<small style="opacity:.7;font-weight:500">· ${esc(info(o))}</small>` : ""}</button>`;
+  const bal = S.smsBalances ? Object.entries(S.smsBalances).map(([k, v]) => `${esc((provs.find((p) => p.k === k) || {}).name || k)} ${v.toFixed(2)} $`).join(" · ") : "";
+  return `<p>Clique sur <b>${first ? label(first) : ""}</b>. Le numéro et le code SMS arrivent ici, tu n'as rien d'autre à ouvrir.</p>
     ${first ? btn(first, true) : ""}
-    <div class="row" style="margin-top:10px">${list.filter((c) => c !== first).map((c) => btn(c, false)).join("")}</div>
-    <p class="muted">Pas de code ? Rembourse, puis essaie le pays suivant.${S.smsBalance != null ? ` · Solde : ${S.smsBalance.toFixed(2)} $` : ""} · <a href="#" data-act="smsPrices">actualiser</a></p>`;
+    <div class="row" style="margin-top:10px">${offers.filter((o) => o !== first).map((o) => btn(o, false)).join("")}</div>
+    <p class="muted">Pas de code au bout de 8 min ? Rembourse, puis essaie le site suivant.${bal ? ` · Solde : ${bal}` : ""} · <a href="#" data-act="smsPrices">actualiser</a></p>`;
 }
 function smsCard(cur) {
   const left = Math.max(0, Math.round((new Date(cur.expiredAt).getTime() - Date.now()) / 1000));
@@ -948,7 +962,7 @@ function afterRender() {
   if (document.querySelector('[data-act="smsPrices"]') && !S.smsPrices && !S.smsPricesLoading) {
     S.smsPricesLoading = true;
     api("sms/prices").then((p) => { S.smsPrices = p; render(); }).catch(() => {}).finally(() => (S.smsPricesLoading = false));
-    api("sms/balance").then((b) => { S.smsBalance = b.balance; }).catch(() => {});
+    loadBalances().then(() => document.querySelector('[data-act="smsPrices"]') && render());
   }
   // code SMS : on verifie toutes les 5 s tant qu'il n'est pas arrive
   clearInterval(smsPoll);
@@ -1203,14 +1217,14 @@ const ACT = {
     S.smsPrices = null;
     await run(b, async () => {
       S.smsPrices = await api("sms/prices");
-      try { S.smsBalance = (await api("sms/balance")).balance; } catch {}
+      await loadBalances();
       render();
     });
   },
   async smsBuy(b) {
     readWizFields();
     await run(b, async () => {
-      const act = await api("sms/buy", { country: Number(b.dataset.v) || 14 });
+      const act = await api("sms/buy", { country: Number(b.dataset.v) || 78, prov: b.dataset.prov || undefined });
       S.wiz.f.phone = act.phone;
       S.wiz.f.smsId = act.id;
       await refresh();
@@ -1546,6 +1560,13 @@ const ACT = {
       toast("Enregistré");
     });
   },
+  async clearSp(b) {
+    await run(b, async () => {
+      await api("secrets", { clear: "spKey" });
+      toast("SMSPool débranché");
+      await refresh();
+    });
+  },
   async clearSo(b) {
     await run(b, async () => {
       await api("secrets", { clear: "soKey" });
@@ -1587,7 +1608,10 @@ const ACT = {
     if (!groups.length) return toast("Il faut au moins un groupe.", true);
     const videos = {};
     document.querySelectorAll("[data-vid]").forEach((el) => (videos[el.dataset.vid] = el.value.trim()));
+    const smsCountries = [...document.querySelectorAll("[data-smsc]")].filter((el) => el.checked).map((el) => Number(el.dataset.smsc));
+    if (!smsCountries.length) return toast("Garde au moins un pays pour les numéros.", true);
     const body = {
+      smsCountries,
       smsSiteUrl: v("smsSiteUrl").trim(),
       geelarkUrl: v("geelarkUrl").trim(),
       metricoolUrl: v("metricoolUrl").trim(),
