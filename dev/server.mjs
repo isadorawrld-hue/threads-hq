@@ -96,7 +96,7 @@ async function fakeFetch(url, opts = {}) {
     if (u.pathname === "/request/balance") return Response.json({ balance: "4.20" });
     if (u.pathname === "/purchase/sms") {
       if (f.country !== "23" || f.service !== "457" || !(Number(f.max_price) > 0) || f.pricing_option !== "0") return Response.json({ success: 0, message: "bad " + opts.body });
-      if (Number(f.max_price) < 0.19) return Response.json({ success: 0, message: "No numbers available under your max price" });
+      if (Number(f.max_price) < 0.19) return new Response(JSON.stringify({ success: 0, message: "<p>Pool <b>Mike</b>: We could not find a suitable pool below the price of: " + f.max_price + "</p>" }), { status: 422 });
       spN++; sp = { id: "SPX" + spN, code: null, cancelled: false };
       return Response.json({ success: 1, number: String(745123455 + spN), cc: "33", order_id: sp.id, country: "France", service: "Instagram / Threads", pool: 7, expires_in: 1200, cost: "0.19" });
     }

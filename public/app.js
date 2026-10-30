@@ -848,7 +848,7 @@ function smsBuyBlock() {
   // une offre = un pays chez un site ; avant le chargement des prix, une offre par pays et par site
   const offers = prices && prices.length ? prices : provs.flatMap((p) => list.map((c) => ({ ...c, prov: p.k, provName: p.name })));
   const empty = (o) => !!o.error || (o.stock === 0 && o.price == null) || o.stock === 0;
-  const info = (o) => (o.error ? "site en panne" : o.price == null && o.stock === 0 ? "plus de numéro" : [o.price != null ? `${o.price.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} $` : "", o.stock ? `${o.stock} dispo` : ""].filter(Boolean).join(" · "));
+  const info = (o) => (o.error ? "site en panne" : o.price == null && o.stock === 0 ? "plus de numéro" : [o.price != null ? `${o.price.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} $` : o.maxPrice ? `max ${o.maxPrice} $` : "", o.stock ? `${o.stock} dispo` : ""].filter(Boolean).join(" · "));
   const first = offers.find((o) => !empty(o)) || offers[0];
   const label = (o) => `Numéro ${esc(o.name)}${provs.length > 1 ? ` · ${esc(o.provName || "")}` : ""}`;
   const btn = (o, big) => `<button class="btn ${big ? "big" : "light"}" data-act="smsBuy" data-v="${o.id}" data-prov="${esc(o.prov || "")}" data-wait="Achat du numéro..." ${empty(o) ? "disabled" : ""}>${label(o)} ${prices ? `<small style="opacity:.7;font-weight:500">· ${esc(info(o))}</small>` : ""}</button>`;

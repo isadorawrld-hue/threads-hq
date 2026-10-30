@@ -489,7 +489,7 @@ tok = admin;
 step("SMSOnline : prix, achat, code « 482 913 », remboursement, échec remboursé, retour sur Hero");
 
 // --- SMSPool + France seulement
-ok(await call("settings", { smsCountries: [78] }), "France seulement");
+ok(await call("settings", { smsCountries: [78], smsMaxPrice: 0.5 }), "France seulement");
 let sp0 = ok(await call("secrets", { spKey: "SP_TEST" }), "clé SMSPool");
 assert.deepEqual(sp0.smsProvs.map((x) => x.k), ["smspool", "hero"], "SMSPool proposé en premier, Hero en secours");
 st = ok(await call("state"), "state");
@@ -499,7 +499,7 @@ tok = va;
 assert.equal((await call("sms/buy", { country: 187 })).s, 400, "USA désactivé");
 const spPrices = ok(await call("sms/prices"), "prix multi-sites");
 assert.deepEqual(spPrices.map((o) => o.prov + ":" + o.id), ["smspool:78", "hero:78"]);
-assert.equal(spPrices[0].price, 0.19);
+assert.equal(spPrices[0].maxPrice, 0.5, "SMSPool : on affiche le plafond");
 assert.equal(ok(await call("sms/balance?prov=smspool"), "solde SMSPool").balance, 4.2);
 assert.equal(ok(await call("sms/balance?prov=hero"), "solde Hero").balance, 9.5);
 const sp1 = ok(await call("sms/buy", { country: 78 }), "achat SMSPool");
