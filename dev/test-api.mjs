@@ -572,6 +572,13 @@ await fetch(B + "/__dev/emailempty?v=0");
 ok(await call("accounts/failed", { phone: em3.email, emailId: em3.id, reason: "Demande de vérification" }), "échec e-mail");
 assert.equal((await (await fetch(B + "/__email")).json()).cancelled, true, "échec = remboursé");
 assert.equal((await call("accounts/create", { pseudo: "rien_du_tout", password: "pw" })).s, 400, "ni numéro ni e-mail : refusé");
+ok(await call("accounts/failed", { phone: "x", geelarkProfile: "Chloe 99", reason: "« Try again later » (limite Instagram)" }), "échec avec téléphone GeeLark");
+st = ok(await call("state"), "state");
+assert.ok(st.geelarkBurned.includes("chloe 99"), "téléphone GeeLark noté grillé");
+await call("rotate", {});
+r = await call("accounts/create", { pseudo: "reuse_phone", email: "a@b.c", password: "pw", geelarkProfile: "chloe 99" });
+assert.equal(r.s, 400, "téléphone GeeLark grillé refusé");
+assert.match(r.j.error, /NOUVEAU téléphone GeeLark/);
 tok = admin;
 step("e-mail Hero : moins cher en stock, code reçu tout seul, compte sans numéro, remboursement et échec remboursé");
 

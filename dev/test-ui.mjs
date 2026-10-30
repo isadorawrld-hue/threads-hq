@@ -138,6 +138,7 @@ await tab(v, "create");
 await v.click('main [data-act="rotate"]');
 await waitToast(v, /Nouvelle IP/);
 await v.click('[data-act="wizNext"]');
+await v.fill('[data-f="geelarkProfile"]', "profil 2");
 await v.click('[data-act="wizNext"]');
 await v.waitForSelector('[data-act="wizMode"][data-v="phone"]');
 await v.click('[data-act="wizMode"][data-v="phone"]');

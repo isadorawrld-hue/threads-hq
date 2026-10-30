@@ -164,3 +164,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Code lu dans `value` (6 chiffres, espace accepté : « 384 120 »). Un e-mail en cours bloque le changement d'IP comme un numéro.
 - Un compte peut être créé avec un e-mail sans numéro (`phone` vide, `emailId` noté). Échec = e-mail remboursé tout seul.
 - Réglage `emailSite` (défaut instagram.com) si Hero range Threads sous un autre site.
+
+## Téléphone GeeLark grillé après un échec (30 oct.)
+- Instagram répond « Try again later » quand il y a trop d'inscriptions depuis le même téléphone / la même IP. Constat du 30 oct. : l'e-mail donne le code en moins d'1 min (3 fois sur 3), mais les inscriptions sautaient ensuite.
+- L'assistant gardait le nom du téléphone GeeLark après un échec (la VA réessayait sur le même). Corrigé : après « Noter et recommencer », tout repart à zéro. Le nom du téléphone est obligatoire à l'étape 2, et un nom déjà utilisé ou grillé (`geelark/burned`) est refusé (navigateur et serveur).
+- La fenêtre d'échec explique : supprimer le téléphone, en créer un neuf, et en cas de « Try again later », passer sur l'autre proxy (France/UK).

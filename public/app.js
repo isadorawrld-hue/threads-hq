@@ -457,7 +457,7 @@ const VIEWS = {
         <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous : type <b>${S.data.settings.socksPort ? "Socks5" : "HTTP"}</b>, puis « Check proxy ».</li><li>Advanced settings : <b>Location</b> et <b>Cloud phone language</b> sur <b>Based on IP</b>.</li><li>Create, puis Start pour allumer le téléphone.</li></ol>
         <a class="btn light" href="${esc(S.data.settings.geelarkUrl)}" target="_blank" rel="noopener">Ouvrir GeeLark</a>
         ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", S.data.settings.socksPort || proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
-        <label class="f">Nom du profil GeeLark <small>(facultatif)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : profil 12" />
+        <label class="f">Nom du NOUVEAU téléphone GeeLark <small>(obligatoire : 1 téléphone neuf par essai)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : chloe 23" />
         ${nav(true)}</div>`;
     if (w.step === 3) {
       if (!S.data.configured.sms)
@@ -1157,6 +1157,12 @@ const ACT = {
   wizNext() {
     const w = S.wiz;
     readWizFields();
+    if (w.step === 2) {
+      const gp = String(w.f.geelarkProfile || "").trim().toLowerCase();
+      if (!gp) return toast("Écris le nom du nouveau téléphone GeeLark.", true);
+      const used = (S.data.geelarkBurned || []).includes(gp) || S.data.accounts.some((a) => String(a.geelarkProfile || "").trim().toLowerCase() === gp);
+      if (used) return toast("Ce téléphone GeeLark a déjà servi. Crée un NOUVEAU téléphone dans GeeLark et donne-lui un autre nom.", true);
+    }
     if (w.step === 3 && !w.f.phone && !w.f.email) return toast("Prends un e-mail ou un numéro.", true);
     if (w.step === 4 && (!w.f.pseudo || !w.f.password)) return toast("Mets le pseudo et le mot de passe.", true);
     w.step++;
@@ -1201,15 +1207,18 @@ const ACT = {
     });
   },
   wizFail() {
-    modal(`<h3>Ça n'a pas marché ?</h3><p>Pas grave. On note et on recommence avec une nouvelle IP.</p>
-      <label class="f">Pourquoi ?</label><select id="failwhy"><option>Numéro refusé</option><option>Code SMS jamais reçu</option><option>Compte bloqué direct</option><option>Demande de vérification</option><option>Autre</option></select>
+    const other = prof() === "uk" ? "France" : "UK";
+    modal(`<h3>Ça n'a pas marché ?</h3><p>Pas grave. On note et on recommence.</p>
+      <label class="f">Pourquoi ?</label><select id="failwhy"><option>« Try again later » (limite Instagram)</option><option>Compte bloqué direct</option><option>Demande de vérification</option><option>Code jamais reçu</option><option>Numéro ou e-mail refusé</option><option>Autre</option></select>
+      <div class="alert c-yellow" style="margin-top:12px"><b>Avant de recommencer :</b><br>1. Supprime ce téléphone GeeLark${S.wiz.f.geelarkProfile ? ` (« ${esc(S.wiz.f.geelarkProfile)} »)` : ""} : il est grillé pour Instagram.<br>2. Crée un <b>nouveau</b> téléphone GeeLark.<br>3. Si c'était « Try again later » : Instagram bloque les inscriptions sur ce proxy pendant quelques heures. ${ukReady() ? `Passe sur <b>${other}</b> à l'étape 1.` : "Fais une pause et réessaie plus tard."}</div>
       <button class="btn big bad" style="margin-top:14px" data-act="wizFailSend">Noter et recommencer</button>`);
   },
   async wizFailSend(b) {
     await run(b, async () => {
-      await api("accounts/failed", { phone: S.wiz.f.phone || S.wiz.f.email || "", smsId: S.wiz.f.smsId || "", emailId: S.wiz.f.emailId || "", reason: $("#failwhy").value });
+      await api("accounts/failed", { phone: S.wiz.f.phone || S.wiz.f.email || "", smsId: S.wiz.f.smsId || "", emailId: S.wiz.f.emailId || "", geelarkProfile: S.wiz.f.geelarkProfile || "", reason: $("#failwhy").value });
       closeModal();
-      S.wiz = { step: 1, f: { geelarkProfile: S.wiz.f.geelarkProfile } };
+      // jamais le meme telephone GeeLark apres un echec
+      S.wiz = { step: 1, f: {} };
       await refresh();
       toast("Noté. Change l'IP et on recommence");
     });
