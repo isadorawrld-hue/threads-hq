@@ -424,7 +424,7 @@ const VIEWS = {
     const cur = S.data.sms && S.data.sms.status === "attente" ? S.data.sms : null;
     const lab = { attente: ["c-yellow", "En cours"], fini: ["c-green", "Utilisé"], annule: ["c-blue", "Remboursé"], expire: ["c-red", "Expiré"] };
     const hist = (S.data.smsHistory || []).filter((h) => !cur || h.id !== cur.id);
-    return `<h2>Numéro</h2><p class="lead">Un numéro pour créer un compte. France d'abord. Le code SMS arrive ici.</p>${hint("numero")}
+    return `<h2>Numéro</h2><p class="lead">Prends un numéro quand tu veux (Instagram qui en demande un, galère avec l'e-mail…). Il s'ajoute tout seul au compte en cours de création. Le code SMS arrive ici.</p>${hint("numero")}
       ${S.data.configured.sms ? `<div class="card">${cur ? smsCard(cur) : smsBuyBlock()}</div>
         ${cur ? `<p class="muted">Quand le compte est créé dans « Créer un compte », ce numéro se ferme tout seul.</p>` : ""}
         ${hist.length ? `<h3>Derniers numéros</h3><div class="card list">${hist.map((h) => `<div class="row" style="justify-content:space-between;padding:6px 0"><span><b>${esc(h.phone)}</b> <span class="muted">${esc(h.countryName)} · ${ago(h.createdAt)}${h.code ? " · code " + esc(h.code) : ""}</span></span>${(() => { const [c, l] = lab[h.status] || ["", h.status]; return `<span class="pill ${c}">${l}</span>`; })()}</div>`).join("")}</div>` : ""}`
@@ -485,8 +485,12 @@ const VIEWS = {
         ${tabs}${body}
         ${nav(!!(w.f.phone || w.f.email))}</div>`;
     }
+    if (w.step === 4 && S.data.sms && S.data.sms.status === "attente" && w.f.smsId !== S.data.sms.id) {
+      w.f.smsId = S.data.sms.id;
+      w.f.phone = S.data.sms.phone;
+    }
     if (w.step === 4)
-      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}${S.data.emailAct && S.data.emailAct.status === "attente" && S.data.emailAct.id === w.f.emailId ? `<div class="card">${emailCard(S.data.emailAct)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte (Instagram d'abord, puis Threads)</h3>${hint("compte")}
+      return `${head}${S.data.sms && S.data.sms.status === "attente" ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}${S.data.emailAct && S.data.emailAct.status === "attente" && S.data.emailAct.id === w.f.emailId ? `<div class="card">${emailCard(S.data.emailAct)}</div>` : ""}${w.f.email && S.data.configured.sms && !(S.data.sms && S.data.sms.status === "attente") ? `<details class="card" ${w.needPhone ? "open" : ""}><summary><b>📱 Instagram demande aussi un numéro ?</b> <span class="muted">Prends-en un ici, le code arrive ici aussi.</span></summary><div style="margin-top:10px">${smsBuyBlock()}</div></details>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte (Instagram d'abord, puis Threads)</h3>${hint("compte")}
         <label class="f">Pseudo</label>${pseudoSuggest(w)}<input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
         <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(aliasOf(w.f.pseudo))}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(aliasOf(w.f.pseudo))}</button></div>
@@ -1334,9 +1338,11 @@ const ACT = {
     });
   },
   async smsBuy(b) {
-    readWizFields();
+    if (S.wiz) readWizFields();
     await run(b, async () => {
       const act = await api("sms/buy", { country: Number(b.dataset.v) || 78, prov: b.dataset.prov || undefined });
+      // le numero suit le compte en cours de creation, qu'il soit pris ici, dans l'onglet Numero ou a l'etape 4
+      if (!S.wiz) S.wiz = { step: 1, f: {} };
       S.wiz.f.phone = act.phone;
       S.wiz.f.smsId = act.id;
       await refresh();

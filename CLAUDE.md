@@ -174,3 +174,4 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Sandra : compte créé en ouvrant l'appli **Instagram** (pas Threads) dans le téléphone GeeLark, inscription normale avec un **e-mail**, proxy **France**. Ensuite Threads se connecte avec ce compte Instagram.
 - Avant ça, s'inscrire directement dans Threads donnait « Try again later » (e-mail) ou aucun SMS (numéros).
 - Les textes de l'étape 3 (e-mail) et 4 (compte) du CRM suivent cette méthode.
+- Instagram peut demander un numéro en plus de l'e-mail : à l'étape 4, encadré « Instagram demande aussi un numéro ? » (achat sur place), ou onglet Numéro à tout moment. Le numéro s'ajoute au compte en cours (e-mail + numéro notés, les deux fermés à la création).
