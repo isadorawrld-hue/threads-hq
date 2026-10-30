@@ -148,6 +148,9 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Pour le reste, fais, teste, puis rends compte en 3 lignes maximum.
 
 ## Proxy UK (test du 30 oct.)
+- La VA choisit France ou UK à l'étape 1 de chaque compte (`POST ip/profile`, refusé si un numéro est en cours). L'IP doit venir du bon proxy (sinon création refusée) et être dans le bon pays (FR / GB, sinon étape 1 bloquée).
+- Proxy UK saisi case par case dans Réglages (hôte, port, utilisateur, mot de passe), ou en ligne entière.
+- Admin : `sms/prices?countries=16` donne les prix UK même en mode France.
 - Réglages > « Proxy actif » : France ou Royaume-Uni. Proxy UK, port SOCKS5 UK et lien de rotation UK dans la même carte (proxy en réglage `proxyUk`, lien en secret `rotationUrlUk`).
 - En UK : la VA voit le proxy UK à l'étape GeeLark, le bouton IP fait tourner le proxy UK (une fois toutes les 5 min max, `IP_PROFILES.uk.minRotateMin`), et seuls les numéros UK sont proposés (Hero 16, SMSPool 2, SMSOnline 16).
 - Chaque compte garde `ipProfile` (fr/uk) pour comparer les résultats du test.

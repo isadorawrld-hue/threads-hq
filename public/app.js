@@ -142,9 +142,12 @@ function videoEmbed(url) {
   if (!src) return `<p><a class="btn light" href="${esc(url)}" target="_blank" rel="noopener">▶️ Ouvrir la vidéo</a></p>`;
   return `<div class="video"><iframe src="${esc(src)}" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>`;
 }
+const prof = () => (S.data && S.data.settings && S.data.settings.ipProfile) || "fr";
+const ukReady = () => !!(S.data && S.data.configured && S.data.configured.proxyUk && S.data.configured.rotationUk);
 const freshIp = () => {
   const ip = S.data.lastIp;
-  return ip && Date.now() - new Date(ip.at).getTime() < 15 * 60e3 ? ip : null;
+  const prof = (S.data.settings && S.data.settings.ipProfile) || "fr";
+  return ip && (ip.profile || "fr") === prof && Date.now() - new Date(ip.at).getTime() < 15 * 60e3 ? ip : null;
 };
 const threadsUrl = (p) => `https://www.threads.com/@${encodeURIComponent(p)}`;
 
@@ -427,17 +430,22 @@ const VIEWS = {
     const replacing = t.toReplace.length ? acc(t.toReplace[0]) : null;
     const ip = freshIp();
     const ipUsed = ip && S.data.accounts.some((a) => a.ip === ip.ip);
+    // l'IP doit etre dans le pays choisi (proxy UK => GB, proxy France => FR), sinon le numero et l'IP ne collent pas
+    const wantCc = prof() === "uk" ? "GB" : "FR";
+    const ipWrongCc = !!(ip && ip.country && ip.country !== wantCc);
     const bar = `<div class="steps">${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
     const head = `<h2>Créer un compte</h2>${replacing ? `<div class="alert c-red">Ce compte remplace <b>@${esc(replacing.pseudo)}</b> (groupe ${esc(group(replacing.group).name)}). Va jusqu'à Metricool sans pause : les posts repartent dès que Threads est connecté.</div>${w.step === 1 ? hint("remplacement") : ""}` : ""}${bar}`;
     const nav = (canNext, label = "Étape suivante") =>
       `<div class="row" style="margin-top:16px">${w.step > 1 ? '<button class="btn ghost" data-act="wizBack">Retour</button>' : ""}<div class="spacer"></div><button class="btn" data-act="wizNext" ${canNext ? "" : "disabled"}>${label}</button></div>`;
     const proxy = parseProxy(S.data.settings.proxy);
     if (w.step === 1)
-      return `${head}<div class="card"><div class="stepnum">Étape 1 sur 5</div><h3>Change l'IP</h3>${hint("rotation")}
+      return `${head}<div class="card"><div class="stepnum">Étape 1 sur 5</div><h3>${ukReady() ? "Choisis le pays, puis change l'IP" : "Change l'IP"}</h3>${hint("rotation")}
+        ${ukReady() ? `<div class="row" style="margin:6px 0 4px">${[["fr", "🇫🇷 France"], ["uk", "🇬🇧 UK"]].map(([k, l]) => `<button class="btn ${prof() === k ? "" : "light"}" data-act="pickProfile" data-v="${k}" data-wait="...">${prof() === k ? "✓ " : ""}${l}</button>`).join("")}</div>
+        <p class="muted">${prof() === "uk" ? "Proxy UK + numéro UK. L'IP UK ne peut changer que toutes les 5 min." : "Proxy France + numéro français."} Le numéro suit tout seul le pays choisi.</p>` : ""}
         <p>Clique sur le bouton, puis attends que la nouvelle IP s'affiche.</p>
         <button class="btn big rot" data-act="rotate" data-wait="Changement de l'IP...">Changer l'IP</button>
-        ${ip ? `<div class="alert ${ipUsed ? "c-red" : "c-green"}">${ipUsed ? "Cette IP a déjà servi. Rechange-la." : `Nouvelle IP : <b>${esc(ip.ip)}</b> ${esc(ip.country)} (${ago(ip.at)})`}</div>` : '<div class="alert c-yellow">Pas encore d\'IP fraîche.</div>'}
-        ${nav(ip && !ipUsed)}</div>${sopBlock("rotation")}`;
+        ${ip ? `<div class="alert ${ipUsed || ipWrongCc ? "c-red" : "c-green"}">${ipUsed ? "Cette IP a déjà servi. Rechange-la." : ipWrongCc ? `Cette IP est en ${esc(ip.country)}, pas en ${wantCc === "GB" ? "Royaume-Uni" : "France"}. Rechange-la (ou préviens Awen si ça recommence).` : `Nouvelle IP : <b>${esc(ip.ip)}</b> ${esc(ip.country)} (${ago(ip.at)})`}</div>` : '<div class="alert c-yellow">Pas encore d\'IP fraîche.</div>'}
+        ${nav(ip && !ipUsed && !ipWrongCc)}</div>${sopBlock("rotation")}`;
     if (w.step === 2)
       return `${head}<div class="card"><div class="stepnum">Étape 2 sur 5</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
         <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous : type <b>${S.data.settings.socksPort ? "Socks5" : "HTTP"}</b>, puis « Check proxy ».</li><li>Advanced settings : <b>Location</b> et <b>Cloud phone language</b> sur <b>Based on IP</b>.</li><li>Create, puis Start pour allumer le téléphone.</li></ol>
@@ -695,7 +703,9 @@ const VIEWS = {
       <div class="card"><h3 style="margin-top:0">Proxy actif <small class="muted">(celui que la VA voit et fait tourner)</small></h3>
         <div class="row">${Object.entries(st.ipProfiles || { fr: { name: "France" }, uk: { name: "Royaume-Uni" } }).map(([k, p]) => `<button class="btn ${st.ipProfile === k ? "" : "light"}" data-act="setIpProfile" data-v="${k}" data-wait="...">${st.ipProfile === k ? "✓ " : ""}${esc(p.name)}</button>`).join("")}</div>
         <p class="muted">Royaume-Uni : numéros UK seulement, IP changeable toutes les 5 min. France : réglages habituels.</p>
-        <label class="f">Proxy UK ${c.proxyUk ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(ip:port:user:pass ou la ligne HTTP copiée)</small></label><input type="password" data-sec="proxyUk" placeholder="${c.proxyUk ? "enregistré (colle un autre proxy pour le remplacer)" : "hote:port:user:pass"}" autocomplete="off" />
+        <label class="f">Proxy UK ${c.proxyUk ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'} <small>(copie chaque info depuis le site du proxy, case par case)</small></label>
+        <div class="row" style="gap:8px;flex-wrap:wrap"><input data-pxuk="host" placeholder="Hôte (ex : gb.proxy.com ou 1.2.3.4)" style="flex:2;min-width:180px" autocomplete="off" /><input data-pxuk="port" placeholder="Port" inputmode="numeric" style="flex:1;min-width:80px" autocomplete="off" /><input data-pxuk="user" placeholder="Utilisateur" style="flex:1;min-width:120px" autocomplete="off" /><input type="password" data-pxuk="pass" placeholder="Mot de passe" style="flex:1;min-width:120px" autocomplete="off" /></div>
+        <details style="margin-top:6px"><summary class="muted">ou colle la ligne entière</summary><input type="password" data-sec="proxyUk" placeholder="hote:port:user:pass, user:pass@hote:port ou http://..." autocomplete="off" /></details>
         <label class="f">Port SOCKS5 UK pour GeeLark <small>(vide = HTTP)</small></label><input data-st="socksPortUk" inputmode="numeric" value="${esc(st.socksPortUk || "")}" placeholder="ex : 17157" />
         <label class="f">Lien de rotation IP UK ${c.rotationUk ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrlUk" placeholder="${c.rotationUk ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy UK"}" autocomplete="off" />
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSecrets" data-wait="...">Enregistrer le proxy UK</button></div></div>
@@ -1567,6 +1577,15 @@ const ACT = {
       toast("Enregistré");
     });
   },
+  async pickProfile(b) {
+    if (b.dataset.v === prof()) return;
+    await run(b, async () => {
+      await api("ip/profile", { profile: b.dataset.v });
+      S.smsPrices = null;
+      await refresh();
+      toast(b.dataset.v === "uk" ? "UK choisi : change l'IP, le numéro sera UK" : "France choisie : change l'IP, le numéro sera français");
+    });
+  },
   async setIpProfile(b) {
     await run(b, async () => {
       await api("settings", { ipProfile: b.dataset.v });
@@ -1595,6 +1614,12 @@ const ACT = {
     document.querySelectorAll("[data-sec]").forEach((el) => el.value.trim() && (body[el.dataset.sec] = el.value.trim()));
     const sp = ($('[data-st="socksPort"]')?.value || "").replace(/\D/g, "");
     const spChanged = sp !== String(S.data.settings.socksPortFr || "");
+    const px = {};
+    document.querySelectorAll("[data-pxuk]").forEach((el) => (px[el.dataset.pxuk] = el.value.trim()));
+    if (px.host || px.port || px.user || px.pass) {
+      if (!px.host || !/^\d{2,5}$/.test(px.port || "")) return toast("Proxy UK : il faut au moins l'hôte et le port (un nombre).", true);
+      body.proxyUk = [px.host.replace(/^https?:\/\//, "").replace(/\/.*$/, ""), px.port, px.user || "", px.pass || ""].join(":").replace(/:+$/, "");
+    }
     const spUkEl = $('[data-st="socksPortUk"]');
     const spUk = (spUkEl?.value || "").replace(/\D/g, "");
     const spUkChanged = !!spUkEl && spUk !== String(S.data.settings.socksPortUk || "");
