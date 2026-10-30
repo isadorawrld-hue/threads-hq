@@ -65,6 +65,8 @@ assert.equal(ok(await call("sms/balance"), "solde").balance, 9.5);
 assert.equal((await call("sms/buy", { country: 55 })).s, 400, "Taïwan retiré");
 assert.deepEqual(prices.map((c) => c.id), [78, 187, 14, 196], "France, USA, Hong Kong, Singapour");
 const act = ok(await call("sms/buy", { country: 14 }), "achat");
+assert.equal(act.operator, "sfr", "Hero : meilleur opérateur (72 %), pas « tiny » (trop peu de volume)");
+assert.deepEqual((await (await fetch(B + "/__heroN")).json()).ops.slice(-1), ["sfr"]);
 assert.match(act.phone, /^\+8529/);
 assert.equal(act.status, "attente");
 assert.equal((await call("sms/buy", { country: 14 })).s, 400, "un seul numéro en cours");
@@ -82,7 +84,10 @@ assert.equal((await (await fetch(B + "/__sms")).json()).finished, true, "activat
 st = ok(await call("state"), "state");
 assert.equal(st.sms, null, "plus de numéro en cours");
 // un numero annule est rembourse si aucun code
+await fetch(B + "/__dev/heroflaky?opempty=1");
 const act2 = ok(await call("sms/buy", { country: 196 }), "achat 2");
+assert.deepEqual((await (await fetch(B + "/__heroN")).json()).ops.slice(-2), ["sfr", null], "plus de stock chez le meilleur : n'importe quel opérateur");
+await fetch(B + "/__dev/heroflaky?opempty=0");
 assert.equal(ok(await call(`sms/${act2.id}/code`, {}), "pas encore de SMS (400 Waiting) = pas d'erreur").code, null);
 await fetch(B + "/__dev/heroflaky?early=1");
 r = await call(`sms/${act2.id}/cancel`, {});

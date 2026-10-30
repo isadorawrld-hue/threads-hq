@@ -31,6 +31,8 @@ const mcStatus = {};
 let smsN = 0;
 let smsAct = null;
 let heroFail = 0;
+const heroBuyOps = [];
+let heroOpEmpty = false;
 let heroEarly = false;
 let heroComDown = false;
 const heroHosts = [];
@@ -131,9 +133,16 @@ async function fakeFetch(url, opts = {}) {
     if (u.pathname.endsWith("/activations") && opts.method === "POST" && heroLose > 0) { heroLose--; heroLost = true; }
     if (u.pathname.endsWith("/handler_api.php")) return new Response(u.searchParams.get("api_key") === "HERO_TEST" ? "ACCESS_BALANCE:9.5" : "BAD_KEY", { status: 200 });
     if (opts.headers?.Authorization !== "ApiKey HERO_TEST") return new Response(JSON.stringify({ title: "Unauthenticated." }), { status: 401 });
+    if (u.pathname.endsWith("/stats/deliverability")) {
+      if (!u.searchParams.get("successCount")) return new Response(JSON.stringify({ title: "The request was well-formed but was unable to be followed due to semantic errors." }), { status: 422 });
+      const cs = u.searchParams.getAll("countries[]").map(Number);
+      return Response.json({ data: { ig: cs.map((c) => ({ country: c, successRate: 41, operators: [{ code: "free", successRate: 38, share: 30 }, { code: "sfr", successRate: 72, share: 25 }, { code: "tiny", successRate: 99, share: 1 }] })) } });
+    }
     if (u.pathname.endsWith("/activations/offers/sms")) return Response.json({ data: { ig: { 78: { prices: { default: 0.12 }, counts: { total: 934 } }, 187: { prices: { default: 0.1 }, counts: { total: 500 } }, 14: { prices: { default: 0.035 }, counts: { total: 934 } }, 16: { prices: { default: 0.09 }, counts: { total: 321 } }, 196: { prices: { default: 0.2102 }, counts: { total: 117 } }, 55: { prices: { default: 0.75 }, counts: { total: 0 } } } } });
     if (u.pathname.endsWith("/activations") && opts.method === "POST") {
       const b = JSON.parse(opts.body);
+      heroBuyOps.push(b.operator || null);
+      if (b.operator && heroOpEmpty) return new Response(JSON.stringify({ title: "NO_NUMBERS" }), { status: 404 });
       if (b.country === 55) return new Response(JSON.stringify({ title: "NO_NUMBERS" }), { status: 404 });
       smsN++; smsAct = { id: String(7000 + smsN), phone: "8529" + String(1000000 + smsN), price: b.country === 14 ? 0.035 : 0.2102, expiredAt: new Date(Date.now() + 20 * 60e3).toISOString(), code: null, finished: false, cancelled: false };
       const item = { id: smsAct.id, status: "waitOtp", phone: smsAct.phone, service: b.service, country: b.country, countryPhoneCode: 852, price: smsAct.price, createdAt: new Date().toISOString(), expiredAt: smsAct.expiredAt };
@@ -219,11 +228,12 @@ http
       heroFail = Number(url.searchParams.get("fail") || 0);
       heroLose = Number(url.searchParams.get("lose") || 0);
       if (url.searchParams.has("early")) heroEarly = true;
+      if (url.searchParams.has("opempty")) heroOpEmpty = url.searchParams.get("opempty") === "1";
       if (url.searchParams.has("comdown")) heroComDown = url.searchParams.get("comdown") === "1";
       heroHosts.length = 0;
       res.writeHead(200); return res.end("ok");
     }
-    if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN, hosts: heroHosts })); }
+    if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN, hosts: heroHosts, ops: heroBuyOps })); }
     if (url.pathname === "/__dev/sp") { if (url.searchParams.has("nobest")) { spNoBest = url.searchParams.get("nobest") === "1"; res.writeHead(200); return res.end("ok"); } if (url.searchParams.has("early")) spEarly = true; else if (sp) sp.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__sp") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: spN, sp, opts: spOpts })); }
     if (url.pathname === "/__dev/so") { if (so) so.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
