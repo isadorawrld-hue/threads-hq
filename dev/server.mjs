@@ -31,6 +31,8 @@ const mcStatus = {};
 let smsN = 0;
 let smsAct = null;
 let heroFail = 0;
+let emN = 0;
+let em = null;
 const heroBuyOps = [];
 let heroOpEmpty = false;
 let heroEarly = false;
@@ -133,6 +135,18 @@ async function fakeFetch(url, opts = {}) {
     if (u.pathname.endsWith("/activations") && opts.method === "POST" && heroLose > 0) { heroLose--; heroLost = true; }
     if (u.pathname.endsWith("/handler_api.php")) return new Response(u.searchParams.get("api_key") === "HERO_TEST" ? "ACCESS_BALANCE:9.5" : "BAD_KEY", { status: 200 });
     if (opts.headers?.Authorization !== "ApiKey HERO_TEST") return new Response(JSON.stringify({ title: "Unauthenticated." }), { status: 401 });
+    if (u.pathname.endsWith("/emails/domains")) return Response.json({ data: u.searchParams.get("site") === "instagram.com" ? [{ name: "gmail.com", cost: 0.3, count: 12 }, { name: "outlook.com", cost: 0.06, count: 40 }, { name: "vide.com", cost: 0.01, count: 0 }] : [] });
+    if (u.pathname.endsWith("/emails") && opts.method === "POST") {
+      const b = JSON.parse(opts.body);
+      if (b.site !== "instagram.com" || !b.domain) return new Response(JSON.stringify({ title: "bad " + opts.body }), { status: 422 });
+      emN++; em = { id: 9000 + emN, email: "chloe.test" + emN + "@" + b.domain, status: "WAIT", value: null, cost: b.domain === "outlook.com" ? 0.06 : 0.3, cancelled: false };
+      return Response.json({ data: { ...em } });
+    }
+    let mm;
+    if ((mm = u.pathname.match(/\/emails\/(\d+)$/)) && em && Number(mm[1]) === em.id) {
+      if (opts.method === "DELETE") { if (em.value) return new Response(JSON.stringify({ title: "already" }), { status: 422 }); em.cancelled = true; em.status = "CANCEL"; return new Response(null, { status: 204 }); }
+      return Response.json({ data: { ...em } });
+    }
     if (u.pathname.endsWith("/stats/deliverability")) {
       if (!u.searchParams.get("successCount")) return new Response(JSON.stringify({ title: "The request was well-formed but was unable to be followed due to semantic errors." }), { status: 422 });
       const cs = u.searchParams.getAll("countries[]").map(Number);
@@ -236,6 +250,8 @@ http
     if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN, hosts: heroHosts, ops: heroBuyOps })); }
     if (url.pathname === "/__dev/sp") { if (url.searchParams.has("nobest")) { spNoBest = url.searchParams.get("nobest") === "1"; res.writeHead(200); return res.end("ok"); } if (url.searchParams.has("early")) spEarly = true; else if (sp) sp.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__sp") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: spN, sp, opts: spOpts })); }
+    if (url.pathname === "/__dev/email") { if (em) { em.value = url.searchParams.get("code") || "123456"; em.status = "SUCCESS"; } res.writeHead(200); return res.end("ok"); }
+    if (url.pathname === "/__email") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(em)); }
     if (url.pathname === "/__dev/so") { if (so) so.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__so") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: soN, so })); }
     if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }

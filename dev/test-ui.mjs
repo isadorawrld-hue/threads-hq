@@ -111,7 +111,7 @@ await v.fill('[data-f="phone"]', "+886 912 345 678");
 await v.click('[data-act="wizNext"]');
 // pseudo propose par la banque : Utiliser remplit le champ, Un autre en change
 const sug1 = await v.textContent(".pseudosug b");
-if (!/chloe/.test(sug1)) throw new Error("pas de pseudo proposé : " + sug1);
+if (!/c\.?hloe/.test(sug1)) throw new Error("pas de pseudo proposé : " + sug1);
 await v.click('[data-act="otherPseudo"]');
 const sug2 = await v.textContent(".pseudosug b");
 if (sug2 === sug1) throw new Error("« Un autre » ne change pas le pseudo");
@@ -139,6 +139,8 @@ await v.click('main [data-act="rotate"]');
 await waitToast(v, /Nouvelle IP/);
 await v.click('[data-act="wizNext"]');
 await v.click('[data-act="wizNext"]');
+await v.waitForSelector('[data-act="wizMode"][data-v="phone"]');
+await v.click('[data-act="wizMode"][data-v="phone"]');
 await v.waitForSelector('[data-act="smsBuy"]');
 await v.waitForFunction(() => /934 dispo/.test(document.body.textContent));
 await shot(v, "06b-sms-choix");

@@ -156,3 +156,11 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - En UK : la VA voit le proxy UK à l'étape GeeLark, le bouton IP fait tourner le proxy UK (une fois toutes les 5 min max, `IP_PROFILES.uk.minRotateMin`), et seuls les numéros UK sont proposés (Hero 16, SMSPool 2, SMSOnline 16).
 - Chaque compte garde `ipProfile` (fr/uk) pour comparer les résultats du test.
 - Le proxy France n'est jamais écrasé : l'état envoie le proxy actif dans `settings.proxy` et le proxy France dans `settings.proxyFr`.
+
+## E-mail d'activation (Hero) — ajouté le 30 oct.
+- Pourquoi : les numéros virtuels ne reçoivent le code Instagram/Threads qu'environ 1 fois sur 13 en France (stats Hero). Le code par e-mail arrive presque toujours.
+- Étape 3 de « Créer un compte » : 2 onglets, « Avec un e-mail (conseillé) » par défaut, « Avec un numéro » en secours.
+- API Hero : `GET /emails/domains?site=instagram.com` (domaines, prix, stock), `POST /emails` {site, domain}, `GET /emails/{id}` (champ `value` = code), `DELETE /emails/{id}` (remboursement). Le CRM prend le domaine le moins cher qui a du stock.
+- Code lu dans `value` (6 chiffres, espace accepté : « 384 120 »). Un e-mail en cours bloque le changement d'IP comme un numéro.
+- Un compte peut être créé avec un e-mail sans numéro (`phone` vide, `emailId` noté). Échec = e-mail remboursé tout seul.
+- Réglage `emailSite` (défaut instagram.com) si Hero range Threads sous un autre site.

@@ -96,7 +96,7 @@ function modal(html) {
 // Bug reel du 29-30 oct. : la VA rechangeait l'IP en pleine creation (point gris pris pour une IP morte).
 function creating() {
   const w = S.wiz;
-  return !!((w && w.step >= 2 && w.step <= 5) || (S.data && S.data.sms && S.data.sms.status === "attente"));
+  return !!((w && w.step >= 2 && w.step <= 5) || (S.data && S.data.sms && S.data.sms.status === "attente") || (S.data && S.data.emailAct && S.data.emailAct.status === "attente"));
 }
 function closeModal() {
   $("#modal").classList.add("hidden");
@@ -222,6 +222,12 @@ const HELP = {
     hint: "Nouveau profil GeeLark, colle le proxy du CRM, allume le téléphone.",
     more: ["Ouvre l'appli GeeLark sur le PC.", "Crée un nouveau profil (jamais un ancien).", "Onglet Proxy : le type indiqué par le CRM (Socks5), puis le port du CRM. Mauvais port = test rouge.", "Colle hôte, port, utilisateur, mot de passe avec les boutons Copier du CRM.", "Teste le proxy (« Check proxy »).", "Advanced settings : Location et Cloud phone language sur « Based on IP ».", "Create, puis Start pour allumer le téléphone.", "Note le nom du profil dans le CRM."],
     trap: "Réutiliser un ancien profil. 1 profil = 1 compte, toujours.",
+  },
+  email: {
+    t: "Prendre un e-mail",
+    hint: "Prends un e-mail, inscris-toi avec dans Threads. Le code arrive ici tout seul.",
+    more: ["Clique « Prendre un e-mail ».", "Dans Threads / Instagram, choisis « S'inscrire avec une adresse e-mail ».", "Copie l'e-mail du CRM et colle-le.", "Le code arrive ici tout seul (en général en moins de 2 min). Copie-le dans Threads.", "Pas de code après 5 min : bouton rouge « Pas de code : annuler l'e-mail », puis reprends-en un.", "Si Threads refuse l'e-mail, passe sur « Avec un numéro »."],
+    trap: "Utiliser 2 fois le même e-mail.",
   },
   numero: {
     t: "Prendre un numéro",
@@ -464,12 +470,23 @@ const VIEWS = {
         w.f.phone = cur.phone;
         w.f.smsId = cur.id;
       }
-      return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>${hint("numero")}
-        ${cur ? smsCard(cur) : smsBuyBlock() + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+33 ..." /></details>`}
-        ${nav(!!(w.f.phone))}</div>`;
+      const ecur = S.data.emailAct && S.data.emailAct.status === "attente" ? S.data.emailAct : null;
+      if (ecur) {
+        w.f.email = ecur.email;
+        w.f.emailId = ecur.id;
+      }
+      // e-mail par defaut : les numeros virtuels recoivent rarement le code (1 sur 13 en France le 30 oct.)
+      const mode = cur ? "phone" : ecur ? "email" : w.mode || "email";
+      const tabs = `<div class="row" style="margin:6px 0 10px">${[["email", "✉️ Avec un e-mail (conseillé)"], ["phone", "📱 Avec un numéro"]].map(([k, l]) => `<button class="btn ${mode === k ? "" : "light"}" data-act="wizMode" data-v="${k}" ${(cur && k === "email") || (ecur && k === "phone") ? "disabled" : ""}>${mode === k ? "✓ " : ""}${l}</button>`).join("")}</div>`;
+      const body = mode === "email"
+        ? (ecur ? emailCard(ecur) : emailBuyBlock()) + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un e-mail (à la main)</summary><label class="f">E-mail utilisé</label><input data-f="email" value="${esc(w.f.email || "")}" placeholder="ex : prenom@gmail.com" autocapitalize="off" /></details>`
+        : cur ? smsCard(cur) : smsBuyBlock() + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+33 ..." /></details>`;
+      return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>${mode === "email" ? "Prends un e-mail" : "Prends un numéro"}</h3>${hint(mode === "email" ? "email" : "numero")}
+        ${tabs}${body}
+        ${nav(!!(w.f.phone || w.f.email))}</div>`;
     }
     if (w.step === 4)
-      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Threads</h3>${hint("compte")}
+      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}${S.data.emailAct && S.data.emailAct.status === "attente" && S.data.emailAct.id === w.f.emailId ? `<div class="card">${emailCard(S.data.emailAct)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Threads</h3>${hint("compte")}
         <label class="f">Pseudo</label>${pseudoSuggest(w)}<input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
         <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(aliasOf(w.f.pseudo))}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(aliasOf(w.f.pseudo))}</button></div>
@@ -875,6 +892,20 @@ function smsBuyBlock() {
     <div class="row" style="margin-top:10px">${offers.filter((o) => o !== first).map((o) => btn(o, false)).join("")}</div>
     <p class="muted">Pas de code au bout de 8 min ? Rembourse, puis essaie le site suivant.${bal ? ` · Solde : ${bal}` : ""} · <a href="#" data-act="smsPrices">actualiser</a></p>`;
 }
+function emailBuyBlock() {
+  const doms = S.emailDomains || null;
+  const best = doms && doms.filter((d) => d.count > 0).sort((a, b) => a.cost - b.cost)[0];
+  return `<p>Clique le bouton : tu reçois une adresse e-mail. Le code d'Instagram / Threads arrive <b>ici</b>, tu n'as rien d'autre à ouvrir.</p>
+    <button class="btn big" data-act="emailBuy" data-wait="Achat de l'e-mail...">Prendre un e-mail</button>
+    <p class="muted">${doms ? (best ? `Moins cher : ${esc(best.name)} · ${best.cost.toFixed(3).replace(/0+$/, "")} $ · ${best.count} dispo` : "Plus d'e-mail disponible pour l'instant : prends un numéro.") : `<a href="#" data-act="emailDomains">voir les prix</a>`}</p>`;
+}
+function emailCard(cur) {
+  return `<div class="alert c-blue"><b>E-mail</b> · ${cur.price ? cur.price.toFixed(3).replace(/0+$/, "") + " $" : ""}</div>
+    ${copyLine("E-mail", cur.email)}
+    <p>Dans Threads / Instagram, choisis <b>« S'inscrire avec une adresse e-mail »</b> et colle cet e-mail. Le code arrive ici tout seul (en général en moins de 2 min).</p>
+    ${cur.code ? `<div class="alert c-green" style="font-size:22px;font-weight:700;letter-spacing:2px">${esc(cur.code)} <button class="btn sm light" data-act="copy" data-v="${esc(cur.code)}" style="letter-spacing:0;font-size:13px">Copier</button></div>` : `<div class="alert c-yellow" data-emailwait>En attente du code…</div>`}
+    <div class="row" style="margin-top:10px">${cur.code ? "" : `<button class="btn sm light" data-act="emailCode" data-wait="...">Vérifier maintenant</button><button class="btn sm bad" data-act="emailCancel" data-wait="...">Pas de code : annuler l'e-mail</button>`}</div>`;
+}
 function smsCard(cur) {
   const left = Math.max(0, Math.round((new Date(cur.expiredAt).getTime() - Date.now()) / 1000));
   const mm = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
@@ -974,12 +1005,29 @@ async function compress(file) {
 
 // ------------------------------------------------------------ apres rendu
 let smsPoll = null;
+let emailPoll = null;
 function afterRender() {
   // prix Hero SMS charges tout seuls a l'arrivee sur l'etape
   if (document.querySelector('[data-act="smsPrices"]') && !S.smsPrices && !S.smsPricesLoading) {
     S.smsPricesLoading = true;
     api("sms/prices").then((p) => { S.smsPrices = p; render(); }).catch(() => {}).finally(() => (S.smsPricesLoading = false));
     loadBalances().then(() => document.querySelector('[data-act="smsPrices"]') && render());
+  }
+  // code e-mail : pareil, toutes les 5 s
+  clearInterval(emailPoll);
+  if (document.querySelector("[data-emailwait]") && S.data.emailAct && S.data.emailAct.status === "attente") {
+    emailPoll = setInterval(async () => {
+      if (!document.querySelector("[data-emailwait]")) return clearInterval(emailPoll);
+      try {
+        const act = await api(`email/${S.data.emailAct.id}/code`, {});
+        if (act.code || act.status !== "attente") {
+          clearInterval(emailPoll);
+          if (act.code) toast("Code reçu : " + act.code);
+          else toast("L'e-mail a expiré. Prends-en un autre.", true);
+          await refresh();
+        }
+      } catch {}
+    }, 5000);
   }
   // code SMS : on verifie toutes les 5 s tant qu'il n'est pas arrive
   clearInterval(smsPoll);
@@ -1109,7 +1157,7 @@ const ACT = {
   wizNext() {
     const w = S.wiz;
     readWizFields();
-    if (w.step === 3 && !w.f.phone) return toast("Mets le numéro.", true);
+    if (w.step === 3 && !w.f.phone && !w.f.email) return toast("Prends un e-mail ou un numéro.", true);
     if (w.step === 4 && (!w.f.pseudo || !w.f.password)) return toast("Mets le pseudo et le mot de passe.", true);
     w.step++;
     render();
@@ -1159,7 +1207,7 @@ const ACT = {
   },
   async wizFailSend(b) {
     await run(b, async () => {
-      await api("accounts/failed", { phone: S.wiz.f.phone, smsId: S.wiz.f.smsId || "", reason: $("#failwhy").value });
+      await api("accounts/failed", { phone: S.wiz.f.phone || S.wiz.f.email || "", smsId: S.wiz.f.smsId || "", emailId: S.wiz.f.emailId || "", reason: $("#failwhy").value });
       closeModal();
       S.wiz = { step: 1, f: { geelarkProfile: S.wiz.f.geelarkProfile } };
       await refresh();
@@ -1228,6 +1276,44 @@ const ACT = {
       toast(msg);
       S.tab = "metricool";
       await refresh();
+    });
+  },
+  wizMode(b) {
+    readWizFields();
+    S.wiz.mode = b.dataset.v;
+    render();
+  },
+  async emailDomains(b) {
+    await run(b, async () => {
+      S.emailDomains = await api("email/domains");
+      render();
+    });
+  },
+  async emailBuy(b) {
+    readWizFields();
+    await run(b, async () => {
+      const act = await api("email/buy", {});
+      S.wiz.f.email = act.email;
+      S.wiz.f.emailId = act.id;
+      await refresh();
+      toast(`E-mail pris : ${act.email}`);
+    });
+  },
+  async emailCode(b) {
+    await run(b, async () => {
+      const act = await api(`email/${S.data.emailAct.id}/code`, {});
+      if (!act.code) toast("Pas encore de code. Vérifie que tu as bien demandé le code dans Threads.", true);
+      else toast("Code reçu : " + act.code);
+      await refresh();
+    });
+  },
+  async emailCancel(b) {
+    await run(b, async () => {
+      await api(`email/${S.data.emailAct.id}/cancel`, {});
+      S.wiz.f.email = "";
+      S.wiz.f.emailId = "";
+      await refresh();
+      toast("E-mail annulé et remboursé. Reprends-en un autre.");
     });
   },
   async smsPrices(b) {

@@ -544,6 +544,34 @@ ok(await call("settings", { smsCountries: [78, 187, 14, 196] }), "tous les pays"
 ok(await call("secrets", { clear: "spKey" }), "débrancher SMSPool");
 step("SMSPool : France seulement, choix du site, code, remboursement (attente 2 min expliquée), Hero en secours");
 
+// --- e-mail d'activation Hero : compte créé avec un e-mail, sans numéro
+tok = va;
+const doms = ok(await call("email/domains"), "domaines e-mail");
+assert.ok(doms.some((d) => d.name === "outlook.com" && d.count === 40));
+const em1 = ok(await call("email/buy", {}), "achat e-mail");
+assert.match(em1.email, /@outlook\.com$/, "le moins cher avec du stock (pas vide.com)");
+assert.equal((await call("email/buy", {})).s, 400, "un seul e-mail en cours");
+assert.equal(ok(await call(`email/${em1.id}/code`, {}), "code ?").code, null);
+// « 384 120 » : Instagram met parfois un espace ; on garde les 6 chiffres
+await fetch(B + "/__dev/email?code=" + encodeURIComponent("Your Instagram code is 384 120"));
+assert.equal(ok(await call(`email/${em1.id}/code`, {}), "code e-mail").code, "384120");
+assert.equal((await call(`email/${em1.id}/cancel`, {})).s, 400, "code reçu : pas de remboursement");
+await call("rotate", {});
+const emAcc = ok(await call("accounts/create", { pseudo: "mail_girl1", email: em1.email, emailId: em1.id, password: "pw" }), "compte créé avec un e-mail, sans numéro");
+assert.equal(emAcc.email, em1.email);
+assert.equal(emAcc.phone, "");
+st = ok(await call("state"), "state");
+assert.equal(st.emailAct, null, "plus d'e-mail en cours");
+const em2 = ok(await call("email/buy", {}), "achat e-mail 2");
+ok(await call(`email/${em2.id}/cancel`, {}), "annulation e-mail");
+assert.equal((await (await fetch(B + "/__email")).json()).cancelled, true, "remboursé chez Hero");
+const em3 = ok(await call("email/buy", {}), "achat e-mail 3");
+ok(await call("accounts/failed", { phone: em3.email, emailId: em3.id, reason: "Demande de vérification" }), "échec e-mail");
+assert.equal((await (await fetch(B + "/__email")).json()).cancelled, true, "échec = remboursé");
+assert.equal((await call("accounts/create", { pseudo: "rien_du_tout", password: "pw" })).s, 400, "ni numéro ni e-mail : refusé");
+tok = admin;
+step("e-mail Hero : moins cher en stock, code reçu tout seul, compte sans numéro, remboursement et échec remboursé");
+
 // --- proxy UK (test du 30 oct.) : profil actif, rotation toutes les 5 min, numeros UK
 tok = admin;
 assert.equal((await call("settings", { ipProfile: "uk" })).s, 400, "pas de bascule UK sans proxy UK");
