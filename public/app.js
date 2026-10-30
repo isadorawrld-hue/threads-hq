@@ -126,6 +126,46 @@ function ago(iso) {
 const fmt = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
 const copyLine = (k, v, secret) =>
   `<div class="copyline"><span class="k">${esc(k)}</span><span class="v">${v ? esc(secret ? "••••••••" : v) : '<span class="muted">vide</span>'}</span>${v ? `<button class="btn sm light" data-act="copy" data-v="${esc(v)}">Copier</button>` : ""}</div>`;
+// --- 2FA (TOTP, RFC 6238) calcule dans le navigateur : 6 chiffres, nouveau code toutes les 30 s
+const TOTP_CACHE = {};
+function b32decode(str) {
+  const al = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0, val = 0;
+  const out = [];
+  for (const ch of String(str).toUpperCase().replace(/[^A-Z2-7]/g, "")) {
+    val = (val << 5) | al.indexOf(ch);
+    bits += 5;
+    if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  return new Uint8Array(out);
+}
+async function totpCode(secret, t = Date.now()) {
+  const step = Math.floor(t / 1000 / 30);
+  const ck = secret + ":" + step;
+  if (TOTP_CACHE[ck]) return TOTP_CACHE[ck];
+  const msg = new Uint8Array(8);
+  let c = step;
+  for (let i = 7; i >= 0; i--) { msg[i] = c & 255; c = Math.floor(c / 256); }
+  const key = await crypto.subtle.importKey("raw", b32decode(secret), { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+  const h = new Uint8Array(await crypto.subtle.sign("HMAC", key, msg));
+  const o = h[h.length - 1] & 15;
+  const n = (((h[o] & 127) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6;
+  return (TOTP_CACHE[ck] = String(n).padStart(6, "0"));
+}
+const totpLine = (a) => (a && a.totp ? `<div class="copyline"><span class="k">Code 2FA</span><span class="v"><b data-totp="${esc(a.id)}" style="letter-spacing:2px;font-size:16px">······</b> <small class="muted" data-totpleft></small></span><button class="btn sm light" data-act="copyTotp" data-id="${esc(a.id)}">Copier</button></div>` : "");
+async function tickTotp() {
+  const els = document.querySelectorAll("[data-totp]");
+  if (!els.length || !S.data) return;
+  const left = 30 - (Math.floor(Date.now() / 1000) % 30);
+  for (const el of els) {
+    const a = S.data.accounts.find((x) => x.id === el.dataset.totp);
+    if (!a || !a.totp) continue;
+    try { el.textContent = await totpCode(a.totp); } catch { el.textContent = "clé invalide"; }
+    const l = el.parentElement.querySelector("[data-totpleft]");
+    if (l) l.textContent = `(${left} s)`;
+  }
+}
+setInterval(tickTotp, 1000);
 // traduction FR sous chaque texte chinois montre a la VA (remplie par afterRender via /api/tr, cache dans S.tr)
 const HAN = /[\u3400-\u9fff]/;
 const frSlot = (t) => (HAN.test(t || "") ? `<div class="frtr" data-fr="${esc(t)}"><span class="frk">FR</span><span class="frv">${esc(S.tr?.[t] || "traduction...")}</span></div>` : "");
@@ -583,7 +623,7 @@ const VIEWS = {
         <span class="muted">Créé ${ago(a.createdAt)} par ${esc(a.createdBy)} · IP ${esc(a.ip || "?")}</span>
         ${a.notes ? `<div class="accnote">${esc(a.notes)}</div>` : ""}
         ${a.replaces ? `<span class="muted">Remplace @${esc(acc(a.replaces)?.pseudo || "?")}</span>` : ""}${a.replacedBy ? `<span class="muted">Remplacé par @${esc(acc(a.replacedBy)?.pseudo || "?")}</span>` : ""}
-        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button><button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
+        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button>${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
   },
 
   planning() {
@@ -930,7 +970,7 @@ function mcConnectCard(a) {
       <li>Copie ce lien : ${copyLine("Lien", a.mcLink)}</li>
       <li>Ouvre-le dans le <b>navigateur du téléphone GeeLark du compte</b> (même téléphone, même IP). Jamais sur ton PC.</li>
       <li>Touche <b>Connect a Threads account</b>, accepte les cookies.</li>
-      <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</li>
+      <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}</li>
       <li>Accepte <b>toutes</b> les permissions. Si ça te renvoie sur Threads, ferme et refais l'étape 3.</li>
       <li>Reviens ici et clique le bouton vert.</li>
     </ol>
@@ -973,7 +1013,7 @@ function setupWizard(a) {
   return `<h2>Setup de @${esc(a.pseudo)}</h2>${hint("setup")}
     <div class="alert">${spill(strat)}<div style="margin-top:6px">${explain}</div></div>
     <div class="card"><div class="stepnum">1. Même profil, même IP</div>
-      <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}</div>
+      <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}</div>
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
     <div class="card"><div class="stepnum">3. Bio</div>${bank.length ? `<p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} » (${bank.length} restantes). Copie-la telle quelle : une fois le setup fini, elle sort de la banque.</p>` : '<div class="alert c-red">Plus aucune bio dans cette banque. Préviens Awen ou Bilot (Contenu, Bios).</div>'}<textarea data-setupbio>${esc(s.bio)}</textarea>${frSlot(s.bio)}<div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
@@ -1128,6 +1168,13 @@ function tick(el, end) {
 // ------------------------------------------------------------ actions
 const ACT = {
   copy: (b) => copy(b.dataset.v),
+  async copyTotp(b) {
+    const a = acc(b.dataset.id);
+    if (!a || !a.totp) return;
+    const code = await totpCode(a.totp);
+    copy(code);
+    toast(`Code 2FA ${code} copié (valable ${30 - (Math.floor(Date.now() / 1000) % 30)} s)`);
+  },
   help(b) {
     const k = b.dataset.k;
     const h = HELP[k];
@@ -1570,12 +1617,12 @@ const ACT = {
   },
   edit(b) {
     const a = acc(b.dataset.id);
-    const fields = [["pseudo", "Pseudo"], ["password", "Mot de passe"], ["phone", "Numéro"], ["email", "Email"], ["emailPassword", "Mot de passe email"], ["geelarkProfile", "Profil GeeLark"], ["link", "Lien"], ["notes", "Notes"]];
+    const fields = [["pseudo", "Pseudo"], ["password", "Mot de passe"], ["phone", "Numéro"], ["email", "Email"], ["emailPassword", "Mot de passe email"], ["totp", "Clé 2FA"], ["geelarkProfile", "Profil GeeLark"], ["link", "Lien"], ["notes", "Notes"]];
     modal(`<h3>@${esc(a.pseudo)}</h3>${fields.map(([k, l]) => k === "notes" ? `<label class="f">${l} <small>(tout ce que tu veux retenir sur ce compte)</small></label><textarea data-ed="notes">${esc(a.notes || "")}</textarea>` : `<label class="f">${l}</label><input data-ed="${k}" value="${esc(a[k] || "")}" />`).join("")}
       ${isAdmin() ? `<label class="f">Groupe</label><select data-ed="group">${S.data.settings.groups.map((g) => `<option value="${g.id}" ${g.id === a.group ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select>
       <label class="f">Stratégie</label><select data-ed="strategy">${Object.entries(S.data.strategyLabels || {}).map(([k, l]) => `<option value="${k}" ${k === a.strategy ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
       <label class="f">Statut</label><select data-ed="status">${Object.entries(S.data.statusLabels).map(([k, l]) => `<option value="${k}" ${k === a.status ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}
-      <p class="muted">IP de création : ${esc(a.ip || "?")} · Marque Metricool : ${esc(a.blogId || "aucune")}</p>
+      ${totpLine(a)}<p class="muted">IP de création : ${esc(a.ip || "?")} · Marque Metricool : ${esc(a.blogId || "aucune")}</p>
       <div class="row" style="margin-top:14px"><button class="btn" data-act="saveEdit" data-id="${a.id}" data-wait="...">Enregistrer</button>${a.blogId ? `<button class="btn light" data-act="unlink" data-id="${a.id}">Délier Metricool</button>` : ""}${isAdmin() ? `<div class="spacer"></div><button class="btn sm bad" data-act="delAcc" data-id="${a.id}">Supprimer</button>` : ""}</div>`);
   },
   async saveEdit(b) {

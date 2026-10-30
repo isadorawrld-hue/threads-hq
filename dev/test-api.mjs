@@ -582,6 +582,21 @@ assert.match(r.j.error, /NOUVEAU téléphone GeeLark/);
 tok = admin;
 step("e-mail Hero : moins cher en stock, code reçu tout seul, compte sans numéro, remboursement et échec remboursé");
 
+// --- 2FA : cle propre (espaces, otpauth://), cle invalide refusee
+{
+  const anyAcc = ok(await call("state"), "state").accounts.find((a) => a.status !== "saute");
+  ok(await call(`accounts/${anyAcc.id}/edit`, { totp: "gezd gnbv gy3t qojq gezd gnbv gy3t qojq" }), "clé 2FA avec espaces");
+  let a2 = ok(await call("state"), "state").accounts.find((a) => a.id === anyAcc.id);
+  assert.equal(a2.totp, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+  ok(await call(`accounts/${anyAcc.id}/edit`, { totp: "otpauth://totp/Instagram:x?secret=JBSWY3DPEHPK3PXP&issuer=Instagram" }), "lien otpauth");
+  a2 = ok(await call("state"), "state").accounts.find((a) => a.id === anyAcc.id);
+  assert.equal(a2.totp, "JBSWY3DPEHPK3PXP");
+  r = await call(`accounts/${anyAcc.id}/edit`, { totp: "pas une clé !!" });
+  assert.equal(r.s, 400, "clé invalide refusée");
+  ok(await call(`accounts/${anyAcc.id}/edit`, { totp: "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ" }), "clé 2FA pour le test UI");
+  step("2FA : clé nettoyée (espaces, lien otpauth), clé invalide refusée");
+}
+
 // --- proxy UK (test du 30 oct.) : profil actif, rotation toutes les 5 min, numeros UK
 tok = admin;
 assert.equal((await call("settings", { ipProfile: "uk" })).s, 400, "pas de bascule UK sans proxy UK");

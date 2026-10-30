@@ -175,3 +175,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Avant ça, s'inscrire directement dans Threads donnait « Try again later » (e-mail) ou aucun SMS (numéros).
 - Les textes de l'étape 3 (e-mail) et 4 (compte) du CRM suivent cette méthode.
 - Instagram peut demander un numéro en plus de l'e-mail : à l'étape 4, encadré « Instagram demande aussi un numéro ? » (achat sur place), ou onglet Numéro à tout moment. Le numéro s'ajoute au compte en cours (e-mail + numéro notés, les deux fermés à la création).
+
+## 2FA des comptes (31 oct.)
+- Comptes achetés = 2FA activée. Clé 2FA (TOTP) par compte : champ « Clé 2FA » dans « Modifier / notes » (clé brute avec ou sans espaces, ou lien otpauth://, nettoyée par `cleanTotp`).
+- Le code à 6 chiffres est calculé dans le navigateur (RFC 6238, SHA-1, 30 s, vérifié avec le vecteur officiel 287082), mis à jour chaque seconde avec le temps restant.
+- Affiché sur la carte du compte (bouton « Code 2FA »), dans l'étape Metricool et le setup (sous Pseudo / Mot de passe), et dans « Modifier ».
