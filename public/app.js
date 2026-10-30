@@ -152,20 +152,41 @@ async function totpCode(secret, t = Date.now()) {
   const n = (((h[o] & 127) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6;
   return (TOTP_CACHE[ck] = String(n).padStart(6, "0"));
 }
+// meme regle que cleanTotp cote serveur : espaces, tirets ou lien otpauth:// acceptes
+function cleanTotpC(v) {
+  let x = String(v ?? "").trim();
+  const m = x.match(/[?&]secret=([^&]+)/i);
+  if (m) x = decodeURIComponent(m[1]);
+  x = x.replace(/[\s-]/g, "").toUpperCase().replace(/=+$/, "");
+  return /^[A-Z2-7]{8,128}$/.test(x) ? x : "";
+}
+// "__wiz" = la cle tapee dans « J'ai déjà un compte », lue en direct dans le champ
+const totpSecret = (id) => {
+  if (id === "__wiz") {
+    const el = document.querySelector('[data-f="totp"]');
+    return cleanTotpC(el ? el.value : S.wiz?.f?.totp);
+  }
+  const a = S.data?.accounts.find((x) => x.id === id);
+  return a && a.totp ? a.totp : "";
+};
 const totpLine = (a) => (a && a.totp ? `<div class="copyline"><span class="k">Code 2FA</span><span class="v"><b data-totp="${esc(a.id)}" style="letter-spacing:2px;font-size:16px">······</b> <small class="muted" data-totpleft></small></span><button class="btn sm light" data-act="copyTotp" data-id="${esc(a.id)}">Copier</button></div>` : "");
 async function tickTotp() {
   const els = document.querySelectorAll("[data-totp]");
   if (!els.length || !S.data) return;
   const left = 30 - (Math.floor(Date.now() / 1000) % 30);
   for (const el of els) {
-    const a = S.data.accounts.find((x) => x.id === el.dataset.totp);
-    if (!a || !a.totp) continue;
-    try { el.textContent = await totpCode(a.totp); } catch { el.textContent = "clé invalide"; }
+    const sec = totpSecret(el.dataset.totp);
+    if (!sec) {
+      if (el.dataset.totp === "__wiz") el.textContent = "colle la clé";
+      continue;
+    }
+    try { el.textContent = await totpCode(sec); } catch { el.textContent = "clé invalide"; }
     const l = el.parentElement.querySelector("[data-totpleft]");
     if (l) l.textContent = `(${left} s)`;
   }
 }
 setInterval(tickTotp, 1000);
+window.totpCodeForTest = (k) => totpCode(k);
 // traduction FR sous chaque texte chinois montre a la VA (remplie par afterRender via /api/tr, cache dans S.tr)
 const HAN = /[\u3400-\u9fff]/;
 const frSlot = (t) => (HAN.test(t || "") ? `<div class="frtr" data-fr="${esc(t)}"><span class="frk">FR</span><span class="frv">${esc(S.tr?.[t] || "traduction...")}</span></div>` : "");
@@ -280,6 +301,12 @@ const HELP = {
     hint: "Crée d'abord un compte Instagram normal, puis connecte Threads avec. Note pseudo et mot de passe ici.",
     more: ["Dans le téléphone GeeLark : ouvre l'appli INSTAGRAM (pas Threads) et crée un compte normal (e-mail du CRM de préférence).", "Colle l'e-mail (ou le numéro), puis le code qui arrive dans le CRM.", "Une fois le compte Instagram créé : ouvre Threads et connecte-toi avec ce compte Instagram.", "Mot de passe : clique « Générer » dans le CRM et copie-le (ou note ici celui que tu as tapé).", "Date de naissance : plus de 21 ans.", "Profil public, accepte les conditions, autorise les notifications.", "Note le pseudo et le mot de passe dans le CRM."],
     trap: "Taper un autre mot de passe que celui du CRM. On perd le compte.",
+  },
+  connexion: {
+    t: "Se connecter à un compte acheté",
+    hint: "Instagram d'abord : identifiant, mot de passe, puis le code 2FA du CRM.",
+    more: ["Étapes 1 et 2 comme d'habitude : nouvelle IP, nouveau téléphone GeeLark avec le proxy.", "Colle dans le CRM l'identifiant, le mot de passe et la clé 2FA reçus avec le compte.", "Dans GeeLark, ouvre Instagram et touche « Se connecter ».", "Colle l'identifiant, puis le mot de passe (boutons Copier du CRM).", "Instagram demande un code à 6 chiffres : copie le « Code 2FA » du CRM et colle-le tout de suite (il change toutes les 30 s).", "Une fois connectée à Instagram, ouvre Threads et connecte-toi avec ce compte.", "Ne change ni le mot de passe ni la 2FA du compte."],
+    trap: "Coller un code 2FA qui a expiré. S'il reste moins de 5 s, attends le code suivant.",
   },
   marche: {
     t: "Le compte marche ?",
@@ -479,13 +506,16 @@ const VIEWS = {
     // l'IP doit etre dans le pays choisi (proxy UK => GB, proxy France => FR), sinon le numero et l'IP ne collent pas
     const wantCc = prof() === "uk" ? "GB" : "FR";
     const ipWrongCc = !!(ip && ip.country && ip.country !== wantCc);
-    const bar = `<div class="steps">${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
-    const head = `<h2>Créer un compte</h2>${replacing ? `<div class="alert c-red">Ce compte remplace <b>@${esc(replacing.pseudo)}</b> (groupe ${esc(group(replacing.group).name)}). Va jusqu'à Metricool sans pause : les posts repartent dès que Threads est connecté.</div>${w.step === 1 ? hint("remplacement") : ""}` : ""}${bar}`;
+    const have = w.kind === "have";
+    const N = have ? 4 : 5;
+    const bar = `<div class="steps">${(have ? [1, 2, 3, 4] : [1, 2, 3, 4, 5]).map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
+    const kindPick = w.step === 1 ? `<div class="row" style="margin:4px 0 12px">${[["new", "🆕 Créer un nouveau compte"], ["have", "🔑 J'ai déjà un compte"]].map(([k, l]) => `<button class="btn ${(w.kind || "new") === k ? "" : "light"}" data-act="wizKind" data-v="${k}">${(w.kind || "new") === k ? "✓ " : ""}${l}</button>`).join("")}</div>${have ? '<p class="muted">Compte acheté : même proxy, même GeeLark neuf, puis tu te connectes avec l\'identifiant, le mot de passe et le code 2FA du CRM.</p>' : ""}` : "";
+    const head = `<h2>${have ? "Connecter un compte existant" : "Créer un compte"}</h2>${kindPick}${replacing ? `<div class="alert c-red">Ce compte remplace <b>@${esc(replacing.pseudo)}</b> (groupe ${esc(group(replacing.group).name)}). Va jusqu'à Metricool sans pause : les posts repartent dès que Threads est connecté.</div>${w.step === 1 ? hint("remplacement") : ""}` : ""}${bar}`;
     const nav = (canNext, label = "Étape suivante") =>
       `<div class="row" style="margin-top:16px">${w.step > 1 ? '<button class="btn ghost" data-act="wizBack">Retour</button>' : ""}<div class="spacer"></div><button class="btn" data-act="wizNext" ${canNext ? "" : "disabled"}>${label}</button></div>`;
     const proxy = parseProxy(S.data.settings.proxy);
     if (w.step === 1)
-      return `${head}<div class="card"><div class="stepnum">Étape 1 sur 5</div><h3>${ukReady() ? "Choisis le pays, puis change l'IP" : "Change l'IP"}</h3>${hint("rotation")}
+      return `${head}<div class="card"><div class="stepnum">Étape 1 sur ${N}</div><h3>${ukReady() ? "Choisis le pays, puis change l'IP" : "Change l'IP"}</h3>${hint("rotation")}
         ${ukReady() ? `<div class="row" style="margin:6px 0 4px">${[["fr", "🇫🇷 France"], ["uk", "🇬🇧 UK"]].map(([k, l]) => `<button class="btn ${prof() === k ? "" : "light"}" data-act="pickProfile" data-v="${k}" data-wait="...">${prof() === k ? "✓ " : ""}${l}</button>`).join("")}</div>
         <p class="muted">${prof() === "uk" ? "Proxy UK + numéro UK. L'IP UK ne peut changer que toutes les 5 min." : "Proxy France + numéro français."} Le numéro suit tout seul le pays choisi.</p>` : ""}
         <p>Clique sur le bouton, puis attends que la nouvelle IP s'affiche.</p>
@@ -493,12 +523,32 @@ const VIEWS = {
         ${ip ? `<div class="alert ${ipUsed || ipWrongCc ? "c-red" : "c-green"}">${ipUsed ? "Cette IP a déjà servi. Rechange-la." : ipWrongCc ? `Cette IP est en ${esc(ip.country)}, pas en ${wantCc === "GB" ? "Royaume-Uni" : "France"}. Rechange-la (ou préviens Awen si ça recommence).` : `Nouvelle IP : <b>${esc(ip.ip)}</b> ${esc(ip.country)} (${ago(ip.at)})`}</div>` : '<div class="alert c-yellow">Pas encore d\'IP fraîche.</div>'}
         ${nav(ip && !ipUsed && !ipWrongCc)}</div>${sopBlock("rotation")}`;
     if (w.step === 2)
-      return `${head}<div class="card"><div class="stepnum">Étape 2 sur 5</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
+      return `${head}<div class="card"><div class="stepnum">Étape 2 sur ${N}</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
         <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous : type <b>${S.data.settings.socksPort ? "Socks5" : "HTTP"}</b>, puis « Check proxy ».</li><li>Advanced settings : <b>Location</b> et <b>Cloud phone language</b> sur <b>Based on IP</b>.</li><li>Create, puis Start pour allumer le téléphone.</li></ol>
         <a class="btn light" href="${esc(S.data.settings.geelarkUrl)}" target="_blank" rel="noopener">Ouvrir GeeLark</a>
         ${proxy ? copyLine("Hôte", proxy.host) + copyLine("Port", S.data.settings.socksPort || proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass) : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
         <label class="f">Nom du NOUVEAU téléphone GeeLark <small>(obligatoire : 1 téléphone neuf par essai)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : chloe 23" />
         ${nav(true)}</div>`;
+    if (have && w.step === 3)
+      return `${head}<div class="card"><div class="stepnum">Étape 3 sur 4</div><h3>Connecte-toi au compte</h3>${hint("connexion")}
+        <ol><li>Dans le téléphone GeeLark, ouvre l'appli <b>Instagram</b>.</li><li>« Se connecter » : colle l'identifiant, puis le mot de passe.</li><li>Instagram demande un code (« authentification », « code à 6 chiffres ») : copie le <b>Code 2FA</b> ci-dessous et colle-le tout de suite.</li><li>Une fois dans Instagram, ouvre Threads et connecte-toi avec ce compte.</li></ol>
+        <label class="f">Identifiant (pseudo) <button class="btn sm light" data-act="copyField" data-v="pseudo">Copier</button></label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
+        <label class="f">Mot de passe <button class="btn sm light" data-act="copyField" data-v="password">Copier</button></label><input data-f="password" value="${esc(w.f.password || "")}" autocapitalize="off" />
+        <label class="f">Clé 2FA <small>(donnée avec le compte : lettres et chiffres, ou lien otpauth://)</small></label><input data-f="totp" value="${esc(w.f.totp || "")}" placeholder="ex : JBSW Y3DP EHPK 3PXP" autocapitalize="off" autocomplete="off" />
+        <div class="copyline"><span class="k">Code 2FA</span><span class="v"><b data-totp="__wiz" style="letter-spacing:2px;font-size:16px">······</b> <small class="muted" data-totpleft></small></span><button class="btn sm light" data-act="copyTotp" data-id="__wiz">Copier</button></div>
+        <p class="muted">Le code change toutes les 30 s. S'il reste moins de 5 s, attends le suivant.</p>
+        <details style="margin-top:10px"><summary class="muted">E-mail du compte (facultatif)</summary><label class="f">E-mail</label><input data-f="email" value="${esc(w.f.email || "")}" autocapitalize="off" /><label class="f">Mot de passe e-mail</label><input data-f="emailPassword" value="${esc(w.f.emailPassword || "")}" autocapitalize="off" /></details>
+        <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
+        <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(aliasOf(w.f.pseudo))}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(aliasOf(w.f.pseudo))}</button></div>
+        ${nav(true)}</div>`;
+    if (have && w.step === 4)
+      return `${head}<div class="card"><div class="stepnum">Étape 4 sur 4</div><h3>Tu es connectée ?</h3>${hint("marche")}
+        <p>Tu vois le fil Threads, sans blocage ni demande de vérif ? Alors c'est bon.</p>
+        ${copyLine("Identifiant", w.f.pseudo)}${copyLine("Mot de passe", w.f.password)}
+        ${w.f.totp ? `<div class="copyline"><span class="k">Code 2FA</span><span class="v"><b data-totp="__wiz" style="letter-spacing:2px;font-size:16px">······</b> <small class="muted" data-totpleft></small></span><button class="btn sm light" data-act="copyTotp" data-id="__wiz">Copier</button></div><input type="hidden" data-f="totp" value="${esc(w.f.totp)}" />` : ""}
+        <div class="row" style="margin-top:14px"><button class="btn big ok" data-act="wizCreate" data-wait="Enregistrement...">Oui, je suis connectée</button></div>
+        <div class="row" style="margin-top:10px"><button class="btn big bad" data-act="wizFail">Non, ça n'a pas marché</button></div>
+        <div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizBack">Retour</button></div></div>`;
     if (w.step === 3) {
       if (!S.data.configured.sms)
         return `${head}<div class="card"><div class="stepnum">Étape 3 sur 5</div><h3>Prends un numéro</h3>${hint("numero")}
@@ -1169,9 +1219,9 @@ function tick(el, end) {
 const ACT = {
   copy: (b) => copy(b.dataset.v),
   async copyTotp(b) {
-    const a = acc(b.dataset.id);
-    if (!a || !a.totp) return;
-    const code = await totpCode(a.totp);
+    const sec = totpSecret(b.dataset.id);
+    if (!sec) return toast("Colle d'abord la clé 2FA du compte.", true);
+    const code = await totpCode(sec);
     copy(code);
     toast(`Code 2FA ${code} copié (valable ${30 - (Math.floor(Date.now() / 1000) % 30)} s)`);
   },
@@ -1214,6 +1264,13 @@ const ACT = {
       const used = (S.data.geelarkBurned || []).includes(gp) || S.data.accounts.some((a) => String(a.geelarkProfile || "").trim().toLowerCase() === gp);
       if (used) return toast("Ce téléphone GeeLark a déjà servi. Crée un NOUVEAU téléphone dans GeeLark et donne-lui un autre nom.", true);
     }
+    if (w.kind === "have" && w.step === 3) {
+      if (!w.f.pseudo || !w.f.password) return toast("Mets l'identifiant et le mot de passe.", true);
+      if (w.f.totp && !cleanTotpC(w.f.totp)) return toast("Clé 2FA invalide : colle la clé reçue avec le compte (lettres et chiffres).", true);
+      w.f.pseudo = w.f.pseudo.replace(/^@/, "");
+      w.step++;
+      return render();
+    }
     if (w.step === 3 && !w.f.phone && !w.f.email) return toast("Prends un e-mail ou un numéro.", true);
     if (w.step === 4 && (!w.f.pseudo || !w.f.password)) return toast("Mets le pseudo et le mot de passe.", true);
     w.step++;
@@ -1251,7 +1308,7 @@ const ACT = {
   },
   async wizCreate(b) {
     await run(b, async () => {
-      const a = await api("accounts/create", S.wiz.f);
+      const a = await api("accounts/create", { ...S.wiz.f, bought: S.wiz.kind === "have" });
       toast(`@${a.pseudo} enregistré` + (a.link ? " · lien " + a.link : a.linkNote ? " · lien non créé : " + a.linkNote : ""), !!a.linkNote);
       S.wiz = { step: 6, f: {}, createdId: a.id };
       await refresh();
@@ -1259,6 +1316,11 @@ const ACT = {
   },
   wizFail() {
     const other = prof() === "uk" ? "France" : "UK";
+    if (S.wiz.kind === "have")
+      return modal(`<h3>Connexion ratée ?</h3><p>On note et on passe au compte suivant.</p>
+      <label class="f">Pourquoi ?</label><select id="failwhy"><option>Mot de passe refusé</option><option>Code 2FA refusé</option><option>Compte suspendu / désactivé</option><option>Demande de vérification (selfie, e-mail)</option><option>Autre</option></select>
+      <div class="alert c-yellow" style="margin-top:12px"><b>Avant le compte suivant :</b><br>1. Code 2FA refusé : vérifie la clé (pas d'espace en trop), attends un nouveau code et réessaie une fois.<br>2. Supprime ce téléphone GeeLark${S.wiz.f.geelarkProfile ? ` (« ${esc(S.wiz.f.geelarkProfile)} »)` : ""} et crée-en un <b>nouveau</b>.<br>3. Change l'IP à l'étape 1.</div>
+      <button class="btn big bad" style="margin-top:14px" data-act="wizFailSend">Noter et passer au suivant</button>`);
     modal(`<h3>Ça n'a pas marché ?</h3><p>Pas grave. On note et on recommence.</p>
       <label class="f">Pourquoi ?</label><select id="failwhy"><option>« Try again later » (limite Instagram)</option><option>Compte bloqué direct</option><option>Demande de vérification</option><option>Code jamais reçu</option><option>Numéro ou e-mail refusé</option><option>Autre</option></select>
       <div class="alert c-yellow" style="margin-top:12px"><b>Avant de recommencer :</b><br>1. Supprime ce téléphone GeeLark${S.wiz.f.geelarkProfile ? ` (« ${esc(S.wiz.f.geelarkProfile)} »)` : ""} : il est grillé pour Instagram.<br>2. Crée un <b>nouveau</b> téléphone GeeLark.<br>3. Si c'était « Try again later » : Instagram bloque les inscriptions sur ce proxy pendant quelques heures. ${ukReady() ? `Passe sur <b>${other}</b> à l'étape 1.` : "Fais une pause et réessaie plus tard."}</div>
@@ -1266,10 +1328,10 @@ const ACT = {
   },
   async wizFailSend(b) {
     await run(b, async () => {
-      await api("accounts/failed", { phone: S.wiz.f.phone || S.wiz.f.email || "", smsId: S.wiz.f.smsId || "", emailId: S.wiz.f.emailId || "", geelarkProfile: S.wiz.f.geelarkProfile || "", reason: $("#failwhy").value });
+      await api("accounts/failed", { bought: S.wiz.kind === "have", phone: S.wiz.f.phone || S.wiz.f.email || S.wiz.f.pseudo || "", smsId: S.wiz.f.smsId || "", emailId: S.wiz.f.emailId || "", geelarkProfile: S.wiz.f.geelarkProfile || "", reason: $("#failwhy").value });
       closeModal();
-      // jamais le meme telephone GeeLark apres un echec
-      S.wiz = { step: 1, f: {} };
+      // jamais le meme telephone GeeLark apres un echec ; on reste sur le meme type (achete / nouveau)
+      S.wiz = { step: 1, f: {}, kind: S.wiz.kind };
       await refresh();
       toast("Noté. Change l'IP et on recommence");
     });
@@ -1337,6 +1399,17 @@ const ACT = {
       S.tab = "metricool";
       await refresh();
     });
+  },
+  copyField(b) {
+    const el = document.querySelector(`[data-f="${b.dataset.v}"]`);
+    const v = el ? el.value.trim().replace(b.dataset.v === "pseudo" ? /^@/ : /^$/, "") : "";
+    if (!v) return toast("Champ vide : colle d'abord l'info du compte.", true);
+    copy(v);
+  },
+  wizKind(b) {
+    readWizFields();
+    S.wiz.kind = b.dataset.v === "have" ? "have" : "new";
+    render();
   },
   wizMode(b) {
     readWizFields();

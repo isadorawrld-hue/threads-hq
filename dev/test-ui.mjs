@@ -244,6 +244,36 @@ await a.click('[data-act="health"]');
 await a.waitForTimeout(800);
 await shot(a, "17-dash");
 
+// ---- « J'ai déjà un compte » (compte acheté) : proxy, GeeLark, connexion + code 2FA en direct, enregistré sans numéro
+await tab(v, "create");
+await v.click('[data-act="wizKind"][data-v="have"]');
+await v.waitForFunction(() => /Connecter un compte existant/.test(document.querySelector("main").textContent) && /Étape 1 sur 4/.test(document.querySelector("main").textContent));
+await v.click('main [data-act="rotate"]');
+await waitToast(v, /Nouvelle IP/);
+await v.waitForSelector(".alert.c-green");
+await v.click('[data-act="wizNext"]');
+await v.fill('[data-f="geelarkProfile"]', "profil achat 1");
+await v.click('[data-act="wizNext"]');
+await v.waitForFunction(() => /Connecte-toi au compte/.test(document.querySelector("main").textContent));
+await v.fill('[data-f="pseudo"]', "@bought_lily");
+await v.fill('[data-f="password"]', "Achat123!");
+await v.fill('[data-f="totp"]', "pas une clé !!");
+await v.click('[data-act="wizNext"]');
+await waitToast(v, /Clé 2FA invalide/);
+await v.fill('[data-f="totp"]', "jbsw y3dp ehpk 3pxp");
+await v.waitForFunction(() => /^\d{6}$/.test(document.querySelector('[data-totp="__wiz"]').textContent), null, { timeout: 5000 });
+const wizCode = await v.textContent('[data-totp="__wiz"]');
+const expCode = await v.evaluate(() => totpCodeForTest("JBSWY3DPEHPK3PXP"));
+if (wizCode !== expCode) throw new Error(`code 2FA ${wizCode} attendu ${expCode}`);
+await shot(v, "18-achat-connexion");
+await v.click('[data-act="wizNext"]');
+await v.waitForFunction(() => /Tu es connectée/.test(document.querySelector("main").textContent) && /^\d{6}$/.test(document.querySelector('[data-totp="__wiz"]').textContent));
+await shot(v, "19-achat-confirme");
+await v.click('[data-act="wizCreate"]');
+await v.waitForSelector(".timer");
+const bought = await (await fetch(`${B}/__dev/acc?pseudo=bought_lily`)).json();
+if (!bought || !bought.bought || bought.totp !== "JBSWY3DPEHPK3PXP" || bought.phone || bought.geelarkProfile !== "profil achat 1") throw new Error("compte acheté mal enregistré : " + JSON.stringify(bought));
+
 await browser.close();
 if (errors.length) {
   console.log("ERREURS NAVIGATEUR :\n" + errors.join("\n"));

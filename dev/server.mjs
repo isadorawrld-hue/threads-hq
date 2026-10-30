@@ -229,6 +229,11 @@ http
       if (b) b.networksData = url.searchParams.get("username") ? { threads: { username: url.searchParams.get("username") } } : {};
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__dev/acc") {
+      const want = String(url.searchParams.get("pseudo") || "").toLowerCase();
+      const found = [...mem.entries()].find(([k, v]) => k.startsWith("accounts/") && v && String(v.pseudo || "").toLowerCase() === want);
+      res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(found ? found[1] : null));
+    }
     if (url.pathname === "/__dev/ipage") {
       const ip = mem.get("lastip");
       if (ip) ip.at = new Date(Date.now() - Number(url.searchParams.get("min") || 0) * 60e3).toISOString();

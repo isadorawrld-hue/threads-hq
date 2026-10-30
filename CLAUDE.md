@@ -176,6 +176,11 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Les textes de l'étape 3 (e-mail) et 4 (compte) du CRM suivent cette méthode.
 - Instagram peut demander un numéro en plus de l'e-mail : à l'étape 4, encadré « Instagram demande aussi un numéro ? » (achat sur place), ou onglet Numéro à tout moment. Le numéro s'ajoute au compte en cours (e-mail + numéro notés, les deux fermés à la création).
 
+## « J'ai déjà un compte » (comptes achetés, 30 oct.)
+- « Créer un compte », étape 1 : bouton « 🔑 J'ai déjà un compte » (`S.wiz.kind = "have"`, action `wizKind`). Parcours en 4 étapes : 1 IP (pays FR/UK), 2 nouveau téléphone GeeLark + proxy, 3 connexion (identifiant, mot de passe, clé 2FA ; code 2FA en direct `data-totp="__wiz"` lu dans le champ par `totpSecret`, boutons Copier `copyField`), 4 « Tu es connectée ? » puis warm-up comme un compte neuf.
+- Serveur : `accounts/create` avec `bought: true` n'exige ni numéro ni e-mail, refuse une clé 2FA non vide invalide, stocke `bought`. Échec : motifs propres aux comptes achetés, `accounts/failed` avec `bought`.
+- Tests : API « compte acheté », UI captures 18-19 (dev : `/__dev/acc?pseudo=`, `window.totpCodeForTest`).
+
 ## 2FA des comptes (31 oct.)
 - Comptes achetés = 2FA activée. Clé 2FA (TOTP) par compte : champ « Clé 2FA » dans « Modifier / notes » (clé brute avec ou sans espaces, ou lien otpauth://, nettoyée par `cleanTotp`).
 - Le code à 6 chiffres est calculé dans le navigateur (RFC 6238, SHA-1, 30 s, vérifié avec le vecteur officiel 287082), mis à jour chaque seconde avec le temps restant.

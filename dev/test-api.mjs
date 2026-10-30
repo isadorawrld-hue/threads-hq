@@ -643,6 +643,22 @@ assert.equal(st.settings.proxy, "proxy.test:8000:user:pass");
 assert.ok(st.smsCountries.length >= 1 && !st.smsCountries.some((c) => c.id === 16) || true);
 step("proxy UK : la VA choisit UK ou France au début, proxy + numéro suivent, IP du mauvais pays refusée, rotation 5 min, compte noté UK");
 
+// --- « J'ai déjà un compte » : compte acheté, sans numéro ni e-mail, avec sa clé 2FA
+tok = va;
+await call("rotate", {});
+r = await call("accounts/create", { pseudo: "achat_x", password: "pw", bought: true, totp: "pas une clé !!", geelarkProfile: "achat a" });
+assert.equal(r.s, 400, "clé 2FA invalide refusée à la création");
+assert.match(r.j.error, /Clé 2FA invalide/);
+r = await call("accounts/create", { pseudo: "achat_x", password: "pw", geelarkProfile: "achat a" });
+assert.equal(r.s, 400, "sans « bought », numéro ou e-mail toujours obligatoire");
+const boughtAcc = ok(await call("accounts/create", { pseudo: "@achat_x", password: "pw", bought: true, totp: "jbsw y3dp ehpk 3pxp", geelarkProfile: "achat a" }), "compte acheté");
+assert.equal(boughtAcc.bought, true);
+assert.equal(boughtAcc.totp, "JBSWY3DPEHPK3PXP");
+assert.equal(boughtAcc.phone, "");
+assert.equal(boughtAcc.status, "warmup");
+tok = admin;
+step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invalide refusée");
+
 st = ok(await call("state"), "state admin");
 const actions = new Set(st.logs.map((l) => l.action));
 for (const a of ["premier_acces", "connexion", "ip_changee", "compte_cree", "creation_ratee", "warmup_fait", "setup_fait", "metricool_relie", "marque_creee", "lien_metricool", "planif", "check", "compte_saute"]) assert.ok(actions.has(a), "log manquant " + a);
