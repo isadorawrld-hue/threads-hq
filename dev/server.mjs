@@ -38,6 +38,8 @@ let soN = 0;
 let spN = 0;
 let sp = null;
 let spEarly = false;
+const spOpts = [];
+let spNoBest = false;
 let so = null;
 let heroLose = 0;
 let heroLost = false;
@@ -95,7 +97,9 @@ async function fakeFetch(url, opts = {}) {
     if (u.pathname === "/request/price") return Response.json(f.country === "23" && f.service === "457" ? { price: "0.19", success_rate: 81 } : { success: 0, message: "This service is not available for this country." });
     if (u.pathname === "/request/balance") return Response.json({ balance: "4.20" });
     if (u.pathname === "/purchase/sms") {
-      if (f.country !== "23" || f.service !== "457" || !(Number(f.max_price) > 0) || f.pricing_option !== "0") return Response.json({ success: 0, message: "bad " + opts.body });
+      if (f.country !== "23" || f.service !== "457" || !(Number(f.max_price) > 0) || !["0", "1"].includes(f.pricing_option)) return Response.json({ success: 0, message: "bad " + opts.body });
+      spOpts.push(f.pricing_option);
+      if (f.pricing_option === "1" && spNoBest) return new Response(JSON.stringify({ success: 0, message: "We could not find a suitable pool below the price of: " + f.max_price }), { status: 422 });
       if (Number(f.max_price) < 0.19) return new Response(JSON.stringify({ success: 0, message: "<p>Pool <b>Mike</b>: We could not find a suitable pool below the price of: " + f.max_price + "</p>" }), { status: 422 });
       spN++; sp = { id: "SPX" + spN, code: null, cancelled: false };
       return Response.json({ success: 1, number: String(745123455 + spN), cc: "33", order_id: sp.id, country: "France", service: "Instagram / Threads", pool: 7, expires_in: 1200, cost: "0.19" });
@@ -220,8 +224,8 @@ http
       res.writeHead(200); return res.end("ok");
     }
     if (url.pathname === "/__heroN") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: smsN, hosts: heroHosts })); }
-    if (url.pathname === "/__dev/sp") { if (url.searchParams.has("early")) spEarly = true; else if (sp) sp.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
-    if (url.pathname === "/__sp") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: spN, sp })); }
+    if (url.pathname === "/__dev/sp") { if (url.searchParams.has("nobest")) { spNoBest = url.searchParams.get("nobest") === "1"; res.writeHead(200); return res.end("ok"); } if (url.searchParams.has("early")) spEarly = true; else if (sp) sp.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
+    if (url.pathname === "/__sp") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: spN, sp, opts: spOpts })); }
     if (url.pathname === "/__dev/so") { if (so) so.code = url.searchParams.get("code") || "123456"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__so") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ n: soN, so })); }
     if (url.pathname === "/__sms") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(smsAct)); }

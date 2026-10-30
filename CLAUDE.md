@@ -60,7 +60,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 ## SMSPool (fournisseur de numéros proposé en premier)
 - Doc : SDK officiel `@smspool/sdk` (npm). Base `https://api.smspool.net`, POST en formulaire, clé en `Authorization: Bearer` + champ `key`.
 - Service 457 = « Instagram / Threads ». Pays SMSPool : France 23, USA 1 (`SPOOL_COUNTRY`).
-- Achat `/purchase/sms` (country, service, pricing_option=0, max_price = Réglage `smsMaxPrice`, 2 $ par défaut ; le 30 oct. le moins cher en France était 1,63 $ alors que /request/price affichait 0,14 $, donc le CRM affiche le plafond, pas ce prix), code `/sms/check` (orderid → champ `sms`), remboursement `/sms/cancel` (orderid), solde `/request/balance`, prix `/request/price`.
+- Achat `/purchase/sms` (country, service, pricing_option=1 « highest success rate » puis 0 si aucun pool sous le plafond, max_price = Réglage `smsMaxPrice`, 2 $ par défaut ; le 30 oct. le moins cher en France était 1,63 $ alors que /request/price affichait 0,14 $, donc le CRM affiche le plafond, pas ce prix), code `/sms/check` (orderid → champ `sms`), remboursement `/sms/cancel` (orderid), solde `/request/balance`, prix `/request/price`.
 - Réglages > Connexions champ 9. Plusieurs sites branchés = la VA voit un bouton par site (SMSPool, SMSOnline, Hero), le premier en gros.
 - Réglages > Liens : « Pays des numéros » (cases). Depuis le 30 oct. : France seulement (les numéros US faisaient sauter les comptes).
 
