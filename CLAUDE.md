@@ -169,3 +169,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Instagram répond « Try again later » quand il y a trop d'inscriptions depuis le même téléphone / la même IP. Constat du 30 oct. : l'e-mail donne le code en moins d'1 min (3 fois sur 3), mais les inscriptions sautaient ensuite.
 - L'assistant gardait le nom du téléphone GeeLark après un échec (la VA réessayait sur le même). Corrigé : après « Noter et recommencer », tout repart à zéro. Le nom du téléphone est obligatoire à l'étape 2, et un nom déjà utilisé ou grillé (`geelark/burned`) est refusé (navigateur et serveur).
 - La fenêtre d'échec explique : supprimer le téléphone, en créer un neuf, et en cas de « Try again later », passer sur l'autre proxy (France/UK).
+
+## Méthode de création qui marche (30 oct., 22 h 37)
+- Sandra : compte créé en ouvrant l'appli **Instagram** (pas Threads) dans le téléphone GeeLark, inscription normale avec un **e-mail**, proxy **France**. Ensuite Threads se connecte avec ce compte Instagram.
+- Avant ça, s'inscrire directement dans Threads donnait « Try again later » (e-mail) ou aucun SMS (numéros).
+- Les textes de l'étape 3 (e-mail) et 4 (compte) du CRM suivent cette méthode.

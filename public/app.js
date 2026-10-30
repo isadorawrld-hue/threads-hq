@@ -226,7 +226,7 @@ const HELP = {
   email: {
     t: "Prendre un e-mail",
     hint: "Prends un e-mail, inscris-toi avec dans Threads. Le code arrive ici tout seul.",
-    more: ["Clique « Prendre un e-mail ».", "Dans Threads / Instagram, choisis « S'inscrire avec une adresse e-mail ».", "Copie l'e-mail du CRM et colle-le.", "Le code arrive ici tout seul (en général en moins de 2 min). Copie-le dans Threads.", "Pas de code après 5 min : bouton rouge « Pas de code : annuler l'e-mail », puis reprends-en un.", "Si Threads refuse l'e-mail, passe sur « Avec un numéro »."],
+    more: ["Clique « Prendre un e-mail ».", "Dans le téléphone GeeLark, ouvre l'appli INSTAGRAM (pas Threads) et crée un compte normal avec cet e-mail.", "Copie l'e-mail du CRM et colle-le.", "Le code arrive ici tout seul (en général en moins de 2 min). Copie-le dans Threads.", "Pas de code après 5 min : bouton rouge « Pas de code : annuler l'e-mail », puis reprends-en un.", "Si Threads refuse l'e-mail, passe sur « Avec un numéro »."],
     trap: "Utiliser 2 fois le même e-mail.",
   },
   numero: {
@@ -236,9 +236,9 @@ const HELP = {
     trap: "Utiliser 2 fois le même numéro.",
   },
   compte: {
-    t: "Créer le compte Threads",
-    hint: "Crée le compte Threads avec ce numéro, puis note pseudo et mot de passe ici.",
-    more: ["Dans le téléphone GeeLark : ouvre Threads, « Utiliser un numéro de mobile ».", "Colle le numéro, puis le code SMS.", "Mot de passe : clique « Générer » dans le CRM et copie-le (ou note ici celui que tu as tapé).", "Date de naissance : plus de 21 ans.", "Profil public, accepte les conditions, autorise les notifications.", "Note le pseudo et le mot de passe dans le CRM."],
+    t: "Créer le compte",
+    hint: "Crée d'abord un compte Instagram normal, puis connecte Threads avec. Note pseudo et mot de passe ici.",
+    more: ["Dans le téléphone GeeLark : ouvre l'appli INSTAGRAM (pas Threads) et crée un compte normal (e-mail du CRM de préférence).", "Colle l'e-mail (ou le numéro), puis le code qui arrive dans le CRM.", "Une fois le compte Instagram créé : ouvre Threads et connecte-toi avec ce compte Instagram.", "Mot de passe : clique « Générer » dans le CRM et copie-le (ou note ici celui que tu as tapé).", "Date de naissance : plus de 21 ans.", "Profil public, accepte les conditions, autorise les notifications.", "Note le pseudo et le mot de passe dans le CRM."],
     trap: "Taper un autre mot de passe que celui du CRM. On perd le compte.",
   },
   marche: {
@@ -486,7 +486,7 @@ const VIEWS = {
         ${nav(!!(w.f.phone || w.f.email))}</div>`;
     }
     if (w.step === 4)
-      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}${S.data.emailAct && S.data.emailAct.status === "attente" && S.data.emailAct.id === w.f.emailId ? `<div class="card">${emailCard(S.data.emailAct)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte Threads</h3>${hint("compte")}
+      return `${head}${S.data.sms && S.data.sms.status === "attente" && S.data.sms.id === w.f.smsId ? `<div class="card">${smsCard(S.data.sms)}</div>` : ""}${S.data.emailAct && S.data.emailAct.status === "attente" && S.data.emailAct.id === w.f.emailId ? `<div class="card">${emailCard(S.data.emailAct)}</div>` : ""}<div class="card"><div class="stepnum">Étape 4 sur 5</div><h3>Crée le compte (Instagram d'abord, puis Threads)</h3>${hint("compte")}
         <label class="f">Pseudo</label>${pseudoSuggest(w)}<input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Lien du compte <small>(créé tout seul avec le pseudo)</small></label>
         <div class="chips"><button class="chip ${(w.f.linkDomain || "brand") === "brand" ? "on" : ""}" data-act="wizDomain" data-v="brand">${esc(S.data.settings.tinyDomain || "domaine perso")}/${esc(aliasOf(w.f.pseudo))}</button><button class="chip ${w.f.linkDomain === "tinyurl" ? "on" : ""}" data-act="wizDomain" data-v="tinyurl">tinyurl.com/${esc(aliasOf(w.f.pseudo))}</button></div>
@@ -902,7 +902,7 @@ function emailBuyBlock() {
 function emailCard(cur) {
   return `<div class="alert c-blue"><b>E-mail</b> · ${cur.price ? cur.price.toFixed(3).replace(/0+$/, "") + " $" : ""}</div>
     ${copyLine("E-mail", cur.email)}
-    <p>Dans Threads / Instagram, choisis <b>« S'inscrire avec une adresse e-mail »</b> et colle cet e-mail. Le code arrive ici tout seul (en général en moins de 2 min).</p>
+    <p>Ouvre l'appli <b>Instagram</b> (pas Threads) dans le téléphone GeeLark et crée un compte normal avec cet e-mail. Le code arrive ici tout seul (en général en moins de 2 min). Une fois le compte Instagram créé, ouvre Threads et connecte-toi avec.</p>
     ${cur.code ? `<div class="alert c-green" style="font-size:22px;font-weight:700;letter-spacing:2px">${esc(cur.code)} <button class="btn sm light" data-act="copy" data-v="${esc(cur.code)}" style="letter-spacing:0;font-size:13px">Copier</button></div>` : `<div class="alert c-yellow" data-emailwait>En attente du code…</div>`}
     <div class="row" style="margin-top:10px">${cur.code ? "" : `<button class="btn sm light" data-act="emailCode" data-wait="...">Vérifier maintenant</button><button class="btn sm bad" data-act="emailCancel" data-wait="...">Pas de code : annuler l'e-mail</button>`}</div>`;
 }
