@@ -815,6 +815,11 @@ const VIEWS = {
         <label class="f">ou colle la liste</label><textarea data-set="stockText" placeholder="identifiant&#9;motdepasse&#9;CLE 2FA" style="min-height:90px"></textarea>
         <button class="btn" data-act="stockImport" data-wait="Import...">Ajouter au stock</button>
         ${(sk.list || []).length ? `<details style="margin-top:10px"><summary class="muted">Voir les ${sk.list.length} comptes</summary>${sk.list.map((x) => { const [c, l] = skLab[x.status] || ["", x.status]; return `<div class="row" style="justify-content:space-between;padding:4px 0"><span><b>${esc(x.user)}</b> <span class="muted">${x.order ? "cmd " + esc(x.order) : ""}${x.takenBy ? " · " + esc(x.takenBy) : ""}${x.reason ? " · " + esc(x.reason) : ""}</span></span><span class="pill ${c}">${l}</span></div>`; }).join("")}</details>` : ""}</div>
+      <div class="card"><h3 style="margin-top:0">Transférer vers Threads Emmy</h3>
+        <p class="muted">Copie le proxy, le lien de rotation et les clés SMS dans le CRM d'Emmy, de serveur à serveur. Personne ne voit les clés. Le code marche une seule fois, pendant 15 min.</p>
+        ${S.transferCode ? `<div class="copyline"><span class="k">Code</span><span class="v">${esc(S.transferCode)}</span><button class="btn sm light" data-act="copy" data-v="${esc(S.transferCode)}">Copier</button></div><p class="muted">Colle-le dans Threads Emmy, Réglages, « Récupérer de Threads HQ ».</p>` : ""}
+        <button class="btn" data-act="transferCreate" data-wait="...">Créer un code de transfert</button>
+      </div>
       <div class="card"><h3 style="margin-top:0">Connexions <small class="muted">(cachées après enregistrement, c'est normal)</small></h3>
         <div class="health">${[["Rotation IP", c.rotation], ["Metricool", c.metricool], ["Proxy", c.proxy], ...(c.smsProvs && c.smsProvs.length ? c.smsProvs.map((p) => [p.name, true]) : [["Numéros SMS", false]])].map(([l, ok]) => `<span class="tag ${ok ? "ok" : "miss"}">${l}</span>`).join("")}</div>
         <label class="f">1. Lien de rotation IP (proxy France) ${c.rotationFr ? '<span class="tag ok">Enregistré</span>' : '<span class="tag miss">Manquant</span>'}</label><input type="password" data-sec="rotationUrl" placeholder="${c.rotationFr ? "enregistré (colle un autre lien pour le remplacer)" : "colle le ROTATION LINK du proxy"}" autocomplete="off" />
@@ -878,7 +883,7 @@ const LOGS = {
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
+  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
 };
 function logDetails(l) {
   const out = [];
@@ -1445,6 +1450,14 @@ const ACT = {
       for (const k of ["stockId", "stockOrder", "pseudo", "password", "totp"]) delete S.wiz.f[k];
       toast("Compte rendu au stock");
       await refresh();
+    });
+  },
+  async transferCreate(b) {
+    await run(b, async () => {
+      const r = await api("transfer/create", {});
+      S.transferCode = r.code;
+      render();
+      toast("Code créé, valable 15 min");
     });
   },
   async stockImport(b) {

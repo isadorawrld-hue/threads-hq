@@ -190,3 +190,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Comptes achetés = 2FA activée. Clé 2FA (TOTP) par compte : champ « Clé 2FA » dans « Modifier / notes » (clé brute avec ou sans espaces, ou lien otpauth://, nettoyée par `cleanTotp`).
 - Le code à 6 chiffres est calculé dans le navigateur (RFC 6238, SHA-1, 30 s, vérifié avec le vecteur officiel 287082), mis à jour chaque seconde avec le temps restant.
 - Affiché sur la carte du compte (bouton « Code 2FA »), dans l'étape Metricool et le setup (sous Pseudo / Mot de passe), et dans « Modifier ».
+
+## Transfert vers Threads Emmy (31 oct.)
+- Réglages (admin) : « Créer un code de transfert » (`transfer/create`) : code `TE-` + 32 caractères, usage unique, 15 min.
+- `transfer/pull` (sans session, code obligatoire) renvoie proxy, ports SOCKS5, pays des numéros et les clés (rotation, Hero, SMSOnline, SMSPool) au CRM d'Emmy, de serveur à serveur. Le navigateur ne voit jamais les clés. Code inventé, expiré ou réutilisé = refusé et noté au journal.
