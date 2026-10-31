@@ -705,6 +705,42 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   step("stock de comptes achetés : import du fichier (pub ignorée, doublons), prise auto, rendu, raté, utilisé, stock vide");
 }
 
+// --- Metricool plein (bug du 1er nov.) : on reprend la marque d'un compte mort du CRM, sinon message clair
+{
+  tok = admin;
+  await fetch(B + "/__dev/mcfull?v=1");
+  const freeBrands = (s) => { const taken = new Set(s.accounts.filter((a) => a.status !== "saute" && a.blogId).map((a) => String(a.blogId))); return s.accounts.filter((a) => a.status === "saute" && a.blogId && !taken.has(String(a.blogId))).map((a) => String(a.blogId)); };
+  const prep = async (pseudo) => { const a = ok(await call("state"), "state").accounts.find((x) => x.pseudo === pseudo); await call(`accounts/${a.id}/warmup`, {}); await call(`accounts/${a.id}/setup`, {}); return a; };
+  // une marque orpheline de Metricool (jamais au CRM) ne doit jamais etre prise
+  const xa = await prep("stk.two");
+  let s1 = ok(await call("state"), "state");
+  let free = freeBrands(s1);
+  r = await call(`accounts/${xa.id}/mcconnect`, {});
+  console.log("   marques libres de comptes morts :", free.length, "-> statut", r.s);
+  if (free.length) {
+    assert.equal(r.s, 200, "marque libre reprise");
+    assert.ok(free.includes(String(r.j.blogId)), "reprend une marque d'un compte mort du CRM");
+    assert.equal((await call("metricool/brands")).j.find((b) => b.blogId === String(r.j.blogId)).label, "@stk.two", "renommée");
+  } else {
+    assert.equal(r.s, 409);
+    assert.match(r.j.error, /Metricool est plein/);
+  }
+  // plus aucune marque libre + plan plein : message clair en francais, pas l'erreur brute
+  const ya = await prep("achat_x");
+  s1 = ok(await call("state"), "state");
+  // on « consomme » toute marque encore libre pour forcer le cas plein
+  for (const bid of freeBrands(s1)) { const d = s1.accounts.find((a) => a.status === "saute" && String(a.blogId) === bid); await call(`accounts/${d.id}/edit`, { notes: "x" }); }
+  if (!freeBrands(ok(await call("state"), "state")).length) {
+    r = await call(`accounts/${ya.id}/mcconnect`, {});
+    console.log("   plan plein sans marque libre -> statut", r.s);
+    assert.equal(r.s, 409, "plan plein");
+    assert.match(r.j.error, /Metricool est plein/);
+    assert.doesNotMatch(r.j.error, /FORBIDDEN/);
+  }
+  await fetch(B + "/__dev/mcfull?v=0");
+  step("Metricool plein : reprise d'une marque de compte mort du CRM, sinon message clair");
+}
+
 st = ok(await call("state"), "state admin");
 const actions = new Set(st.logs.map((l) => l.action));
 for (const a of ["premier_acces", "connexion", "ip_changee", "compte_cree", "creation_ratee", "warmup_fait", "setup_fait", "metricool_relie", "marque_creee", "lien_metricool", "planif", "check", "compte_saute"]) assert.ok(actions.has(a), "log manquant " + a);

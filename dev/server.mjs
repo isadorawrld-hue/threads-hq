@@ -8,6 +8,7 @@ import { handle } from "../lib/core.mjs";
 const PORT = Number(process.env.PORT || 8788);
 const ROOT = new URL("../public/", import.meta.url).pathname;
 const mem = new Map();
+let mcFull = false;
 const store = {
   get: async (k) => (mem.has(k) ? structuredClone(mem.get(k)) : null),
   set: async (k, v) => void mem.set(k, structuredClone(v)),
@@ -181,6 +182,7 @@ async function fakeFetch(url, opts = {}) {
   if (u.hostname === "app.metricool.com" || u.hostname === "mc.test") {
     if (opts.headers?.["X-Mc-Auth"] !== "TOKEN_TEST") return new Response(JSON.stringify({ error: "denied" }), { status: 401 });
     mcCalls.push({ method: opts.method || "GET", path: u.pathname, query: u.search, body: opts.body ? JSON.parse(opts.body) : null });
+    if (u.pathname.endsWith("/v2/settings/brands") && opts.method === "POST" && mcFull) return new Response(JSON.stringify({ status: "FORBIDDEN", code: "403", title: "User has reached the maximum number of brands allowed" }), { status: 403 });
     if (u.pathname.endsWith("/v2/settings/brands") && opts.method === "POST") {
       const b = JSON.parse(opts.body); const nb = { id: 1000 + brands.length, label: b.brandLabel, networksData: {}, timezone: "Asia/Taipei" };
       brands.push(nb); return Response.json({ data: nb });
@@ -229,6 +231,7 @@ http
       if (b) b.networksData = url.searchParams.get("username") ? { threads: { username: url.searchParams.get("username") } } : {};
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__dev/mcfull") { mcFull = url.searchParams.get("v") === "1"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/acc") {
       const want = String(url.searchParams.get("pseudo") || "").toLowerCase();
       const found = [...mem.entries()].find(([k, v]) => k.startsWith("accounts/") && v && String(v.pseudo || "").toLowerCase() === want);

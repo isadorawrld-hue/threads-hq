@@ -181,6 +181,10 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Serveur : `accounts/create` avec `bought: true` n'exige ni numéro ni e-mail, refuse une clé 2FA non vide invalide, stocke `bought`. Échec : motifs propres aux comptes achetés, `accounts/failed` avec `bought`.
 - Tests : API « compte acheté », UI captures 18-19 (dev : `/__dev/acc?pseudo=`, `window.totpCodeForTest`).
 
+## Metricool plein (1er nov.)
+- Plan Metricool à 15 marques : « User has reached the maximum number of brands allowed » (403). `mcconnect` reprend d'abord la marque d'un compte du CRM sauté ou délié (jamais une marque que le CRM n'a pas créée), la déconnecte de Threads et la renomme ; sinon message clair 409 « Metricool est plein… Préviens Awen ».
+- Dev : `/__dev/mcfull?v=1` simule le plan plein.
+
 ## Stock de comptes achetés (30 oct.)
 - Réglages (admin) : carte « 📦 Comptes achetés » : fichiers .txt (plusieurs) ou liste collée, `stock/import` (parseBoughtList : « identifiant mdp CLÉ 2FA », pub et en-têtes ignorés, n° de commande gardé, doublons stock + CRM ignorés). Stocké dans `stock/bought` (statuts dispo / pris / utilise / rate).
 - VA : stock non vide → « J'ai déjà un compte » par défaut ; en passant à l'étape 3, `stock/take` réserve le premier compte dispo (le même tant qu'il n'est pas fini, retrouvé via `state.stock.mine`) et remplit identifiant, mdp, 2FA. « Rendre au stock » = `stock/release`. Création avec `stockId` → utilisé ; échec → raté (avec le motif).
