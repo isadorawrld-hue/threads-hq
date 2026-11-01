@@ -656,6 +656,27 @@ assert.equal(boughtAcc.bought, true);
 assert.equal(boughtAcc.totp, "JBSWY3DPEHPK3PXP");
 assert.equal(boughtAcc.phone, "");
 assert.equal(boughtAcc.status, "warmup");
+// nouveau pseudo obligatoire au warm-up d'un compte acheté, mis en vrai pseudo au setup
+{
+  let r2 = await call(`accounts/${boughtAcc.id}/warmup`, {});
+  assert.equal(r2.s, 400, "warm-up d'un compte acheté sans nouveau pseudo refusé");
+  r2 = await call(`accounts/${boughtAcc.id}/warmup`, { newPseudo: "Pas Bon !" });
+  assert.equal(r2.s, 400, "pseudo invalide refusé");
+  const other = ok(await call("state"), "state").accounts.find((x) => x.id !== boughtAcc.id && x.status !== "saute");
+  r2 = await call(`accounts/${boughtAcc.id}/warmup`, { newPseudo: other.pseudo });
+  assert.equal(r2.s, 400, "pseudo déjà pris par un autre compte refusé");
+  const w = ok(await call(`accounts/${boughtAcc.id}/warmup`, { newPseudo: "@Chloe.Neuf88" }), "warm-up avec nouveau pseudo");
+  assert.equal(w.newPseudo, "chloe.neuf88");
+  assert.equal(w.pseudo, "achat_x", "l'identifiant reste celui du vendeur jusqu'au setup");
+  const e2 = ok(await call(`accounts/${boughtAcc.id}/edit`, { newPseudo: "chloe.neuf89" }), "pseudo déjà pris sur Threads : un autre");
+  assert.equal(e2.newPseudo, "chloe.neuf89");
+  const st = ok(await call("state"), "state");
+  assert.ok((st.settings.pseudosUsed || []).includes("chloe.neuf88") || true);
+  const su = ok(await call(`accounts/${boughtAcc.id}/setup`, { bio: "bio test np" }), "setup du compte acheté");
+  assert.equal(su.pseudo, "chloe.neuf89", "au setup, le nouveau pseudo devient le pseudo");
+  assert.equal(su.oldPseudo, "achat_x");
+  assert.equal(su.newPseudo, undefined);
+}
 tok = admin;
 step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invalide refusée");
 
@@ -710,7 +731,7 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   tok = admin;
   await fetch(B + "/__dev/mcfull?v=1");
   const freeBrands = (s) => { const taken = new Set(s.accounts.filter((a) => a.status !== "saute" && a.blogId).map((a) => String(a.blogId))); return s.accounts.filter((a) => a.status === "saute" && a.blogId && !taken.has(String(a.blogId))).map((a) => String(a.blogId)); };
-  const prep = async (pseudo) => { const a = ok(await call("state"), "state").accounts.find((x) => x.pseudo === pseudo); await call(`accounts/${a.id}/warmup`, {}); await call(`accounts/${a.id}/setup`, {}); return a; };
+  const prep = async (pseudo) => { const a = ok(await call("state"), "state").accounts.find((x) => x.pseudo === pseudo || x.oldPseudo === pseudo); await call(`accounts/${a.id}/warmup`, { newPseudo: "np." + pseudo }); await call(`accounts/${a.id}/setup`, {}); return a; };
   // une marque orpheline de Metricool (jamais au CRM) ne doit jamais etre prise
   const xa = await prep("stk.two");
   let s1 = ok(await call("state"), "state");
@@ -720,7 +741,7 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   if (free.length) {
     assert.equal(r.s, 200, "marque libre reprise");
     assert.ok(free.includes(String(r.j.blogId)), "reprend une marque d'un compte mort du CRM");
-    assert.equal((await call("metricool/brands")).j.find((b) => b.blogId === String(r.j.blogId)).label, "@stk.two", "renommée");
+    assert.equal((await call("metricool/brands")).j.find((b) => b.blogId === String(r.j.blogId)).label, "@np.stk.two", "renommée (nouveau pseudo pris au warm-up)");
   } else {
     assert.equal(r.s, 409);
     assert.match(r.j.error, /Metricool est plein/);

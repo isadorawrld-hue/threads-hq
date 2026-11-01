@@ -934,7 +934,7 @@ const WARM_TIP = "À warm-up tous les jours sur GeeLark : 10 min, 3-4 likes, 3-4
 // Nom Chloé du compte (ce que la VA voit dans GeeLark / sur le profil). Comptes achetés : le pseudo de connexion
 // reste celui du vendeur, donc on affiche le nom donné (displayName), sinon le nom du téléphone GeeLark.
 function nameOf(a) {
-  const n = String(a.displayName || (a.bought ? a.geelarkProfile : "") || "").replace(/^threads\s*\d+\s*:\s*/i, "").trim();
+  const n = String(a.displayName || a.newPseudo || (a.bought ? a.geelarkProfile : "") || "").replace(/^threads\s*\d+\s*:\s*/i, "").trim();
   return n && n.toLowerCase() !== String(a.pseudo || "").toLowerCase() ? n : "";
 }
 function psTag(a, tag = "span") {
@@ -986,11 +986,27 @@ function warmupTargets(a) {
   const pick = [...all].map((p, i) => [p, (h ^ (i * 2654435761)) >>> 0]).sort((x, y) => x[1] - y[1]).slice(0, 5).map((x) => x[0]);
   return `<div class="card" style="margin:10px 0"><b>Suis ces ${pick.length} comptes</b> <span class="muted">(dans le téléphone : Recherche, colle le pseudo, S'abonner, like 2 posts)</span>${pick.map((p) => copyLine("@", p)).join("")}</div>`;
 }
+// compte acheté : nouveau pseudo Chloé choisi pendant le warm-up (obligatoire), mis sur le compte au setup
+function npPick(a) {
+  S.np = S.np || {};
+  const bank = S.data.settings.pseudoBank || [];
+  if (!S.np[a.id] || (!bank.includes(S.np[a.id]) && !S.np[a.id + "_own"])) S.np[a.id] = bank.length ? bank[Math.floor(Math.random() * bank.length)] : "";
+  return S.np[a.id];
+}
+function newPseudoBox(a) {
+  if (!a.bought || a.newPseudo) return "";
+  const v = npPick(a);
+  return `<div class="card np" style="margin:10px 0"><b>Nouveau pseudo du compte</b> <span class="muted">(obligatoire pour finir le warm-up)</span>
+    <p class="muted">Le pseudo actuel vient du vendeur. Tu mettras celui-ci sur le compte au setup.</p>
+    <input data-newpseudo="${a.id}" value="${esc(v)}" placeholder="ex : chloe.xiaomei88" />
+    <div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="npOther" data-id="${a.id}">Un autre</button><button class="btn sm light" data-act="npCopy" data-id="${a.id}">Copier</button></div></div>`;
+}
 function warmupCard(a, withTimer) {
   if (!a) return "";
   return `<div class="card"><div class="head row"><span class="num">#${a.num}</span>${psTag(a, "b")}${gpill(a.group)}</div>${hint("warmup")}
     <p class="muted">Même profil GeeLark, même IP. 10 min de scroll, puis le setup direct.</p><div class="timer" data-timer="${a.id}">10:00</div><div class="row"><button class="btn light" data-act="startTimer" data-id="${a.id}">Lancer le chrono 10 min</button></div>
     ${warmupTargets(a)}
+    ${newPseudoBox(a)}
     <div class="checklist" data-wcheck="${a.id}">${SOP.warmup.steps.map((s) => `<label><input type="checkbox" /> ${esc(s)}</label>`).join("")}</div>
     <button class="btn big ok" data-act="warmupDone" data-id="${a.id}" data-wait="...">Warm-up fini, passer au setup</button>
     ${withTimer ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="wizReset">Créer un autre compte</button></div>' : ""}</div>`;
@@ -1069,7 +1085,7 @@ function setupWizard(a) {
   if (!s.bio && bank.length) s.bio = s.bioPick = bank[Math.floor(Math.random() * bank.length)];
   const pfps = S.data.media.filter((m) => m.kind === "pfp");
   if (!s.pfp && pfps.length) s.pfp = pfps[Math.floor(Math.random() * pfps.length)].id;
-  const fill = (t) => String(t || "").replaceAll("{pseudo}", a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT").replaceAll("{pivot}", st.hub?.pseudo || "PIVOT MANQUANT");
+  const fill = (t) => String(t || "").replaceAll("{pseudo}", a.newPseudo || a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT").replaceAll("{pivot}", st.hub?.pseudo || "PIVOT MANQUANT");
   const box = (t) => `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t)}">Copier</button></div>${frSlot(t)}`;
   const explain = {
     epingle: "Ce compte garde le lien dans son post épinglé, pas dans la bio. La bio dit juste d'aller voir le post épinglé.",
@@ -1092,10 +1108,12 @@ function setupWizard(a) {
     pinStep = `<div class="card"><div class="stepnum">5. Post épinglé (2 parties)</div>${st.pinnedPost ? `<ol><li>Publie la partie 1 (ton propre profil s'affiche en carte en dessous).</li>${box(fill(st.pinnedPost))}${st.pinnedReply ? `<li>Réponds à ton propre post avec la partie 2 (le lien).</li>${box(fill(st.pinnedReply))}` : ""}<li>Sur le post, touche les 3 points, puis Épingler.</li></ol>` : '<p class="muted">Modèle de post épinglé pas encore fourni.</p>'}</div>`;
     checks.push("Post épinglé publié et épinglé");
   }
-  return `<h2>Setup de @${esc(a.pseudo)}</h2>${hint("setup")}
+  if (a.newPseudo && !checks.includes(`Pseudo changé en @${a.newPseudo}`)) checks.unshift(`Pseudo changé en @${a.newPseudo}`);
+  return `<h2>Setup de ${psTag(a, "span")}</h2>${hint("setup")}
     <div class="alert">${spill(strat)}<div style="margin-top:6px">${explain}</div></div>
     <div class="card"><div class="stepnum">1. Même profil, même IP</div>
-      <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}</div>
+      <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine(a.newPseudo ? "Identifiant actuel" : "Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}</div>
+    ${a.newPseudo ? `<div class="card"><div class="stepnum">1 bis. Change le pseudo</div><ol><li>Threads : Profil, puis Modifier le profil.</li><li>Touche Nom d'utilisateur.</li><li>Colle le nouveau pseudo et enregistre.</li><li>Pas de champ Nom d'utilisateur dans Threads ? Fais pareil dans Instagram (Profil, Modifier le profil, Nom d'utilisateur).</li></ol>${copyLine("Nouveau pseudo", a.newPseudo)}<div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="npTaken" data-id="${a.id}" data-wait="...">Déjà pris ? Un autre</button></div></div>` : ""}
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
     <div class="card"><div class="stepnum">3. Bio</div>${bank.length ? `<p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} » (${bank.length} restantes). Copie-la telle quelle : une fois le setup fini, elle sort de la banque.</p>` : '<div class="alert c-red">Plus aucune bio dans cette banque. Préviens Awen ou Bilot (Contenu, Bios).</div>'}<textarea data-setupbio>${esc(s.bio)}</textarea>${frSlot(s.bio)}<div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
@@ -1381,8 +1399,11 @@ const ACT = {
   async warmupDone(b) {
     const boxes = [...document.querySelectorAll(`[data-wcheck="${b.dataset.id}"] input`)];
     if (boxes.some((x) => !x.checked)) return toast("Coche toutes les cases d'abord.", true);
+    const npEl = $(`[data-newpseudo="${b.dataset.id}"]`);
+    const newPseudo = npEl ? npEl.value.trim().replace(/^@/, "").toLowerCase() : "";
+    if (npEl && !/^[a-z0-9._]{3,30}$/.test(newPseudo)) return toast("Mets le nouveau pseudo d'abord (minuscules, chiffres, point, tiret bas).", true);
     await run(b, async () => {
-      await api(`accounts/${b.dataset.id}/warmup`, {});
+      await api(`accounts/${b.dataset.id}/warmup`, npEl ? { newPseudo } : {});
       sessionStorage.removeItem("timer_" + b.dataset.id);
       toast("Warm-up validé. Place au setup.");
       if (S.wiz?.step === 6) S.wiz = { step: 1, f: {} };
@@ -1390,6 +1411,28 @@ const ACT = {
       S.setup = { id: b.dataset.id };
       S.tab = "setup";
       render();
+    });
+  },
+  npOther(b) {
+    const a = acc(b.dataset.id);
+    const bank = (S.data.settings.pseudoBank || []).filter((x) => x !== S.np?.[a.id]);
+    if (!bank.length) return toast("Plus de pseudo dans la banque : écris-en un toi-même.", true);
+    S.np[a.id] = bank[Math.floor(Math.random() * bank.length)];
+    delete S.np[a.id + "_own"];
+    const el = $(`[data-newpseudo="${a.id}"]`);
+    if (el) el.value = S.np[a.id];
+  },
+  npCopy(b) {
+    copy($(`[data-newpseudo="${b.dataset.id}"]`)?.value || "");
+  },
+  async npTaken(b) {
+    const a = acc(b.dataset.id);
+    const bank = (S.data.settings.pseudoBank || []).filter((x) => x !== a.newPseudo);
+    if (!bank.length) return toast("Plus de pseudo dans la banque. Préviens Awen ou Bilot.", true);
+    await run(b, async () => {
+      await api(`accounts/${a.id}/edit`, { newPseudo: bank[Math.floor(Math.random() * bank.length)] });
+      await refresh();
+      toast("Nouveau pseudo : @" + acc(a.id).newPseudo);
     });
   },
   startSetup(b) {
@@ -2038,6 +2081,11 @@ document.addEventListener("toggle", (e) => {
 document.addEventListener("input", (e) => {
   // on garde chaque champ de l'assistant en mémoire à chaque frappe (pas seulement au clic suivant)
   if (e.target.matches("[data-f]") && S.wiz) S.wiz.f[e.target.dataset.f] = e.target.value.trim();
+  if (e.target.matches("[data-newpseudo]")) {
+    S.np = S.np || {};
+    S.np[e.target.dataset.newpseudo] = e.target.value.trim();
+    S.np[e.target.dataset.newpseudo + "_own"] = true;
+  }
   if (e.target.matches("[data-search]")) {
     S.search = e.target.value;
     const pos = e.target.selectionStart;

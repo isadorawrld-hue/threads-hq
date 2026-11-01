@@ -284,6 +284,17 @@ await v.waitForFunction(() => /Tu es connectée/.test(document.querySelector("ma
 await shot(v, "19-achat-confirme");
 await v.click('[data-act="wizCreate"]');
 await v.waitForSelector(".timer");
+// warm-up d'un compte acheté : nouveau pseudo obligatoire, puis consignes pour le changer au setup
+await v.waitForSelector("[data-newpseudo]");
+await v.fill("[data-newpseudo]", "");
+await v.$$eval("[data-wcheck] input", (els) => els.forEach((e) => (e.checked = true)));
+await v.click('[data-act="warmupDone"]');
+await waitToast(v, /nouveau pseudo/);
+await v.fill("[data-newpseudo]", "chloe.lily88");
+await shot(v, "19b-achat-nouveau-pseudo");
+await v.click('[data-act="warmupDone"]');
+await v.waitForFunction(() => /Change le pseudo/.test(document.querySelector("main").textContent) && /chloe\.lily88/.test(document.querySelector("main").textContent) && /Pseudo changé en @chloe\.lily88/.test(document.querySelector("main").textContent));
+await shot(v, "19c-setup-changer-pseudo");
 const bought = await (await fetch(`${B}/__dev/acc?pseudo=bought_lily`)).json();
 if (!bought || !bought.bought || bought.totp !== "JBSWY3DPEHPK3PXP" || bought.password !== "Achat123!" || bought.phone || bought.geelarkProfile !== "profil achat 1") throw new Error("compte acheté mal enregistré : " + JSON.stringify(bought));
 await a.reload();
@@ -293,7 +304,7 @@ await a.waitForFunction(() => /1 en stock/.test(document.querySelector("main").t
 // compte acheté : la carte montre le nom Chloé (téléphone GeeLark) + le pseudo de connexion, et la recherche marche sur le nom
 await tab(a, "accounts");
 await a.fill("[data-search]", "achat 1");
-await a.waitForFunction(() => [...document.querySelectorAll(".acc .ps")].some((e) => /profil achat 1/.test(e.textContent) && /@bought_lily/.test(e.textContent)));
+await a.waitForFunction(() => [...document.querySelectorAll(".acc .ps")].some((e) => /chloe\.lily88/.test(e.textContent) && /@bought_lily/.test(e.textContent)));
 await shot(a, "20-nom-compte-achete");
 
 await browser.close();
