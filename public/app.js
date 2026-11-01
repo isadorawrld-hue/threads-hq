@@ -536,7 +536,8 @@ const VIEWS = {
         ${nav(true)}</div>`;
     if (have && w.step === 3 && !w.f.stockId && stk.mine) Object.assign(w.f, stockFill(stk.mine));
     const stockBox = !have ? "" : w.f.stockId
-      ? `<div class="alert c-green">📦 Compte acheté pris dans le stock${w.f.stockOrder ? ` (commande ${esc(w.f.stockOrder)})` : ""} : identifiant, mot de passe et 2FA déjà remplis. <button class="btn sm ghost" data-act="stockRelease" data-wait="...">Rendre au stock</button></div>`
+      ? `<div class="alert c-green">📦 Compte acheté pris dans le stock${w.f.stockOrder ? ` (commande ${esc(w.f.stockOrder)})` : ""} : identifiant, mot de passe et 2FA déjà remplis. <button class="btn sm ghost" data-act="stockRelease" data-wait="...">Rendre au stock</button></div>
+        <div class="card" style="margin:10px 0"><b>Ce compte ne marche pas ?</b> <span class="muted">(mot de passe faux, 2FA refusée, compte banni, autre souci)</span><div class="row" style="margin-top:8px"><button class="btn bad" data-act="stockNextAsk">Passer au compte suivant</button></div><p class="muted" style="margin:6px 0 0">Tu gardes le même téléphone GeeLark et la même IP.</p></div>`
       : stk.dispo ? `<button class="btn big" data-act="stockTake" data-wait="...">📦 Prendre un compte acheté (${stk.dispo} en stock)</button><p class="muted">Tout se remplit tout seul (identifiant, mot de passe, 2FA).</p>`
       : `<div class="alert c-yellow">Plus de compte acheté en stock : colle les infos du compte à la main, ou préviens Awen.</div>`;
     if (have && w.step === 3)
@@ -806,11 +807,14 @@ const VIEWS = {
     const c = S.data.configured;
     const vids = Object.keys(SOP);
     const sk = S.data.stock || {};
-    const skLab = { dispo: ["c-green", "En stock"], pris: ["c-yellow", "En cours"], utilise: ["c-blue", "Utilisé"], rate: ["c-red", "Raté"] };
+    const skLab = { dispo: ["c-green", "En stock"], pris: ["c-yellow", "En cours"], utilise: ["c-blue", "Utilisé"], rate: ["c-red", "Raté"], scam: ["c-red", "Scam"] };
+    const scams = (sk.list || []).filter((x) => x.status === "scam");
+    const scamTxt = scams.map((x) => [x.order ? "#" + x.order : "", x.user, x.reason].filter(Boolean).join(" · ")).join("\n");
     return `<h2>Réglages</h2>
       <div class="card"><h3 style="margin-top:0">📦 Comptes achetés (stock)</h3>
         <p class="muted">Glisse le fichier .txt de la commande (ou colle la liste) : identifiant, mot de passe, clé 2FA par ligne. Les lignes de pub sont ignorées, les doublons aussi. Sandra clique « Prendre un compte acheté » et tout se remplit.</p>
-        <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag ok">${sk.dispo || 0} en stock</span><span class="tag">${sk.pris || 0} en cours</span><span class="tag">${sk.utilise || 0} utilisés</span><span class="tag ${sk.rate ? "miss" : ""}">${sk.rate || 0} ratés</span></div>
+        <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag ok">${sk.dispo || 0} en stock</span><span class="tag">${sk.pris || 0} en cours</span><span class="tag">${sk.utilise || 0} utilisés</span><span class="tag ${sk.rate ? "miss" : ""}">${sk.rate || 0} ratés</span><span class="tag ${sk.scam ? "miss" : ""}">${sk.scam || 0} scam</span></div>
+        ${scams.length ? `<div style="margin-top:10px"><b>Comptes scam (à réclamer au vendeur)</b><pre class="scamlist" style="white-space:pre-wrap;font-size:12px;background:#f6f6f6;padding:8px;border-radius:8px">${esc(scamTxt)}</pre><button class="btn sm light" data-act="copy" data-v="${esc(scamTxt)}">Copier la liste pour le vendeur</button></div>` : ""}
         <label class="f">Fichiers de commande <small>(.txt, plusieurs d'un coup)</small></label><input type="file" id="stockFiles" accept=".txt,text/plain" multiple />
         <label class="f">ou colle la liste</label><textarea data-set="stockText" placeholder="identifiant&#9;motdepasse&#9;CLE 2FA" style="min-height:90px"></textarea>
         <button class="btn" data-act="stockImport" data-wait="Import...">Ajouter au stock</button>
@@ -881,7 +885,7 @@ const VIEWS = {
 const LOGS = {
   premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
-  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", compte_modifie: "Compte modifié",
+  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
   transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
 };
@@ -1374,7 +1378,7 @@ const ACT = {
     if (S.wiz.kind === "have")
       return modal(`<h3>Connexion ratée ?</h3><p>On note et on passe au compte suivant.</p>
       <label class="f">Pourquoi ?</label><select id="failwhy"><option>Mot de passe refusé</option><option>Code 2FA refusé</option><option>Compte suspendu / désactivé</option><option>Demande de vérification (selfie, e-mail)</option><option>Autre</option></select>
-      <div class="alert c-yellow" style="margin-top:12px"><b>Avant le compte suivant :</b><br>1. Code 2FA refusé : vérifie la clé (pas d'espace en trop), attends un nouveau code et réessaie une fois.<br>2. Supprime ce téléphone GeeLark${S.wiz.f.geelarkProfile ? ` (« ${esc(S.wiz.f.geelarkProfile)} »)` : ""} et crée-en un <b>nouveau</b>.<br>3. Change l'IP à l'étape 1.</div>
+      <div class="alert c-yellow" style="margin-top:12px"><b>Mot de passe, 2FA refusés ou compte banni :</b> le compte suivant du stock arrive tout de suite, tu gardes le même téléphone GeeLark.<br><b>Vérification ou autre :</b> supprime ce téléphone GeeLark${S.wiz.f.geelarkProfile ? ` (« ${esc(S.wiz.f.geelarkProfile)} »)` : ""}, crée-en un <b>nouveau</b> et change l'IP à l'étape 1.</div>
       <button class="btn big bad" style="margin-top:14px" data-act="wizFailSend">Noter et passer au suivant</button>`);
     modal(`<h3>Ça n'a pas marché ?</h3><p>Pas grave. On note et on recommence.</p>
       <label class="f">Pourquoi ?</label><select id="failwhy"><option>« Try again later » (limite Instagram)</option><option>Compte bloqué direct</option><option>Demande de vérification</option><option>Code jamais reçu</option><option>Numéro ou e-mail refusé</option><option>Autre</option></select>
@@ -1382,6 +1386,13 @@ const ACT = {
       <button class="btn big bad" style="margin-top:14px" data-act="wizFailSend">Noter et recommencer</button>`);
   },
   async wizFailSend(b) {
+    const why = $("#failwhy").value;
+    // compte du stock refusé par la faute du vendeur : il part en scam et le suivant arrive, même téléphone (pas grillé)
+    if (S.wiz.kind === "have" && S.wiz.f.stockId && ["Mot de passe refusé", "Code 2FA refusé", "Compte suspendu / désactivé"].includes(why)) {
+      b.dataset.r = why;
+      b.dataset.scam = "1";
+      return ACT.stockNext(b);
+    }
     await run(b, async () => {
       await api("accounts/failed", { bought: S.wiz.kind === "have", stockId: S.wiz.f.stockId || "", phone: S.wiz.f.phone || S.wiz.f.email || S.wiz.f.pseudo || "", smsId: S.wiz.f.smsId || "", emailId: S.wiz.f.emailId || "", geelarkProfile: S.wiz.f.geelarkProfile || "", reason: $("#failwhy").value });
       closeModal();
@@ -1492,6 +1503,27 @@ const ACT = {
       const it = await api("stock/take", {});
       Object.assign(S.wiz.f, stockFill(it));
       toast(`Compte @${it.user} pris : tout est rempli`);
+      await refresh();
+    });
+  },
+  stockNextAsk() {
+    readWizFields();
+    const why = [["Mot de passe refusé", 1], ["Code 2FA refusé", 1], ["Compte déjà suspendu / banni", 1], ["Autre souci (je le remets à la fin du stock)", 0]];
+    modal(`<h3>Qu'est-ce qui ne va pas avec @${esc(S.wiz.f.pseudo || "")} ?</h3>
+      <p class="muted">Tu reçois tout de suite le compte suivant. Garde le même téléphone GeeLark : déconnecte-toi d'Instagram, puis connecte le nouveau compte.</p>
+      <div class="col" style="display:grid;gap:8px">${why.map(([l, sc]) => `<button class="btn light" data-act="stockNext" data-r="${esc(l)}" data-scam="${sc}" data-wait="...">${esc(l)}</button>`).join("")}</div>`);
+  },
+  async stockNext(b) {
+    const w = S.wiz;
+    await run(b, async () => {
+      const r = await api("stock/next", { id: w.f.stockId, reason: b.dataset.r, scam: b.dataset.scam === "1" });
+      closeModal();
+      for (const k of ["stockId", "stockOrder", "pseudo", "password", "totp", "email", "emailPassword"]) delete w.f[k];
+      if (r.next) {
+        Object.assign(w.f, stockFill(r.next));
+        toast(`Nouveau compte : @${r.next.user}. Même téléphone, connecte-le.`);
+      } else toast("Plus d'autre compte en stock. Préviens Awen.", true);
+      w.step = 3;
       await refresh();
     });
   },

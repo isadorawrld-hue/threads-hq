@@ -208,3 +208,9 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Warm-up d'un compte acheté : encadré « Nouveau pseudo du compte » (proposé depuis la banque, « Un autre », modifiable). « Warm-up fini » refusé sans pseudo valide (navigateur et serveur, `claimNewPseudo` : format Threads, unique dans le CRM, sort de la banque). Stocké dans `acc.newPseudo`.
 - Setup : carte « 1 bis. Change le pseudo » (Threads : Profil, Modifier le profil, Nom d'utilisateur ; sinon Instagram), case « Pseudo changé en @… », bouton « Déjà pris ? Un autre » (`edit` avec `newPseudo`). `{pseudo}` du post épinglé = nouveau pseudo.
 - « Setup fini » : `pseudo` = nouveau pseudo, l'ancien va dans `oldPseudo`. Metricool vérifie le nouveau ; si c'est encore l'ancien qui est connecté : message « Le pseudo n'a pas été changé ». L'import du stock ignore aussi les `oldPseudo`.
+
+## « Passer au compte suivant » (comptes du stock, 1er nov.)
+- Étape 3 de « J'ai déjà un compte », compte pris du stock : carte « Ce compte ne marche pas ? » + bouton « Passer au compte suivant ». Motifs : mot de passe refusé / 2FA refusée / déjà banni = `scam` (à réclamer au vendeur), « Autre souci » = remis en stock en FIN de file. `POST stock/next {id, reason, scam}` réserve tout de suite le suivant ; on reste à l'étape 3, même téléphone GeeLark, même IP.
+- Étape 4 « Non, ça n'a pas marché » avec un de ces 3 motifs = même chose (scam + suivant, téléphone gardé). Vérification / autre = échec classique (téléphone grillé, retour étape 1).
+- « Rendre au stock » remet aussi le compte en fin de file (bug : on redonnait toujours le même).
+- Réglages > Comptes achetés : compteur scam + liste « à réclamer au vendeur » avec Copier.

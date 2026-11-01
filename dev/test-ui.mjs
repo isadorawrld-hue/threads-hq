@@ -274,6 +274,18 @@ const wizCode = await v.textContent('[data-totp="__wiz"]');
 const expCode = await v.evaluate(() => totpCodeForTest("JBSWY3DPEHPK3PXP"));
 if (wizCode !== expCode) throw new Error(`code 2FA ${wizCode} attendu ${expCode}`);
 await shot(v, "18-achat-connexion");
+// « Passer au compte suivant » : un AUTRE compte arrive tout de suite, même téléphone (on reste à l'étape 3)
+const nextAcc = async (want) => {
+  await v.click('[data-act="stockNextAsk"]');
+  await v.waitForSelector('[data-act="stockNext"]');
+  await shot(v, "18b-compte-suivant");
+  await v.click('[data-act="stockNext"][data-scam="0"]');
+  await v.waitForFunction((u) => document.querySelector('[data-f="pseudo"]')?.value === u && /Étape 3 sur 4/.test(document.querySelector("main").textContent), want, { timeout: 10000 });
+};
+await nextAcc("bought_rose");
+if ((await v.inputValue('[data-f="password"]')) !== "Rose456!") throw new Error("compte suivant mal rempli");
+await nextAcc("bought_lily");
+await v.waitForFunction(() => /^\d{6}$/.test(document.querySelector('[data-totp="__wiz"]').textContent), null, { timeout: 5000 });
 // cle abimee a la main : refusee
 await v.fill('[data-f="totp"]', "pas une clé !!");
 await v.click('[data-act="wizNext"]');

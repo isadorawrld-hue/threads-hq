@@ -682,19 +682,19 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
 
 // --- stock de comptes achetes : import du fichier darkstore, prise auto, rendu, utilise, rate
 {
-  const file = "Заказ: 1000001\nСайт недоступен https://darkstore.contact\n====\n🚨 ВАЖНО! прокси https://x.y\n\n\nstk_one\tFakePass1\tGEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ\nstk.two\tFakePass2\tMFRG GZDF MZTW Q2LK\nachat_x\tpw\tJBSW Y3DP EHPK 3PXP\n";
+  const file = "Заказ: 1000001\nСайт недоступен https://darkstore.contact\n====\n🚨 ВАЖНО! прокси https://x.y\n\n\nstk_one\tFakePass1\tGEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ\nstk.two\tFakePass2\tMFRG GZDF MZTW Q2LK\nstk_three\tFakePass3\tMFRG GZDF MZTW Q2LA\nachat_x\tpw\tJBSW Y3DP EHPK 3PXP\n";
   tok = va;
   assert.equal((await call("stock/import", { text: file })).s, 403, "import réservé à l'admin");
   tok = admin;
   let imp = ok(await call("stock/import", { text: file }), "import");
-  assert.equal(imp.added, 2, "2 comptes ajoutés (achat_x existe déjà dans le CRM)");
+  assert.equal(imp.added, 3, "3 comptes ajoutés (achat_x existe déjà dans le CRM)");
   assert.equal(imp.skipped, 1);
   imp = ok(await call("stock/import", { text: file }), "re-import");
   assert.equal(imp.added, 0, "doublons ignorés");
   assert.equal((await call("stock/import", { text: "rien d'utile ici" })).s, 400);
   tok = va;
   st = ok(await call("state"), "state VA");
-  assert.equal(st.stock.dispo, 2);
+  assert.equal(st.stock.dispo, 3);
   assert.equal(st.stock.list, undefined, "la VA ne voit pas la liste complète");
   const t1 = ok(await call("stock/take", {}), "prendre");
   assert.equal(t1.user, "stk_one");
@@ -706,8 +706,16 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   assert.equal(st.stock.mine.id, t1.id, "compte en cours retrouvé après un rechargement");
   ok(await call("stock/release", { id: t1.id }), "rendre au stock");
   const t2 = ok(await call("stock/take", {}), "reprendre après rendu");
-  assert.equal(t2.id, t1.id);
-  ok(await call("accounts/failed", { bought: true, stockId: t2.id, geelarkProfile: "stk a", reason: "Mot de passe refusé" }), "connexion ratée");
+  assert.equal(t2.user, "stk.two", "un compte rendu repart en fin de file : le suivant est un AUTRE compte (bug du 1er nov.)");
+  // « Passer au compte suivant » : autre souci = remis en fin de stock, le suivant arrive tout de suite
+  const n1 = ok(await call("stock/next", { id: t2.id, reason: "Autre souci" }), "compte suivant (autre souci)");
+  assert.equal(n1.next.user, "stk_three");
+  assert.equal(ok(await call("state"), "state").stock.mine.id, n1.next.id, "le suivant est déjà réservé pour la VA");
+  // faute du vendeur = scam, suivant direct
+  const n2 = ok(await call("stock/next", { id: n1.next.id, reason: "Code 2FA refusé", scam: true }), "compte suivant (scam)");
+  assert.equal(n2.next.user, "stk_one");
+  assert.equal((await call("stock/next", { id: n1.next.id, scam: true })).s, 400, "un compte déjà rangé ne repasse pas");
+  ok(await call("accounts/failed", { bought: true, stockId: n2.next.id, geelarkProfile: "stk a", reason: "Mot de passe refusé" }), "connexion ratée");
   const t3 = ok(await call("stock/take", {}), "compte suivant");
   assert.equal(t3.user, "stk.two");
   await call("rotate", {});
@@ -715,7 +723,9 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   assert.equal(sa.totp, "MFRGGZDFMZTWQ2LK");
   tok = admin;
   st = ok(await call("state"), "state admin");
-  assert.deepEqual([st.stock.dispo, st.stock.pris, st.stock.utilise, st.stock.rate], [0, 0, 1, 1]);
+  assert.deepEqual([st.stock.dispo, st.stock.pris, st.stock.utilise, st.stock.rate, st.stock.scam], [0, 0, 1, 1, 1]);
+  assert.equal(st.stock.list.find((x) => x.user === "stk_three").status, "scam");
+  assert.equal(st.stock.list.find((x) => x.user === "stk_three").reason, "Code 2FA refusé");
   assert.equal(st.stock.list.find((x) => x.user === "stk_one").reason, "Mot de passe refusé");
   assert.equal(st.stock.list.find((x) => x.user === "stk.two").accountId, sa.id);
   tok = va;
