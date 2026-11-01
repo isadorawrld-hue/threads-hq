@@ -672,12 +672,12 @@ const VIEWS = {
     let list = S.data.accounts;
     if (f === "vivants") list = list.filter((a) => a.status !== "saute");
     else if (f !== "tous") list = list.filter((a) => a.status === f);
-    if (q) list = list.filter((a) => [a.pseudo, a.phone, a.email, a.ip, String(a.num)].some((x) => String(x || "").toLowerCase().includes(q)));
+    if (q) list = list.filter((a) => [a.pseudo, a.displayName, a.geelarkProfile, a.phone, a.email, a.ip, String(a.num)].some((x) => String(x || "").toLowerCase().includes(q)));
     const chips = [["vivants", "Vivants"], ["tous", "Tous"], ...Object.entries(S.data.statusLabels)];
     const warmN = S.data.accounts.filter((a) => a.engage && a.status !== "saute").length;
     return `<h2>Comptes</h2>${isAdmin() ? `<div class="row" style="margin-bottom:12px"><span class="muted">Pseudos violets (warm-up tous les jours) : ${warmN}/5</span>${warmN < 5 ? `<button class="btn sm" data-act="engagePick" data-wait="Tirage...">Mettre ${5 - warmN} compte(s) en violet au hasard</button>` : ""}</div>` : ""}
       <div class="chips">${chips.map(([k, l]) => `<button class="chip ${f === k ? "on" : ""}" data-filter="${k}">${esc(l)} <b>${k === "vivants" ? S.data.accounts.filter((a) => a.status !== "saute").length : k === "tous" ? S.data.accounts.length : S.data.accounts.filter((a) => a.status === k).length}</b></button>`).join("")}</div>
-      <input placeholder="Chercher (pseudo, numéro, IP...)" data-search value="${esc(S.search)}" style="margin-bottom:14px" />
+      <input placeholder="Chercher (nom, pseudo, numéro, IP...)" data-search value="${esc(S.search)}" style="margin-bottom:14px" />
       <div class="grid">${list.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}</div>
         <div class="row">${pill(a.status)}${gpill(a.group)}${spill(a.strategy)}${a.engage && a.status !== "saute" ? '<span class="pill warmpill">Warm-up tous les jours</span>' : ""}</div>
         <span class="muted">Créé ${ago(a.createdAt)} par ${esc(a.createdBy)} · IP ${esc(a.ip || "?")}</span>
@@ -931,10 +931,18 @@ async function planFull(accountId, days, btn, label, mode) {
 const POSTING = ["actif", "shadowban", "restreint"];
 // pseudo violet = compte a warm-up 10 min tous les jours (5 comptes choisis par l'admin). Clic dessus : petit rappel 2 s.
 const WARM_TIP = "À warm-up tous les jours sur GeeLark : 10 min, 3-4 likes, 3-4 commentaires en chinois, 2 abonnements max, rien à publier.";
+// Nom Chloé du compte (ce que la VA voit dans GeeLark / sur le profil). Comptes achetés : le pseudo de connexion
+// reste celui du vendeur, donc on affiche le nom donné (displayName), sinon le nom du téléphone GeeLark.
+function nameOf(a) {
+  const n = String(a.displayName || (a.bought ? a.geelarkProfile : "") || "").replace(/^threads\s*\d+\s*:\s*/i, "").trim();
+  return n && n.toLowerCase() !== String(a.pseudo || "").toLowerCase() ? n : "";
+}
 function psTag(a, tag = "span") {
   const cls = tag === "span" ? "ps" : "";
-  if (!a.engage || a.status === "saute") return `<${tag} class="${cls}">@${esc(a.pseudo)}</${tag}>`;
-  return `<${tag} class="${cls} ps-warm" data-act="warmTip" data-id="${a.id}" title="${esc(WARM_TIP)}">@${esc(a.pseudo)}</${tag}>`;
+  const n = nameOf(a);
+  const inner = n ? `${esc(n)} <small class="psat">@${esc(a.pseudo)}</small>` : `@${esc(a.pseudo)}`;
+  if (!a.engage || a.status === "saute") return `<${tag} class="${cls}">${inner}</${tag}>`;
+  return `<${tag} class="${cls} ps-warm" data-act="warmTip" data-id="${a.id}" title="${esc(WARM_TIP)}">${inner}</${tag}>`;
 }
 const warmList = () => (S.data?.accounts || []).filter((a) => a.engage && POSTING.includes(a.status));
 function warmPop(html) {
@@ -1757,8 +1765,8 @@ const ACT = {
   },
   edit(b) {
     const a = acc(b.dataset.id);
-    const fields = [["pseudo", "Pseudo"], ["password", "Mot de passe"], ["phone", "Numéro"], ["email", "Email"], ["emailPassword", "Mot de passe email"], ["totp", "Clé 2FA"], ["geelarkProfile", "Profil GeeLark"], ["link", "Lien"], ["notes", "Notes"]];
-    modal(`<h3>@${esc(a.pseudo)}</h3>${fields.map(([k, l]) => k === "notes" ? `<label class="f">${l} <small>(tout ce que tu veux retenir sur ce compte)</small></label><textarea data-ed="notes">${esc(a.notes || "")}</textarea>` : `<label class="f">${l}</label><input data-ed="${k}" value="${esc(a[k] || "")}" />`).join("")}
+    const fields = [["displayName", "Nom affiché (ex : XiixiChloe)"], ["pseudo", "Pseudo (connexion Threads)"], ["password", "Mot de passe"], ["phone", "Numéro"], ["email", "Email"], ["emailPassword", "Mot de passe email"], ["totp", "Clé 2FA"], ["geelarkProfile", "Profil GeeLark"], ["link", "Lien"], ["notes", "Notes"]];
+    modal(`<h3>${psTag(a, "span")}</h3>${fields.map(([k, l]) => k === "notes" ? `<label class="f">${l} <small>(tout ce que tu veux retenir sur ce compte)</small></label><textarea data-ed="notes">${esc(a.notes || "")}</textarea>` : `<label class="f">${l}</label><input data-ed="${k}" value="${esc(k === "displayName" ? a.displayName || nameOf(a) : a[k] || "")}" />`).join("")}
       ${isAdmin() ? `<label class="f">Groupe</label><select data-ed="group">${S.data.settings.groups.map((g) => `<option value="${g.id}" ${g.id === a.group ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select>
       <label class="f">Stratégie</label><select data-ed="strategy">${Object.entries(S.data.strategyLabels || {}).map(([k, l]) => `<option value="${k}" ${k === a.strategy ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
       <label class="f">Statut</label><select data-ed="status">${Object.entries(S.data.statusLabels).map(([k, l]) => `<option value="${k}" ${k === a.status ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}

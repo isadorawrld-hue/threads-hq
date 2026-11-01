@@ -290,6 +290,11 @@ await a.reload();
 await a.waitForSelector(".bar");
 await tab(a, "settings");
 await a.waitForFunction(() => /1 en stock/.test(document.querySelector("main").textContent) && /1 utilisés/.test(document.querySelector("main").textContent));
+// compte acheté : la carte montre le nom Chloé (téléphone GeeLark) + le pseudo de connexion, et la recherche marche sur le nom
+await tab(a, "accounts");
+await a.fill("[data-search]", "achat 1");
+await a.waitForFunction(() => [...document.querySelectorAll(".acc .ps")].some((e) => /profil achat 1/.test(e.textContent) && /@bought_lily/.test(e.textContent)));
+await shot(a, "20-nom-compte-achete");
 
 await browser.close();
 if (errors.length) {

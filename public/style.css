@@ -286,6 +286,7 @@ table.plan td.tx.low { color: var(--red); font-weight: 600; }
 .frtr .frk { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 2px 6px; border-radius: 6px; background: #e4e7f2; color: #3a3f55; }
 
 /* pseudos violets : comptes a warm-up tous les jours */
+.psat { font-weight: 400; font-size: 0.8em; color: #888; letter-spacing: 0; }
 .ps-warm { color: #7c3aed !important; cursor: pointer; text-decoration: underline dotted 2px; text-underline-offset: 3px; }
 .warmpill { background: #f1eaff; color: #6d28d9; }
 .warmcard { border-color: #e4d7ff; background: #faf7ff; }

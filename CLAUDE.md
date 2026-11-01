@@ -198,3 +198,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 ## Transfert vers Threads Emmy (31 oct.)
 - Réglages (admin) : « Créer un code de transfert » (`transfer/create`) : code `TE-` + 32 caractères, usage unique, 15 min.
 - `transfer/pull` (sans session, code obligatoire) renvoie proxy, ports SOCKS5, pays des numéros et les clés (rotation, Hero, SMSOnline, SMSPool) au CRM d'Emmy, de serveur à serveur. Le navigateur ne voit jamais les clés. Code inventé, expiré ou réutilisé = refusé et noté au journal.
+
+## Nom Chloé des comptes achetés (1er nov.)
+- Un compte acheté garde le pseudo de connexion du vendeur (ex : luxin1920). Partout, `psTag` affiche le nom Chloé en gros + `@pseudo` en petit (`nameOf` : `displayName`, sinon le nom du téléphone GeeLark pour un compte acheté, préfixe « Threads 1 : » enlevé).
+- « Modifier / notes » : champ « Nom affiché ». La recherche de Comptes cherche aussi le nom et le téléphone GeeLark.
+- Le 1er nov., 4 comptes au profil Threads disparu (chenting1332, rabbit.50481044, luxin1920, ChloeNui78) passés en Sauté : marques Metricool libérées, 76 posts annulés. On ne les supprime pas : le CRM reprend la marque d'un compte sauté pour le suivant (plan plein).
