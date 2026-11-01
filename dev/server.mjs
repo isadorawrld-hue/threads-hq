@@ -231,6 +231,7 @@ http
       if (b) b.networksData = url.searchParams.get("username") ? { threads: { username: url.searchParams.get("username") } } : {};
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__dev/mcbrand") { brands.push({ id: 9000 + brands.length, label: "Marque vide", networksData: {}, timezone: "Asia/Taipei" }); res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/mcfull") { mcFull = url.searchParams.get("v") === "1"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/acc") {
       const want = String(url.searchParams.get("pseudo") || "").toLowerCase();

@@ -737,6 +737,19 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
     assert.match(r.j.error, /Metricool est plein/);
     assert.doesNotMatch(r.j.error, /FORBIDDEN/);
   }
+  // admin : attribuer a la main une marque vide de Metricool (verifiee) au compte bloque
+  await fetch(B + "/__dev/mcbrand");
+  const empty = ok(await call("metricool/brands"), "marques").find((x) => x.label === "Marque vide");
+  assert.ok(empty, "marque vide créée pour le test");
+  {
+    tok = va;
+    assert.equal((await call(`accounts/${ya.id}/mcconnect`, { useBlogId: empty.blogId })).s, 403, "VA : pas d'attribution manuelle");
+    tok = admin;
+    const used = ok(await call(`accounts/${ya.id}/mcconnect`, { useBlogId: empty.blogId }), "marque vide attribuée");
+    assert.equal(String(used.blogId), String(empty.blogId));
+    assert.ok(used.mcLink, "lien de connexion donné");
+    console.log("   marque vide attribuée à la main :", empty.blogId);
+  }
   await fetch(B + "/__dev/mcfull?v=0");
   step("Metricool plein : reprise d'une marque de compte mort du CRM, sinon message clair");
 }
