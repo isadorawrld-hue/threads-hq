@@ -181,6 +181,9 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Serveur : `accounts/create` avec `bought: true` n'exige ni numéro ni e-mail, refuse une clé 2FA non vide invalide, stocke `bought`. Échec : motifs propres aux comptes achetés, `accounts/failed` avec `bought`.
 - Tests : API « compte acheté », UI captures 18-19 (dev : `/__dev/acc?pseudo=`, `window.totpCodeForTest`).
 
+## Pages restées ouvertes après une mise à jour (1er nov.)
+- `status` et `state` renvoient `build` (id du déploiement Netlify, `context.deploy.id`). Le client le compare chaque minute et au retour sur l'onglet : nouvelle version => rechargement auto, sauf création/saisie/modale en cours (alors toast « Ctrl + F5 dès que tu as fini ce compte »). Dev : `/__dev/build?v=`.
+
 ## Metricool plein (1er nov.)
 - Plan Metricool à 15 marques : « User has reached the maximum number of brands allowed » (403). `mcconnect` reprend d'abord la marque d'un compte du CRM sauté ou délié (jamais une marque que le CRM n'a pas créée), la déconnecte de Threads et la renomme ; sinon message clair 409 « Metricool est plein… Préviens Awen ».
 - Dev : `/__dev/mcfull?v=1` simule le plan plein.

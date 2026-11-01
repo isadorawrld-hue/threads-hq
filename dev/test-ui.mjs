@@ -319,6 +319,16 @@ await a.fill("[data-search]", "achat 1");
 await a.waitForFunction(() => [...document.querySelectorAll(".acc .ps")].some((e) => /chloe\.lily88/.test(e.textContent) && /@bought_lily/.test(e.textContent)));
 await shot(a, "20-nom-compte-achete");
 
+// ---- nouvelle version deployee : une page restee ouverte se recharge toute seule (hors creation en cours)
+await tab(v, "today");
+await v.evaluate(() => (window.__marker = 1));
+await fetch(`${B}/__dev/build?v=b2`);
+await v.evaluate(() => window.dispatchEvent(new Event("focus")));
+await v.waitForFunction(() => !window.__marker, null, { timeout: 15000 }).catch(() => {});
+const reloaded = await v.evaluate(() => !window.__marker);
+await fetch(`${B}/__dev/build?v=b1`);
+if (!reloaded) errors.push("la page ne s'est pas rechargée après une nouvelle version");
+
 await browser.close();
 if (errors.length) {
   console.log("ERREURS NAVIGATEUR :\n" + errors.join("\n"));

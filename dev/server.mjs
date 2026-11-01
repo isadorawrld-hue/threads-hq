@@ -8,6 +8,7 @@ import { handle } from "../lib/core.mjs";
 const PORT = Number(process.env.PORT || 8788);
 const ROOT = new URL("../public/", import.meta.url).pathname;
 const mem = new Map();
+let devBuild = "b1";
 let mcFull = false;
 const store = {
   get: async (k) => (mem.has(k) ? structuredClone(mem.get(k)) : null),
@@ -220,7 +221,8 @@ async function fakeProxyFetch(url, proxy) {
   return Response.json({ ip: `82.64.12.${ipN}`, country: "FR", city: "Paris", org: "SFR" });
 }
 
-const env = { store, fetch: fakeFetch, proxyFetch: fakeProxyFetch, rotateWaitMs: 3000, rotatePollMs: 200, heroRetryMs: 50, planBudgetMs: Number(process.env.PLAN_BUDGET_MS || 7000) };
+const env = {
+  get build() { return devBuild; }, store, fetch: fakeFetch, proxyFetch: fakeProxyFetch, rotateWaitMs: 3000, rotatePollMs: 200, heroRetryMs: 50, planBudgetMs: Number(process.env.PLAN_BUDGET_MS || 7000) };
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".webm": "video/webm", ".mp4": "video/mp4", ".png": "image/png" };
 
 http
@@ -231,6 +233,7 @@ http
       if (b) b.networksData = url.searchParams.get("username") ? { threads: { username: url.searchParams.get("username") } } : {};
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__dev/build") { devBuild = url.searchParams.get("v") || "b1"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/mcbrand") { brands.push({ id: 9000 + brands.length, label: "Marque vide", networksData: {}, timezone: "Asia/Taipei" }); res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/mcfull") { mcFull = url.searchParams.get("v") === "1"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/acc") {

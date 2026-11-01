@@ -38,6 +38,16 @@ async function api(path, body, method) {
 }
 async function refresh() {
   S.data = await api("state");
+  // page restee ouverte apres une mise a jour : elle rechargeait l'ancienne appli contre le nouveau serveur
+  // (1er nov. : « Mets le nouveau pseudo d'abord » sans l'encadré pour le mettre). On recharge toute seule
+  // des qu'aucune creation n'est en cours, sinon on previent.
+  const b = S.data.build || "";
+  if (b && !S.build) S.build = b;
+  else if (b && S.build && b !== S.build) {
+    const busy = creating() || !!document.querySelector("#modal:not(.hidden)") || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
+    if (!busy) return location.reload();
+    if (!S.updateWarned) { S.updateWarned = true; setTimeout(() => toast("Nouvelle version du CRM : appuie sur Ctrl + F5 dès que tu as fini ce compte.", true), 300); }
+  }
   render();
 }
 function toast(msg, bad) {
@@ -2189,6 +2199,19 @@ async function onPin(k) {
     } catch {}
     render();
   }
+  // nouvelle version du CRM ? verifiee chaque minute sur tous les onglets (le rafraichissement ci-dessous
+  // saute warm-up / setup / creation, la ou la VA passe ses journees)
+  const checkBuild = async () => {
+    try {
+      const b = (await api("status")).build || "";
+      if (!b || !S.build || b === S.build) return;
+      const busy = creating() || S.busy || !$("#modal").classList.contains("hidden") || document.activeElement?.matches("input,textarea,select");
+      if (!busy) return location.reload();
+      if (!S.updateWarned) { S.updateWarned = true; toast("Nouvelle version du CRM : appuie sur Ctrl + F5 dès que tu as fini ce compte.", true); }
+    } catch {}
+  };
+  setInterval(checkBuild, 60000);
+  window.addEventListener("focus", checkBuild);
   // rafraichit les compteurs chaque minute, mais jamais au milieu d'un assistant ou d'une saisie
   setInterval(() => {
     const working = ["create", "warmup", "setup", "content", "settings"].includes(S.tab) || S.setup;

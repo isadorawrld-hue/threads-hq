@@ -24,8 +24,10 @@ async function proxyFetch(url, proxy, timeoutMs) {
   return ufetch(url, { dispatcher: new ProxyAgent(proxy), signal: ctrl });
 }
 
-export default async (req) =>
+// build = identifiant du deploiement : l'appli d'une page restee ouverte voit qu'une nouvelle version existe
+export default async (req, context) =>
   handle(req, {
+    build: context?.deploy?.id || process.env.DEPLOY_ID || "",
     store: makeStore(),
     fetch: (u, o = {}) => fetch(u, { ...o, signal: AbortSignal.timeout(25000) }),
     proxyFetch,
