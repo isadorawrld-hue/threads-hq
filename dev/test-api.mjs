@@ -665,6 +665,12 @@ assert.equal(boughtAcc.status, "warmup");
   const other = ok(await call("state"), "state").accounts.find((x) => x.id !== boughtAcc.id && x.status !== "saute");
   r2 = await call(`accounts/${boughtAcc.id}/warmup`, { newPseudo: other.pseudo });
   assert.equal(r2.s, 400, "pseudo déjà pris par un autre compte refusé");
+  const deadOne = ok(await call("state"), "state").accounts.find((a) => a.status === "saute");
+  if (deadOne) {
+    r2 = await call(`accounts/${boughtAcc.id}/warmup`, { newPseudo: deadOne.pseudo });
+    assert.equal(r2.s, 400, "pseudo d'un compte mort refusé (Instagram le garde)");
+    assert.match(r2.j.error, /même mort/);
+  }
   const w = ok(await call(`accounts/${boughtAcc.id}/warmup`, { newPseudo: "@Chloe.Neuf88" }), "warm-up avec nouveau pseudo");
   assert.equal(w.newPseudo, "chloe.neuf88");
   assert.equal(w.pseudo, "achat_x", "l'identifiant reste celui du vendeur jusqu'au setup");
