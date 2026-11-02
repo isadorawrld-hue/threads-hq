@@ -393,6 +393,7 @@ const ICONS = {
   planning: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   content: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>',
+  todo: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   compta: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>',
   vault: '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/>',
   rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
@@ -421,6 +422,7 @@ function render() {
   ];
   if (isAdmin())
     groups.push(["Admin", [
+      ["todo", "À faire", [["todo", "À faire", myTodos().length]]],
       ["compta", "Compta", [["compta", "Compta", 0]]],
       ["vault", "Coffre-fort", [["vault", "Coffre-fort", 0]]],
       ["settings", "Réglages", [["settings", "Réglages", S.data.configured.rotation && S.data.configured.metricool && S.data.configured.proxy ? 0 : 1], ["dash", "Alertes et journal", n(S.data.alerts)], ["content", "Contenu", 0]]],
@@ -502,6 +504,7 @@ const VIEWS = {
     const lowBios = Object.entries(stt.bioBank || {}).filter(([, v]) => (v || []).length < 20).map(([k, v]) => `${(S.data.strategyLabels || {})[k] || k} : ${(v || []).length}`);
     if (isAdmin() && (stt.pseudoBank || []).length < 20) cards.push(task("", "c-red", "Pseudos bientôt épuisés", `${(stt.pseudoBank || []).length} restant(s) dans la banque (chaque pseudo ne sert qu'une fois)`, "content", "Ajouter"));
     if (isAdmin() && lowBios.length) cards.push(task("", "c-red", "Bios bientôt épuisées", lowBios.join(" · ") + " (chaque bio ne sert qu'une fois)", "content", "Ajouter"));
+    if (isAdmin() && myTodos().length) { const mt = myTodos(); cards.push(task("", mt.some(todoLate) ? "c-red" : "c-blue", `${mt.length} chose${mt.length > 1 ? "s" : ""} à faire entre admins`, mt.slice(0, 3).map((x) => x.text).join(" · ") + (mt.length > 3 ? " · …" : ""), "todo", "Voir")); }
     if (isAdmin() && miss.length) cards.push(task("", "c-red", "Réglages à finir", miss.join(" · "), "settings", "Ouvrir"));
     // ordre de priorite : d'abord que chaque compte poste (remplacer, reconnecter), puis le reste
     // regle : 1) ce qui empeche un compte de poster, 2) finir ce qui est commence (le plus proche de poster d'abord), 3) preparer la suite
@@ -841,6 +844,32 @@ const VIEWS = {
         <div class="row foot nowrap"><span class="muted meta">${esc(e.updatedBy || e.by)}, ${e.updatedAt ? ago(e.updatedAt) : ""}</span><button class="btn sm ghost" data-act="vEdit" data-id="${esc(e.id)}">Modifier</button><button class="btn sm ghost" data-act="vDel" data-id="${esc(e.id)}">Supprimer</button></div></div>`).join("") || `<div class="card muted">${q ? "Rien trouvé." : "Le coffre est vide. Ajoute le premier accès."}</div>`}</div>`;
   },
 
+  todo() {
+    const L = S.data.todos || [];
+    const admins = (S.data.users || []).filter((u) => u.role === "admin").map((u) => u.name);
+    const me = S.data.me.name;
+    const f = S.tForm || (S.tForm = { who: "Tous" });
+    const mine = S.tFilter !== "all";
+    const open = L.filter((x) => !x.done && (!mine || x.who === me || x.who === "Tous"));
+    const done = L.filter((x) => x.done).slice(0, 15);
+    const opt = (v, l) => `<option value="${esc(v)}" ${v === f.who ? "selected" : ""}>${esc(l)}</option>`;
+    const day = (d) => { const [y, m, j] = d.split("-"); return `${j}/${m}`; };
+    const row = (x) => `<div class="todo ${x.done ? "done" : ""} ${!x.done && todoLate(x) ? "late" : ""}">
+        <input type="checkbox" data-act="tDone" data-id="${esc(x.id)}" ${x.done ? "checked" : ""} aria-label="Fait" />
+        <div class="tx"><span>${esc(x.text)}</span><small>${x.done ? `fait par ${esc(x.doneBy || "")} ${x.doneAt ? ago(x.doneAt) : ""}` : `${x.who === "Tous" ? "Tout le monde" : esc(x.who)}${x.due ? ` · ${todoLate(x) ? "en retard, " : ""}pour le ${day(x.due)}` : ""} · ajouté par ${esc(x.by)}`}</small></div>
+        ${x.done ? "" : `<button class="btn sm ghost" data-act="tEdit" data-id="${esc(x.id)}">Modifier</button>`}<button class="btn sm ghost" data-act="tDel" data-id="${esc(x.id)}">Supprimer</button></div>`;
+    return `<h2>À faire</h2><p class="lead">Les choses à faire entre admins. La VA ne voit pas cette page.</p>
+      <form class="card" id="todoform"><div class="grid" style="grid-template-columns:minmax(0,1fr) 160px 160px auto;align-items:end">
+        <label>${f.id ? "Modifier la tâche" : "Nouvelle tâche"}<input data-t="text" maxlength="200" placeholder="ex : payer Sandra vendredi" value="${esc(f.text || "")}" /></label>
+        <label>Pour qui<select data-t="who">${opt("Tous", "Tout le monde")}${admins.map((a) => opt(a, a)).join("")}</select></label>
+        <label>Pour quand<input type="date" data-t="due" value="${esc(f.due || "")}" /></label>
+        <div class="row nowrap"><button class="btn accent" type="submit" data-wait="...">${f.id ? "Enregistrer" : "Ajouter"}</button>${f.id ? '<button class="btn ghost" type="button" data-act="tCancel">Annuler</button>' : ""}</div>
+      </div></form>
+      <div class="subnav"><button class="${mine ? "on" : ""}" data-act="tFilter" data-f="me">Pour moi</button><button class="${mine ? "" : "on"}" data-act="tFilter" data-f="all">Tout</button></div>
+      <div class="card todos">${open.map(row).join("") || `<p class="muted" style="margin:0">Rien à faire${mine ? " pour toi" : ""}.</p>`}</div>
+      ${done.length ? `<details class="card"><summary>Déjà fait (${done.length}${L.filter((x) => x.done).length > 15 ? " derniers" : ""})</summary><div class="todos" style="margin-top:8px">${done.map(row).join("")}</div></details>` : ""}`;
+  },
+
   compta() {
     const C = S.data.compta || { entries: [], usdRate: 0.92, people: ["Awen", "Bilot"], cats: { depense: [], gain: [] } };
     const [P1, P2] = C.people;
@@ -1050,7 +1079,7 @@ const LOGS = {
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar", coffre_ajout: "Coffre : accès ajouté", coffre_modif: "Coffre : accès modifié", coffre_suppr: "Coffre : accès supprimé", coffre_vu: "Coffre : secret affiché",
+  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", todo_ajout: "À faire : tâche ajoutée", todo_modif: "À faire : tâche modifiée", todo_fait: "À faire : tâche faite", todo_rouvert: "À faire : tâche rouverte", todo_suppr: "À faire : tâche supprimée", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar", coffre_ajout: "Coffre : accès ajouté", coffre_modif: "Coffre : accès modifié", coffre_suppr: "Coffre : accès supprimé", coffre_vu: "Coffre : secret affiché",
 };
 function logDetails(l) {
   const out = [];
@@ -1067,6 +1096,7 @@ function logDetails(l) {
   if (l.reason) out.push(l.reason);
   if (l.raison) out.push(l.raison);
   if (l.compta) out.push(l.compta);
+  if (l.todo) out.push(l.todo);
   if (l.coffre) out.push(l.coffre + (l.champ ? " (" + l.champ + ")" : ""));
   if (l.lien) out.push(l.lien);
   if (l.strategy) out.push((S.data.strategyLabels || {})[l.strategy] || l.strategy);
@@ -1523,6 +1553,32 @@ const ACT = {
   cCancel() {
     S.cForm = null;
     render();
+  },
+  async tDone(b) {
+    try {
+      S.data.todos = (await api("todo/done", { id: b.dataset.id, done: b.checked })).todos;
+      render();
+      if (b.checked) toast("Fait");
+    } catch (e) { b.checked = !b.checked; toast(e.message, true); }
+  },
+  tEdit(b) {
+    const x = (S.data.todos || []).find((y) => y.id === b.dataset.id);
+    if (!x) return;
+    S.tForm = { id: x.id, text: x.text, who: x.who, due: x.due };
+    render();
+    window.scrollTo(0, 0);
+    $('[data-t="text"]')?.focus();
+  },
+  tCancel() { S.tForm = null; render(); },
+  tFilter(b) { S.tFilter = b.dataset.f; render(); },
+  async tDel(b) {
+    if (!confirmTwice(b)) return;
+    await run(b, async () => {
+      S.data.todos = (await api("todo/delete", { id: b.dataset.id })).todos;
+      if (S.tForm && S.tForm.id === b.dataset.id) S.tForm = null;
+      render();
+      toast("Tâche supprimée");
+    });
   },
   async cSave(b) {
     readCForm();
@@ -2361,6 +2417,15 @@ const ACT = {
     });
   },
 };
+function myTodos() {
+  if (!isAdmin()) return [];
+  const me = S.data.me.name;
+  return (S.data.todos || []).filter((x) => !x.done && (x.who === me || x.who === "Tous"));
+}
+function todoLate(x) {
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 10);
+  return !!x.due && x.due < today;
+}
 function readCForm() {
   if (!S.cForm) return;
   document.querySelectorAll("[data-c]").forEach((el) => (S.cForm[el.dataset.c] = el.type === "checkbox" ? el.checked : el.value.trim()));
@@ -2469,6 +2534,20 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeModal();
 });
 document.addEventListener("submit", async (e) => {
+  if (e.target.id === "todoform") {
+    e.preventDefault();
+    const btn = e.target.querySelector("button[type=submit]");
+    e.target.querySelectorAll("[data-t]").forEach((el) => (S.tForm[el.dataset.t] = el.value.trim()));
+    const f = S.tForm;
+    await run(btn, async () => {
+      S.data.todos = (await api("todo/save", f)).todos;
+      S.tForm = { who: f.who };
+      render();
+      toast(f.id ? "Tâche modifiée" : "Tâche ajoutée");
+      $('[data-t="text"]')?.focus();
+    });
+    return;
+  }
   if (e.target.id === "loginform") {
     e.preventDefault();
     const btn = e.target.querySelector("button[type=submit]");
@@ -2530,7 +2609,7 @@ document.addEventListener("submit", async (e) => {
   window.addEventListener("focus", checkBuild);
   // rafraichit les compteurs chaque minute, mais jamais au milieu d'un assistant ou d'une saisie
   setInterval(() => {
-    const working = ["create", "warmup", "setup", "content", "settings", "compta", "vault"].includes(S.tab) || S.setup;
+    const working = ["create", "warmup", "setup", "content", "settings", "compta", "vault", "todo"].includes(S.tab) || S.setup;
     // une video en lecture (ou en plein ecran) ne doit jamais etre coupee par le rafraichissement
     const watching = document.fullscreenElement || [...document.querySelectorAll("video")].some((v) => !v.paused && !v.ended);
     if (S.token && S.data && !S.busy && !working && !watching && $("#modal").classList.contains("hidden") && !document.activeElement?.matches("input,textarea,select")) refresh().catch(() => {});

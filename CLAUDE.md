@@ -252,3 +252,10 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Regroupements : Créer un compte + Numéro SMS ; « Comptes en cours » = Warm-up, Setup, Metricool ; Comptes = Liste + Stats ; Réglages = Réglages + Alertes et journal (ancien Dashboard) + Contenu.
 - Une entrée à plusieurs pages affiche un sous-menu (`.subnav`) en haut de la page. Le badge du menu = somme des badges des pages.
 - Dans `render()`, chaque entrée est `[id, libellé, membres]`. Le bouton porte `data-members` ; les tests ouvrent d'abord l'entrée parente si la sous-page n'est pas visible.
+
+## À faire entre admins (2 nov., demandé par Bilot)
+- Onglet « À faire » (admins seulement, VA = 403, pas dans l'état de la VA). Tâche : texte, pour qui (un admin ou « Tous »), date facultative. Stockage `todo/<id>`.
+- Routes : `GET todo`, `POST todo/save` (avec `id` = modification), `POST todo/done {id, done}`, `POST todo/delete`. L'état admin renvoie `todos`.
+- Tri : à faire d'abord (date la plus proche en premier, sans date à la fin), puis fait (15 derniers, repliés). En retard = date passée, en rouge.
+- Badge du menu et carte dans « Aujourd'hui » = tâches ouvertes pour moi ou pour tous. Filtre « Pour moi / Tout ».
+- Tests : `node dev/test-todo.mjs` après `dev/test-api.mjs` (même serveur).
