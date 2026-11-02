@@ -394,6 +394,7 @@ const ICONS = {
   content: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>',
   compta: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>',
+  vault: '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/>',
   rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
 };
 const icon = (k) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ""}</svg>`;
@@ -401,42 +402,47 @@ const icon = (k) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${I
 function render() {
   clearInterval(timerInt);
   if (!S.token || !S.data) return renderLogin();
+  if (S.data.me.mustChange) return renderMustChange();
   const t = S.data.tasks;
+  const n = (a) => (a || []).length;
+  // Chaque entrée du menu : [id, libellé, membres [[tab, libellé, badge]]]
   const groups = [
     ["Travail du jour", [
-      ["today", "Aujourd'hui", 0],
-      ["numero", "Numéro", S.data.sms && S.data.sms.status === "attente" ? 1 : 0],
-      ["create", "Créer un compte", t.toReplace.length + t.reserveMissing],
-      ["warmup", "Warm-up", t.warmup.length],
-      ["setup", "Setup", t.setupReady.length],
-      ["metricool", "Metricool", t.toConnect.length + t.toPlan.length],
-      ["check", "Check du matin", t.toCheck.length],
+      ["today", "Aujourd'hui", [["today", "Aujourd'hui", 0]]],
+      ["create", "Créer un compte", [["create", "Créer un compte", n(t.toReplace) + t.reserveMissing], ["numero", "Numéro SMS", S.data.sms && S.data.sms.status === "attente" ? 1 : 0]]],
+      ["warmup", "Comptes en cours", [["warmup", "1. Warm-up", n(t.warmup)], ["setup", "2. Setup", n(t.setupReady)], ["metricool", "3. Metricool", n(t.toConnect) + n(t.toPlan)]]],
+      ["check", "Check du matin", [["check", "Check du matin", n(t.toCheck)]]],
     ]],
     ["Suivi", [
-      ["accounts", "Comptes", 0],
-      ["planning", "Planning", (t.postErrors || []).length + (t.postLate || []).length],
-      ["stats", "Stats", 0],
-      ["sop", "Guides (SOP)", 0],
+      ["accounts", "Comptes", [["accounts", "Liste", 0], ["stats", "Stats", 0]]],
+      ["planning", "Planning", [["planning", "Planning", n(t.postErrors) + n(t.postLate)]]],
+      ["sop", "Guides", [["sop", "Guides", 0]]],
     ]],
   ];
   if (isAdmin())
     groups.push(["Admin", [
-      ["dash", "Dashboard", (S.data.alerts || []).length],
-      ["compta", "Compta", 0],
-      ["content", "Contenu", 0],
-      ["settings", "Réglages", S.data.configured.rotation && S.data.configured.metricool && S.data.configured.proxy ? 0 : 1],
+      ["compta", "Compta", [["compta", "Compta", 0]]],
+      ["vault", "Coffre-fort", [["vault", "Coffre-fort", 0]]],
+      ["settings", "Réglages", [["settings", "Réglages", S.data.configured.rotation && S.data.configured.metricool && S.data.configured.proxy ? 0 : 1], ["dash", "Alertes et journal", n(S.data.alerts)], ["content", "Contenu", 0]]],
     ]]);
   const all = groups.flatMap((g) => g[1]);
-  if (!all.some((x) => x[0] === S.tab)) S.tab = "today";
+  if (!all.some((x) => x[2].some((m) => m[0] === S.tab))) S.tab = "today";
+  const cur = all.find((x) => x[2].some((m) => m[0] === S.tab));
   const ip = S.data.lastIp;
   const fresh = freshIp();
-  const navBtn = ([id, l, c]) => `<button class="nav ${S.tab === id ? "on" : ""}" data-tab="${id}">${icon(id)}<span>${l}</span>${c ? `<em>${c}</em>` : ""}</button>`;
+  const navBtn = (x) => {
+    const [id, l, mem] = x;
+    const c = mem.reduce((a, m) => a + m[2], 0);
+    const go = x === cur ? S.tab : (mem.find((m) => m[2]) || mem[0])[0];
+    return `<button class="nav ${x === cur ? "on" : ""}" data-tab="${go}" data-members="${mem.map((m) => m[0]).join(" ")}">${icon(id)}<span>${l}</span>${c ? `<em>${c}</em>` : ""}</button>`;
+  };
+  const sub = cur[2].length > 1 ? `<div class="subnav">${cur[2].map(([id, l, c]) => `<button class="${S.tab === id ? "on" : ""}" data-tab="${id}">${l}${c ? `<em>${c}</em>` : ""}</button>`).join("")}</div>` : "";
   app.innerHTML = `
   <div class="shell">
     <aside class="side">
       <div class="logo"><span class="mark">TH</span><div><b>Threads HQ</b></div></div>
       ${groups.map(([title, items]) => `<div class="navgroup"><div class="navtitle">${title}</div>${items.map(navBtn).join("")}</div>`).join("")}
-      <div class="me"><span>${esc(S.data.me.name)}</span><button class="link" data-act="logout">Se déconnecter</button></div>
+      <div class="me"><span>${esc(S.data.me.name)}</span><button class="link" data-act="myPassword">Mot de passe</button><button class="link" data-act="logout">Se déconnecter</button></div>
     </aside>
     <div class="body">
       <header class="bar">
@@ -444,20 +450,45 @@ function render() {
         <button class="btn accent" data-act="rotateGuard" data-wait="Changement de l'IP...">${icon("rotate")}Changer l'IP</button>
       </header>
       <nav class="mnav">${all.map(navBtn).join("")}</nav>
-      <main>${VIEWS[S.tab]()}</main>
+      <main>${sub}${VIEWS[S.tab]()}<div class="mme"><span>${esc(S.data.me.name)}</span><button class="link" data-act="myPassword">Mot de passe</button><button class="link" data-act="logout">Se déconnecter</button></div></main>
     </div>
   </div>`;
   afterRender();
 }
 
 function renderLogin() {
-  app.innerHTML = `<div class="login"><div class="login-card">
+  app.innerHTML = `<div class="login"><form class="login-card" id="loginform" autocomplete="on">
     <span class="mark big">TH</span><h1>Threads HQ</h1>
-    <p class="muted">${S.firstRun ? "Premier accès : choisis ton code (4 à 8 chiffres). Tu seras admin." : "Entre ton code d'accès"}</p>
-    ${S.firstRun ? '<input id="firstname" placeholder="Ton prénom" value="Awen" />' : ""}
-    <div class="pin-dots">${[0, 1, 2, 3, 4, 5].map((i) => `<span class="${i < S.pin.length ? "on" : ""}"></span>`).join("")}</div>
-    <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button data-pin="${n}">${n}</button>`).join("")}<button data-pin="del" class="k-del">Effacer</button><button data-pin="0">0</button><button class="k-go" data-pin="go">Entrer</button></div>
-  </div></div>`;
+    <p class="muted">${S.firstRun ? "Premier accès : crée ton compte. Tu seras admin." : "Connecte-toi avec ton identifiant et ton mot de passe"}</p>
+    <label class="f" for="lg-name">Identifiant</label>
+    <input id="lg-name" name="username" autocomplete="username" autocapitalize="off" placeholder="ton prénom" value="${esc(localStorage.getItem("hq_last") || "")}" required />
+    <label class="f" for="lg-pass">Mot de passe</label>
+    <input id="lg-pass" name="password" type="password" autocomplete="${S.firstRun ? "new-password" : "current-password"}" required />
+    ${S.firstRun ? '<p class="muted" style="margin:6px 0 0">8 caractères minimum, pas seulement des chiffres.</p>' : ""}
+    <button class="btn accent big" type="submit" style="width:100%;margin-top:18px">Se connecter</button>
+    ${S.firstRun ? "" : '<p class="muted" style="margin-top:14px">Première connexion depuis le changement ? Identifiant = ton prénom, mot de passe = ton ancien code. On te demandera d\'en choisir un nouveau.</p>'}
+  </form></div>`;
+  const n = $("#lg-name");
+  (n.value ? $("#lg-pass") : n).focus();
+}
+// mot de passe donne par l'admin ou ancien code : on en choisit un vrai avant d'entrer
+function renderMustChange() {
+  app.innerHTML = `<div class="login"><form class="login-card" id="mustform">
+    <span class="mark big">TH</span><h1>Choisis ton mot de passe</h1>
+    <p class="muted">Bonjour ${esc(S.data.me.name)}. Ton mot de passe actuel est provisoire : choisis le tien pour continuer.</p>
+    <input type="text" name="username" autocomplete="username" value="${esc(S.data.me.name)}" hidden />
+    <label class="f" for="mc-cur">Mot de passe actuel (ou ancien code)</label><input id="mc-cur" type="password" autocomplete="current-password" required />
+    <label class="f" for="mc-new">Nouveau mot de passe</label><input id="mc-new" type="password" autocomplete="new-password" required />
+    <label class="f" for="mc-new2">Encore une fois</label><input id="mc-new2" type="password" autocomplete="new-password" required />
+    <p class="muted" style="margin:6px 0 0">8 caractères minimum, pas seulement des chiffres, pas ton prénom.</p>
+    <button class="btn accent big" type="submit" style="width:100%;margin-top:18px">Enregistrer et entrer</button>
+    <button class="link" type="button" data-act="logout" style="margin-top:14px;color:var(--graphite)">Se déconnecter</button>
+  </form></div>`;
+  $("#mc-cur").focus();
+}
+async function changePassword(cur, n1, n2) {
+  if (n1 !== n2) throw new Error("Les deux nouveaux mots de passe ne sont pas pareils.");
+  await api("me/password", { current: cur, next: n1 });
 }
 
 // ------------------------------------------------------------ vues
@@ -495,7 +526,7 @@ const VIEWS = {
     if (t.reserveMissing) pri.push(["c-pink", `Créer ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"]);
     pri.forEach(([c, title, desc, tab, btn], i) => cards.push(task(i + 1, c, title, desc, tab, btn, i === 0)));
     const waiting = "";
-    return `<h2>Bonjour ${esc(S.data.me.name)}</h2><p class="lead">Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
+    return `<h2>Aujourd'hui</h2><p class="lead">${esc(new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }).replace(/^./, (c) => c.toUpperCase()))} · Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
       <div class="stats">${stat("c-green", t.active, "comptes actifs")}${stat("c-violet", t.reserve, "en réserve")}${stat("c-yellow", t.toCheck.length, "à checker")}${stat("c-red", t.toReplace.length, "à remplacer")}</div>
       ${cards.length ? `<div class="card list">${cards.join("")}</div>` : '<div class="card done-all"><b>Tout est à jour.</b><span>Si tu as le temps, crée un compte de réserve.</span></div>'}${waiting}
       ${warmList().length ? `<div class="card warmcard"><b>Pseudos violets = warm-up 10 min tous les jours</b><div class="row" style="margin-top:8px">${warmList().map((a) => psTag(a)).join("")}</div><span class="muted">${esc(WARM_TIP)}</span></div>` : ""}`;
@@ -526,14 +557,14 @@ const VIEWS = {
     const have = w.kind === "have";
     const N = have ? 4 : 5;
     const bar = `<div class="steps">${(have ? [1, 2, 3, 4] : [1, 2, 3, 4, 5]).map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
-    const kindPick = w.step === 1 ? `<div class="row" style="margin:4px 0 12px">${[["new", "🆕 Créer un nouveau compte"], ["have", "🔑 J'ai déjà un compte"]].map(([k, l]) => `<button class="btn ${(w.kind || "new") === k ? "" : "light"}" data-act="wizKind" data-v="${k}">${(w.kind || "new") === k ? "✓ " : ""}${l}</button>`).join("")}</div>${have ? '<p class="muted">Compte acheté : même proxy, même GeeLark neuf, puis tu te connectes avec l\'identifiant, le mot de passe et le code 2FA du CRM.</p>' : ""}` : "";
+    const kindPick = w.step === 1 ? `<div class="row" style="margin:4px 0 12px">${[["new", "Créer un nouveau compte"], ["have", "J'ai déjà un compte"]].map(([k, l]) => `<button class="btn ${(w.kind || "new") === k ? "" : "light"}" data-act="wizKind" data-v="${k}">${(w.kind || "new") === k ? "✓ " : ""}${l}</button>`).join("")}</div>${have ? '<p class="muted">Compte acheté : même proxy, même GeeLark neuf, puis tu te connectes avec l\'identifiant, le mot de passe et le code 2FA du CRM.</p>' : ""}` : "";
     const head = `<h2>${have ? "Connecter un compte existant" : "Créer un compte"}</h2>${kindPick}${replacing ? `<div class="alert c-red">Ce compte remplace <b>@${esc(replacing.pseudo)}</b> (groupe ${esc(group(replacing.group).name)}). Va jusqu'à Metricool sans pause : les posts repartent dès que Threads est connecté.</div>${w.step === 1 ? hint("remplacement") : ""}` : ""}${bar}`;
     const nav = (canNext, label = "Étape suivante") =>
       `<div class="row" style="margin-top:16px">${w.step > 1 ? '<button class="btn ghost" data-act="wizBack">Retour</button>' : ""}<div class="spacer"></div><button class="btn" data-act="wizNext" ${canNext ? "" : "disabled"}>${label}</button></div>`;
     const proxy = parseProxy(S.data.settings.proxy);
     if (w.step === 1)
       return `${head}<div class="card"><div class="stepnum">Étape 1 sur ${N}</div><h3>${ukReady() ? "Choisis le pays, puis change l'IP" : "Change l'IP"}</h3>${hint("rotation")}
-        ${ukReady() ? `<div class="row" style="margin:6px 0 4px">${[["fr", "🇫🇷 France"], ["uk", "🇬🇧 UK"]].map(([k, l]) => `<button class="btn ${prof() === k ? "" : "light"}" data-act="pickProfile" data-v="${k}" data-wait="...">${prof() === k ? "✓ " : ""}${l}</button>`).join("")}</div>
+        ${ukReady() ? `<div class="row" style="margin:6px 0 4px">${[["fr", "France"], ["uk", "Royaume-Uni"]].map(([k, l]) => `<button class="btn ${prof() === k ? "" : "light"}" data-act="pickProfile" data-v="${k}" data-wait="...">${prof() === k ? "✓ " : ""}${l}</button>`).join("")}</div>
         <p class="muted">${prof() === "uk" ? "Proxy UK + numéro UK. L'IP UK ne peut changer que toutes les 5 min." : "Proxy France + numéro français."} Le numéro suit tout seul le pays choisi.</p>` : ""}
         <p>Clique sur le bouton, puis attends que la nouvelle IP s'affiche.</p>
         <button class="btn big rot" data-act="rotate" data-wait="Changement de l'IP...">Changer l'IP</button>
@@ -548,9 +579,9 @@ const VIEWS = {
         ${nav(true)}</div>`;
     if (have && w.step === 3 && !w.f.stockId && stk.mine) Object.assign(w.f, stockFill(stk.mine));
     const stockBox = !have ? "" : w.f.stockId
-      ? `<div class="alert c-green">📦 Compte acheté pris dans le stock${w.f.stockOrder ? ` (commande ${esc(w.f.stockOrder)})` : ""} : identifiant, mot de passe et 2FA déjà remplis. <button class="btn sm ghost" data-act="stockRelease" data-wait="...">Rendre au stock</button></div>
+      ? `<div class="alert c-green">Compte acheté pris dans le stock${w.f.stockOrder ? ` (commande ${esc(w.f.stockOrder)})` : ""} : identifiant, mot de passe et 2FA déjà remplis. <button class="btn sm ghost" data-act="stockRelease" data-wait="...">Rendre au stock</button></div>
         <div class="card" style="margin:10px 0"><b>Ce compte ne marche pas ?</b> <span class="muted">(mot de passe faux, 2FA refusée, compte banni, autre souci)</span><div class="row" style="margin-top:8px"><button class="btn bad" data-act="stockNextAsk">Passer au compte suivant</button></div><p class="muted" style="margin:6px 0 0">Tu gardes le même téléphone GeeLark et la même IP.</p></div>`
-      : stk.dispo ? `<button class="btn big" data-act="stockTake" data-wait="...">📦 Prendre un compte acheté (${stk.dispo} en stock)</button><p class="muted">Tout se remplit tout seul (identifiant, mot de passe, 2FA).</p>`
+      : stk.dispo ? `<button class="btn big" data-act="stockTake" data-wait="...">Prendre un compte acheté (${stk.dispo} en stock)</button><p class="muted">Tout se remplit tout seul (identifiant, mot de passe, 2FA).</p>`
       : `<div class="alert c-yellow">Plus de compte acheté en stock : colle les infos du compte à la main, ou préviens Awen.</div>`;
     if (have && w.step === 3)
       return `${head}<div class="card"><div class="stepnum">Étape 3 sur 4</div><h3>Connecte-toi au compte</h3>${hint("connexion")}${stockBox}
@@ -590,7 +621,7 @@ const VIEWS = {
       }
       // e-mail par defaut : les numeros virtuels recoivent rarement le code (1 sur 13 en France le 30 oct.)
       const mode = cur ? "phone" : ecur ? "email" : w.mode || "email";
-      const tabs = `<div class="row" style="margin:6px 0 10px">${[["email", "✉️ Avec un e-mail (conseillé)"], ["phone", "📱 Avec un numéro"]].map(([k, l]) => `<button class="btn ${mode === k ? "" : "light"}" data-act="wizMode" data-v="${k}" ${(cur && k === "email") || (ecur && k === "phone") ? "disabled" : ""}>${mode === k ? "✓ " : ""}${l}</button>`).join("")}</div>`;
+      const tabs = `<div class="row" style="margin:6px 0 10px">${[["email", "Avec un e-mail (conseillé)"], ["phone", "Avec un numéro"]].map(([k, l]) => `<button class="btn ${mode === k ? "" : "light"}" data-act="wizMode" data-v="${k}" ${(cur && k === "email") || (ecur && k === "phone") ? "disabled" : ""}>${mode === k ? "✓ " : ""}${l}</button>`).join("")}</div>`;
       const body = mode === "email"
         ? (ecur ? emailCard(ecur) : emailBuyBlock()) + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un e-mail (à la main)</summary><label class="f">E-mail utilisé</label><input data-f="email" value="${esc(w.f.email || "")}" placeholder="ex : prenom@gmail.com" autocapitalize="off" /></details>`
         : cur ? smsCard(cur) : smsBuyBlock() + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+33 ..." /></details>`;
@@ -696,7 +727,7 @@ const VIEWS = {
         <span class="muted">Créé ${ago(a.createdAt)} par ${esc(a.createdBy)} · IP ${esc(a.ip || "?")}</span>
         ${a.notes ? `<div class="accnote">${esc(a.notes)}</div>` : ""}
         ${a.replaces ? `<span class="muted">Remplace @${esc(acc(a.replaces)?.pseudo || "?")}</span>` : ""}${a.replacedBy ? `<span class="muted">Remplacé par @${esc(acc(a.replacedBy)?.pseudo || "?")}</span>` : ""}
-        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button>${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
+        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button>${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a></div><div class="row foot"><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
   },
 
   planning() {
@@ -774,6 +805,41 @@ const VIEWS = {
         <div style="overflow:auto"><table class="tbl"><tr><th>Quand</th><th>Qui</th><th>Action</th><th>Détails</th></tr>${logs.slice(0, 200).map((l) => `<tr><td>${fmt(l.at)}</td><td>${esc(l.who)}</td><td>${esc(LOGS[l.action] || l.action)}</td><td class="muted">${esc(logDetails(l))}</td></tr>`).join("")}</table></div></div>`;
   },
 
+  vault() {
+    const V = S.data.vault || { entries: [] };
+    const q = (S.vSearch || "").toLowerCase();
+    const list = V.entries.filter((e) => !q || [e.title, e.login, e.url, e.cat].some((x) => String(x || "").toLowerCase().includes(q)));
+    const f = S.vForm;
+    const shown = S.vShown || {};
+    const secretLine = (e, field, label) => {
+      const k = e.id + ":" + field;
+      const v = shown[k];
+      return `<div class="vline"><span class="k">${label}</span><span class="v mono">${v != null ? esc(v) : "••••••••••"}</span><button class="btn sm ghost" data-act="vShow" data-id="${esc(e.id)}" data-f="${field}" data-wait="...">${v != null ? "Masquer" : "Afficher"}</button><button class="btn sm light" data-act="vCopy" data-id="${esc(e.id)}" data-f="${field}" data-wait="...">Copier</button></div>`;
+    };
+    const form = f ? `<div class="card"><div class="row"><b>${f.id ? "Modifier " + esc(f.title || "") : "Nouvelle entrée"}</b><div class="spacer"></div><button class="btn sm ghost" data-act="vCancel">Annuler</button></div>
+        <div class="grid" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+          <label>Nom<input data-v="title" placeholder="ex : GeeLark" value="${esc(f.title || "")}" /></label>
+          <label>Identifiant<input data-v="login" autocomplete="off" placeholder="e-mail ou pseudo" value="${esc(f.login || "")}" /></label>
+          <label>Mot de passe<input data-v="password" type="password" autocomplete="new-password" placeholder="${f.id && f.hasPassword ? "vide = on garde l'actuel" : ""}" /></label>
+          <label>Clé 2FA<input data-v="twofa" autocomplete="off" placeholder="${f.id && f.hasTwofa ? "vide = on garde l'actuelle" : "facultatif"}" /></label>
+          <label>Lien<input data-v="url" placeholder="https://..." value="${esc(f.url || "")}" /></label>
+          <label>Catégorie<input data-v="cat" placeholder="ex : outils, numéros, Chloé" value="${esc(f.cat || "")}" /></label>
+          <label style="grid-column:1/-1">Note<textarea data-v="note" placeholder="${f.id && f.hasNote ? "vide = on garde l'actuelle" : "facultatif (codes de secours, question secrète...)"}"></textarea></label>
+          <label class="row" style="gap:8px"><input type="checkbox" data-v="private" ${f.private ? "checked" : ""} style="width:auto" />Privé (visible par moi seul)</label>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn accent" data-act="vSave" data-wait="Chiffrement...">Enregistrer</button></div></div>` : "";
+    return `<h2>Coffre-fort</h2><p class="lead">Les accès d'Awen et Bilot, chiffrés. Un mot de passe ne s'affiche que quand tu cliques, et chaque affichage est noté au journal. La VA n'y a pas accès.</p>
+      <div class="row" style="margin-bottom:14px"><input data-vsearch placeholder="Chercher" value="${esc(S.vSearch || "")}" style="max-width:320px" /><div class="spacer"></div>${f ? "" : '<button class="btn" data-act="vNew">Ajouter un accès</button>'}</div>
+      ${form}
+      <div class="grid">${list.map((e) => `<div class="card acc"><div class="head"><span class="ps">${esc(e.title)}</span><div class="spacer"></div>${e.private ? '<span class="pill">privé</span>' : ""}${e.cat ? `<span class="pill">${esc(e.cat)}</span>` : ""}</div>
+        ${e.login ? `<div class="vline"><span class="k">Identifiant</span><span class="v mono">${esc(e.login)}</span><button class="btn sm light" data-act="copy" data-v="${esc(e.login)}">Copier</button></div>` : ""}
+        ${e.hasPassword ? secretLine(e, "password", "Mot de passe") : ""}
+        ${e.hasTwofa ? `<div class="vline"><span class="k">Code 2FA</span><span class="v mono">${shown[e.id + ":code"] ? esc(shown[e.id + ":code"]) : "······"}</span><button class="btn sm light" data-act="vCode" data-id="${esc(e.id)}" data-wait="...">Copier le code</button></div>` : ""}
+        ${e.hasNote ? secretLine(e, "note", "Note") : ""}
+        ${e.url ? `<div class="vline"><span class="k">Lien</span><span class="v"><a href="${esc(/^https?:\/\//.test(e.url) ? e.url : "https://" + e.url)}" target="_blank" rel="noopener noreferrer">${esc(e.url.replace(/^https?:\/\//, "").slice(0, 40))}</a></span></div>` : ""}
+        <div class="row foot nowrap"><span class="muted meta">${esc(e.updatedBy || e.by)}, ${e.updatedAt ? ago(e.updatedAt) : ""}</span><button class="btn sm ghost" data-act="vEdit" data-id="${esc(e.id)}">Modifier</button><button class="btn sm ghost" data-act="vDel" data-id="${esc(e.id)}">Supprimer</button></div></div>`).join("") || `<div class="card muted">${q ? "Rien trouvé." : "Le coffre est vide. Ajoute le premier accès."}</div>`}</div>`;
+  },
+
   compta() {
     const C = S.data.compta || { entries: [], usdRate: 0.92, people: ["Awen", "Bilot"], cats: { depense: [], gain: [] } };
     const [P1, P2] = C.people;
@@ -836,7 +902,7 @@ const VIEWS = {
     return `<h2>Compta</h2><p class="lead">Dépenses et gains de ${esc(P1)} et ${esc(P2)}, partagés 50/50. Montants en euros (1 $ = ${String(C.usdRate).replace(".", ",")} €).</p>
       <div class="stats">${stat("c-red", eu(totDep), "investi")}${stat("c-green", eu(totGain), "gagné")}${stat(net >= 0 ? "c-green" : "c-red", eu(net), "résultat")}${stat("c-blue", roi, "rentabilité")}</div>
       <div class="stats">${stat("c-yellow", eu(totDep / nbM), "coût moyen par mois")}${stat("c-violet", eu(prevoir), "à prévoir par mois")}${stat("c-pink", eu(vaMonth), "paies VA ce mois")}${stat("c-pink", eu(sum(vaAll)), "paies VA en tout")}</div>
-      <div class="card"><b>Partage 50/50</b><p style="margin:8px 0 4px;font-size:18px">${balTxt}</p>
+      <div class="card"><b>Partage 50/50</b><p style="margin:8px 0 8px;font:600 20px/1.3 var(--font)">${balTxt}</p>
         <p class="muted" style="margin:0">${esc(P1)} a payé ${eu(paidBy(P1))} et reçu ${eu(recvBy(P1))}. ${esc(P2)} a payé ${eu(paidBy(P2))} et reçu ${eu(recvBy(P2))}. Caisse commune : ${eu(paidBy("Caisse"))} payés, ${eu(recvBy("Caisse"))} reçus.</p></div>
       <div class="card"><div class="row"><button class="btn sm ${f.kind === "depense" ? "" : "light"}" data-act="cKind" data-k="depense">Dépense</button><button class="btn sm ${f.kind === "gain" ? "" : "light"}" data-act="cKind" data-k="gain">Gain</button><div class="spacer"></div>${f.id ? '<span class="pill c-blue">Modification</span><button class="btn sm ghost" data-act="cCancel">Annuler</button>' : ""}</div>
         <div class="grid" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
@@ -854,7 +920,7 @@ const VIEWS = {
       <div class="card"><b>Où part l'argent</b>${cats.length ? cats.map(([c, v]) => `<div style="margin-top:10px"><div class="row"><span>${esc(c)}</span><div class="spacer"></div><b>${eu(v)}</b><span class="muted">${Math.round((v / (totDep || 1)) * 100)} %</span></div><div style="height:6px;background:var(--wash);border-radius:3px;margin-top:4px"><div style="height:6px;width:${Math.max(2, (v / maxCat) * 100)}%;background:var(--blue);border-radius:3px"></div></div></div>`).join("") : '<p class="muted">Aucune dépense pour l\'instant.</p>'}
         ${fixed.size ? `<p class="muted" style="margin-top:14px">Charges qui reviennent tous les mois : ${[...fixed.values()].map((e) => `${esc(e.label)} ${eu(eur(e))}`).join(", ")} (${eu(fixedTot)}).</p>` : ""}</div>
       <div class="card"><div class="row"><b>Toutes les lignes</b><div class="spacer"></div><select data-cmonth style="max-width:220px"><option value="">Tous les mois</option>${months.slice().reverse().map((m) => opt(m, filt, mLabel(m))).join("")}</select></div>
-        <div style="overflow:auto"><table class="tbl"><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Montant</th><th>Qui</th><th></th></tr>${list.map((e) => `<tr><td>${esc(e.date.split("-").reverse().join("/"))}</td><td>${esc(e.label)}${e.monthly ? ' <span class="pill">mensuel</span>' : ""}</td><td class="muted">${esc(e.cat)}</td><td style="white-space:nowrap;color:var(${e.kind === "gain" ? "--green" : "--ink"})">${e.kind === "gain" ? "+" : "−"}${(e.amountCents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${e.currency === "USD" ? "$" : "€"}</td><td class="muted">${esc(e.paidBy === "Caisse" ? "Caisse" : e.paidBy)}${e.kind === "depense" && e.forWho !== "50/50" ? ` (pour ${esc(e.forWho)})` : ""}</td><td style="white-space:nowrap"><button class="btn sm light" data-act="cEdit" data-id="${esc(e.id)}">Modifier</button> <button class="btn sm bad" data-act="cDel" data-id="${esc(e.id)}">Supprimer</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">Rien encore.</td></tr>'}</table></div></div>
+        <div style="overflow:auto"><table class="tbl"><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Montant</th><th>Qui</th><th></th></tr>${list.map((e) => `<tr><td>${esc(e.date.split("-").reverse().join("/"))}</td><td>${esc(e.label)}${e.monthly ? ' <span class="pill">mensuel</span>' : ""}</td><td class="muted">${esc(e.cat)}</td><td style="white-space:nowrap;color:var(${e.kind === "gain" ? "--green" : "--ink"})">${e.kind === "gain" ? "+" : "−"}${(e.amountCents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${e.currency === "USD" ? "$" : "€"}</td><td class="muted">${esc(e.paidBy === "Caisse" ? "Caisse" : e.paidBy)}${e.kind === "depense" && e.forWho !== "50/50" ? ` (pour ${esc(e.forWho)})` : ""}</td><td style="white-space:nowrap"><button class="btn sm ghost" data-act="cEdit" data-id="${esc(e.id)}">Modifier</button> <button class="btn sm ghost" data-act="cDel" data-id="${esc(e.id)}">Supprimer</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">Rien encore.</td></tr>'}</table></div></div>
       <div class="card"><div class="row"><span>1 $ =</span><input data-cusd style="max-width:100px" value="${esc(String(C.usdRate).replace(".", ","))}" /><span>€</span><button class="btn sm light" data-act="cRate" data-wait="...">Changer le taux</button></div></div>`;
   },
 
@@ -907,10 +973,10 @@ const VIEWS = {
     const scams = (sk.list || []).filter((x) => x.status === "scam");
     const scamTxt = scams.map((x) => [x.order ? "#" + x.order : "", x.user, x.reason].filter(Boolean).join(" · ")).join("\n");
     return `<h2>Réglages</h2>
-      <div class="card"><h3 style="margin-top:0">📦 Comptes achetés (stock)</h3>
+      <div class="card"><h3 style="margin-top:0">Comptes achetés (stock)</h3>
         <p class="muted">Glisse le fichier .txt de la commande (ou colle la liste) : identifiant, mot de passe, clé 2FA par ligne. Les lignes de pub sont ignorées, les doublons aussi. Sandra clique « Prendre un compte acheté » et tout se remplit.</p>
         <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag ok">${sk.dispo || 0} en stock</span><span class="tag">${sk.pris || 0} en cours</span><span class="tag">${sk.utilise || 0} utilisés</span><span class="tag ${sk.rate ? "miss" : ""}">${sk.rate || 0} ratés</span><span class="tag ${sk.scam ? "miss" : ""}">${sk.scam || 0} scam</span></div>
-        ${scams.length ? `<div style="margin-top:10px"><b>Comptes scam (à réclamer au vendeur)</b><pre class="scamlist" style="white-space:pre-wrap;font-size:12px;background:#f6f6f6;padding:8px;border-radius:8px">${esc(scamTxt)}</pre><button class="btn sm light" data-act="copy" data-v="${esc(scamTxt)}">Copier la liste pour le vendeur</button></div>` : ""}
+        ${scams.length ? `<div style="margin-top:10px"><b>Comptes scam (à réclamer au vendeur)</b><pre class="scamlist" style="white-space:pre-wrap;font-size:12px;background:var(--wash);padding:8px;border-radius:8px">${esc(scamTxt)}</pre><button class="btn sm light" data-act="copy" data-v="${esc(scamTxt)}">Copier la liste pour le vendeur</button></div>` : ""}
         <label class="f">Fichiers de commande <small>(.txt, plusieurs d'un coup)</small></label><input type="file" id="stockFiles" accept=".txt,text/plain" multiple />
         <label class="f">ou colle la liste</label><textarea data-set="stockText" placeholder="identifiant&#9;motdepasse&#9;CLE 2FA" style="min-height:90px"></textarea>
         <button class="btn" data-act="stockImport" data-wait="Import...">Ajouter au stock</button>
@@ -973,17 +1039,17 @@ const VIEWS = {
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSettings" data-wait="...">Enregistrer les réglages</button></div></div>
       <div class="card"><h3 style="margin-top:0">Accès</h3>
         ${(S.data.users || []).map((u) => `<div class="row" style="margin:6px 0"><b>${esc(u.name)}</b><span class="pill ${u.role === "admin" ? "c-violet" : "c-blue"}">${u.role === "admin" ? "Admin" : "VA"}</span>${u.name !== S.data.me.name ? `<button class="btn sm ghost" data-act="delUser" data-name="${esc(u.name)}">Retirer</button>` : ""}</div>`).join("")}
-        <div class="row" style="margin-top:10px"><input data-u="name" placeholder="Prénom" style="max-width:180px" /><input data-u="pin" placeholder="Code (4-8 chiffres)" inputmode="numeric" style="max-width:180px" /><select data-u="role" style="max-width:140px"><option value="va">VA</option><option value="admin">Admin</option></select><button class="btn" data-act="saveUser">Ajouter / changer le code</button></div></div>`;
+        <div class="row" style="margin-top:10px"><input data-u="name" placeholder="Prénom" style="max-width:180px" /><input data-u="password" type="password" autocomplete="new-password" placeholder="Mot de passe provisoire" style="max-width:220px" /><select data-u="role" style="max-width:140px"><option value="va">VA</option><option value="admin">Admin</option></select><button class="btn" data-act="saveUser">Ajouter / changer le mot de passe</button></div><p class="muted" style="margin-top:8px">Identifiant = le prénom. La personne choisit son propre mot de passe à sa première connexion. Laisse le mot de passe vide pour changer seulement le rôle.</p></div>`;
   },
 };
 
 // ------------------------------------------------------------ journal lisible
 const LOGS = {
-  premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
+  premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Connexion ratée", mdp_change: "Mot de passe changé", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar",
+  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar", coffre_ajout: "Coffre : accès ajouté", coffre_modif: "Coffre : accès modifié", coffre_suppr: "Coffre : accès supprimé", coffre_vu: "Coffre : secret affiché",
 };
 function logDetails(l) {
   const out = [];
@@ -1000,6 +1066,7 @@ function logDetails(l) {
   if (l.reason) out.push(l.reason);
   if (l.raison) out.push(l.raison);
   if (l.compta) out.push(l.compta);
+  if (l.coffre) out.push(l.coffre + (l.champ ? " (" + l.champ + ")" : ""));
   if (l.lien) out.push(l.lien);
   if (l.strategy) out.push((S.data.strategyLabels || {})[l.strategy] || l.strategy);
   if (l.added != null) out.push(`${l.added} ajouté(s)`);
@@ -1012,7 +1079,7 @@ function logDetails(l) {
 // ------------------------------------------------------------ petits blocs
 function task(n, color, title, desc, tab, btn, first) {
   const num = n === "" ? `<span class="dot ${color}"></span>` : `<span class="prio ${color}">${esc(n)}</span>`;
-  return `<div class="task ${first ? "first" : ""}">${num}<div class="task-text"><b>${esc(title)}</b><span>${esc(desc)}</span></div><button class="btn sm ${first ? "accent" : ""}" data-tab="${tab}">${esc(btn)}</button></div>`;
+  return `<div class="task ${first ? "first" : ""}">${num}<div class="task-text"><b>${esc(title)}</b><span>${esc(desc)}</span></div><button class="btn sm ${first ? "accent" : "light"}" data-tab="${tab}">${esc(btn)}</button></div>`;
 }
 // planifie un compte en plusieurs appels si besoin (le serveur rend la main avant 10 s)
 async function planFull(accountId, days, btn, label, mode) {
@@ -1064,7 +1131,8 @@ function addDaysLocal(day, n) {
   return d.toISOString().slice(0, 10);
 }
 function stat(color, n, label) {
-  return `<div class="stat"><b>${esc(n)}</b><span><i class="dot ${color}"></i>${esc(label)}</span></div>`;
+  const meaning = ["c-green", "c-red", "c-yellow"].includes(color);
+  return `<div class="stat"><b>${esc(n)}</b><span>${meaning ? `<i class="dot ${color}"></i>` : ""}${esc(label)}</span></div>`;
 }
 function parseProxy(p) {
   if (!p) return null;
@@ -1252,6 +1320,8 @@ async function compress(file) {
 let smsPoll = null;
 let emailPoll = null;
 function afterRender() {
+  const mn = document.querySelector(".mnav"), mon = mn && mn.querySelector(".nav.on");
+  if (mon) mn.scrollLeft = mon.offsetLeft - (mn.clientWidth - mon.offsetWidth) / 2;
   // prix Hero SMS charges tout seuls a l'arrivee sur l'etape
   if (document.querySelector('[data-act="smsPrices"]') && !S.smsPrices && !S.smsPricesLoading) {
     S.smsPricesLoading = true;
@@ -1368,6 +1438,80 @@ function tick(el, end) {
 
 // ------------------------------------------------------------ actions
 const ACT = {
+  myPassword() {
+    modal(`<h3>Changer mon mot de passe</h3><form id="pwform"><input type="text" name="username" autocomplete="username" value="${esc(S.data.me.name)}" hidden />
+      <label class="f" for="pw-cur">Mot de passe actuel</label><input id="pw-cur" type="password" autocomplete="current-password" required />
+      <label class="f" for="pw-new">Nouveau mot de passe</label><input id="pw-new" type="password" autocomplete="new-password" required />
+      <label class="f" for="pw-new2">Encore une fois</label><input id="pw-new2" type="password" autocomplete="new-password" required />
+      <p class="muted">8 caractères minimum, pas seulement des chiffres, pas ton prénom.</p>
+      <button class="btn accent" type="submit">Enregistrer</button></form>`);
+    $("#pw-cur").focus();
+  },
+  vNew() {
+    S.vForm = {};
+    render();
+  },
+  vCancel() {
+    S.vForm = null;
+    render();
+  },
+  vEdit(b) {
+    const e = S.data.vault.entries.find((x) => x.id === b.dataset.id);
+    if (!e) return;
+    S.vForm = { ...e };
+    render();
+    window.scrollTo(0, 0);
+  },
+  async vSave(b) {
+    const v = (k) => $(`[data-v="${k}"]`);
+    const body = { id: S.vForm.id, title: v("title").value, login: v("login").value, url: v("url").value, cat: v("cat").value, private: v("private").checked };
+    // en modification, un champ secret laisse vide garde la valeur actuelle
+    for (const k of ["password", "twofa", "note"]) if (v(k).value || !S.vForm.id) body[k] = v(k).value;
+    if (body.twofa && !cleanTotpC(body.twofa)) return toast("Clé 2FA invalide : colle la clé (lettres et chiffres) ou le lien otpauth://.", true);
+    await run(b, async () => {
+      S.data.vault = await api("vault/save", body);
+      S.vForm = null;
+      S.vShown = {};
+      render();
+      toast("Accès enregistré");
+    });
+  },
+  async vShow(b) {
+    const k = b.dataset.id + ":" + b.dataset.f;
+    S.vShown = S.vShown || {};
+    if (S.vShown[k] != null) {
+      delete S.vShown[k];
+      return render();
+    }
+    await run(b, async () => {
+      S.vShown[k] = (await api("vault/reveal", { id: b.dataset.id, field: b.dataset.f })).value;
+      render();
+      // masque tout seul au bout de 30 s
+      setTimeout(() => { if (S.vShown && S.vShown[k] != null) { delete S.vShown[k]; if (S.tab === "vault") render(); } }, 30000);
+    });
+  },
+  async vCopy(b) {
+    await run(b, async () => {
+      copy((await api("vault/reveal", { id: b.dataset.id, field: b.dataset.f })).value);
+    });
+  },
+  async vCode(b) {
+    await run(b, async () => {
+      const sec = cleanTotpC((await api("vault/reveal", { id: b.dataset.id, field: "twofa" })).value);
+      if (!sec) throw new Error("Clé 2FA invalide dans le coffre.");
+      const code = await totpCode(sec);
+      copy(code);
+      toast(`Code 2FA ${code} copié (valable ${30 - (Math.floor(Date.now() / 1000) % 30)} s)`);
+    });
+  },
+  async vDel(b) {
+    if (!confirmTwice(b)) return;
+    await run(b, async () => {
+      S.data.vault = await api("vault/delete", { id: b.dataset.id });
+      render();
+      toast("Accès supprimé");
+    });
+  },
   cKind(b) {
     readCForm();
     S.cForm.kind = b.dataset.k;
@@ -2194,7 +2338,7 @@ const ACT = {
   async saveUser(b) {
     const v = (k) => $(`[data-u="${k}"]`).value.trim();
     await run(b, async () => {
-      await api("users", { name: v("name"), pin: v("pin"), role: v("role") });
+      await api("users", { name: v("name"), password: $('[data-u="password"]').value, role: v("role") });
       await refresh();
       toast("Accès enregistré");
     });
@@ -2228,8 +2372,6 @@ function readWizFields() {
 
 // ------------------------------------------------------------ evenements
 document.addEventListener("click", async (e) => {
-  const pinB = e.target.closest("[data-pin]");
-  if (pinB) return onPin(pinB.dataset.pin);
   const tabB = e.target.closest("[data-tab]");
   if (tabB) {
     S.tab = tabB.dataset.tab;
@@ -2263,6 +2405,14 @@ document.addEventListener("input", (e) => {
     S.np = S.np || {};
     S.np[e.target.dataset.newpseudo] = e.target.value.trim();
     S.np[e.target.dataset.newpseudo + "_own"] = true;
+  }
+  if (e.target.matches("[data-vsearch]")) {
+    S.vSearch = e.target.value;
+    const pos = e.target.selectionStart;
+    render();
+    const el = $("[data-vsearch]");
+    el.focus();
+    el.setSelectionRange(pos, pos);
   }
   if (e.target.matches("[data-search]")) {
     S.search = e.target.value;
@@ -2306,29 +2456,40 @@ document.addEventListener("change", async (e) => {
   }
 });
 document.addEventListener("keydown", (e) => {
-  if (!S.data && /^\d$/.test(e.key)) onPin(e.key);
-  if (!S.data && e.key === "Backspace") onPin("del");
-  if (!S.data && e.key === "Enter") onPin("go");
   if (e.key === "Escape") closeModal();
 });
-async function onPin(k) {
-  if (k === "del") S.pin = S.pin.slice(0, -1);
-  else if (k === "go") {
-    try {
-      const name = $("#firstname")?.value;
-      const r = await api("login", { pin: S.pin, name });
+document.addEventListener("submit", async (e) => {
+  if (e.target.id === "loginform") {
+    e.preventDefault();
+    const btn = e.target.querySelector("button[type=submit]");
+    const name = $("#lg-name").value.trim();
+    await run(btn, async () => {
+      const r = await api("login", { name, password: $("#lg-pass").value });
+      try { localStorage.setItem("hq_last", r.user.name); } catch {}
       S.token = r.token;
       localStorage.setItem("hq_token", r.token);
-      S.pin = "";
+      S.firstRun = false;
       await refresh();
-      return;
-    } catch (e) {
-      S.pin = "";
-      toast(e.message, true);
-    }
-  } else if (S.pin.length < 8) S.pin += k;
-  renderLogin();
-}
+    });
+    if (!S.data && $("#lg-pass")) { $("#lg-pass").value = ""; $("#lg-pass").focus(); }
+  }
+  if (e.target.id === "mustform") {
+    e.preventDefault();
+    await run(e.target.querySelector("button[type=submit]"), async () => {
+      await changePassword($("#mc-cur").value, $("#mc-new").value, $("#mc-new2").value);
+      await refresh();
+      toast("Mot de passe enregistré");
+    });
+  }
+  if (e.target.id === "pwform") {
+    e.preventDefault();
+    await run(e.target.querySelector("button[type=submit]"), async () => {
+      await changePassword($("#pw-cur").value, $("#pw-new").value, $("#pw-new2").value);
+      closeModal();
+      toast("Mot de passe changé");
+    });
+  }
+});
 
 // ------------------------------------------------------------ demarrage
 (async () => {
@@ -2359,7 +2520,7 @@ async function onPin(k) {
   window.addEventListener("focus", checkBuild);
   // rafraichit les compteurs chaque minute, mais jamais au milieu d'un assistant ou d'une saisie
   setInterval(() => {
-    const working = ["create", "warmup", "setup", "content", "settings", "compta"].includes(S.tab) || S.setup;
+    const working = ["create", "warmup", "setup", "content", "settings", "compta", "vault"].includes(S.tab) || S.setup;
     // une video en lecture (ou en plein ecran) ne doit jamais etre coupee par le rafraichissement
     const watching = document.fullscreenElement || [...document.querySelectorAll("video")].some((v) => !v.paused && !v.ended);
     if (S.token && S.data && !S.busy && !working && !watching && $("#modal").classList.contains("hidden") && !document.activeElement?.matches("input,textarea,select")) refresh().catch(() => {});

@@ -12,7 +12,7 @@ Ce fichier est pour toi, Claude, quand tu travailles sur ce dépôt. Lis-le en e
 ## Où sont les choses
 - `public/` : l'interface. HTML, CSS, JS, sans build ni framework.
   - `public/app.js` : toute l'interface (vues, actions, assistants).
-  - `public/style.css` : le design (noir et blanc, une seule couleur d'action : le bleu).
+  - `public/style.css` : le design (papier chaud, encre, indigo pour l'action, tampon vermillon en signature).
   - `public/seed-textes.json` : les 42 textes de départ, validés et déjà postés.
 - `lib/core.mjs` : toute la logique serveur (routes `/api/*`). Stockage, auth, Metricool, rotation IP.
 - `netlify/functions/api.mjs` : branche `lib/core.mjs` sur Netlify (stockage = Netlify Blobs).
@@ -127,11 +127,12 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Le 1er appel fixe `until`, le navigateur le renvoie si la fonction a coupé (partial). Jamais plus de J+30.
 
 ## Design : comment parler et montrer
-- Noir, blanc, une couleur d'action (le bleu). Couleurs d'état seulement en petits points ou fonds très légers.
+- Papier chaud, encre, une couleur d'action (l'indigo), le tampon vermillon seulement en signature. Couleurs d'état seulement en petits points ou fonds très légers.
 - Zéro emoji dans l'interface. Pas de majuscules pour les labels. Pas de flèches dans les boutons.
 - Français simple, phrases courtes, verbes à l'action. Un bouton dit ce qu'il fait ("Relier", "Enregistrer", "Setup fini").
 - La VA doit comprendre sans formation. Une action par ligne dans les procédures.
 - Design professionnel d'agence : sobre, net, pas enfantin.
+- Polissage du 2 nov. : police Geist Mono (`--mono`) pour IP, numéros de compte et code. Numéros de tâches neutres (anneau de couleur fin, n° 1 en noir). Points de couleur des chiffres seulement s'ils veulent dire quelque chose (vert, rouge, orange). Pop-up warm-up noire avec un liseré violet, sous la barre du haut. Aucun emoji dans les boutons (drapeaux compris).
 
 ## Données importantes
 - La VA n'a pas accès aux réglages, aux logs ni aux secrets. Ne les expose jamais à la VA.
@@ -223,3 +224,31 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Chaque ligne : dépense ou gain, date, montant en € ou $, catégorie (`COMPTA_CATS`), libellé, payé / reçu par Awen, Bilot ou la caisse commune, à la charge de 50/50 (défaut) ou d'un seul, case « revient tous les mois ». Stockage `compta/<id>`, taux dollar dans `comptaSettings.usdRate` (0,92 par défaut).
 - Écran : investi, gagné, résultat, rentabilité, coût moyen par mois (depuis le 1er mois saisi), à prévoir par mois (dernière valeur de chaque charge mensuelle ; paie VA = moyenne si aucune paie n'est mensuelle), paies VA, qui doit combien à qui (50/50), mois par mois avec cumul, répartition par catégorie, liste modifiable.
 - Routes : `GET compta`, `POST compta/entry` (avec `id` = modification), `POST compta/delete`, `POST compta/settings`. Tests : `node dev/test-compta.mjs` juste après `dev/test-api.mjs` (même serveur).
+
+## Coffre-fort (2 nov., demandé par Bilot)
+- Onglet « Coffre-fort » (admins seulement, VA = 403). Inspiré du coffre du cockpit.
+- Entrée : nom, identifiant, mot de passe, clé 2FA, lien, catégorie, note, « privé » (visible par son auteur seul). Stockage `vault/<id>`.
+- Mot de passe, clé 2FA et note chiffrés en AES-256-GCM (`vaultEnc` / `vaultDec`). Clé = SHA-256 de la variable Netlify `VAULT_SECRET` (32 caractères min, à créer par Awen dans Netlify) ; sans elle, on prend le secret du site stocké dans Blobs (moins sûr : la clé est à côté des données). Changer `VAULT_SECRET` après coup rend les entrées illisibles.
+- Les secrets ne sont jamais dans `state` ni dans `GET vault` : ils sortent un par un via `POST vault/reveal`, et chaque affichage est noté (`coffre_vu`, sans la valeur). Affichage masqué tout seul après 30 s. Code 2FA calculé dans le navigateur.
+- En modification, un champ secret laissé vide garde l'ancienne valeur.
+- Tests : `node dev/test-vault.mjs` après `dev/test-api.mjs` (même serveur).
+
+## Connexion identifiant + mot de passe (2 nov., demandé par Bilot)
+- Avant : un code à 6 chiffres (pavé numérique). Maintenant : identifiant (prénom, sans tenir compte des majuscules) + mot de passe.
+- Mots de passe en PBKDF2-SHA256, 150 000 tours, sel par utilisateur (`passHash` / `passCheck`). Règles (`passProblem`) : 8 caractères min, pas que des chiffres, pas le prénom dedans.
+- Migration : un ancien compte n'a que `pinHash`. Son ancien code marche une fois comme mot de passe, puis `mustChange` l'oblige à en choisir un (écran « Choisis ton mot de passe »). Un mot de passe donné par l'admin dans Réglages > Accès est aussi provisoire (`mustChange`).
+- 5 essais ratés sur un identifiant = bloqué 15 min (`loginfail/<hash>`), même avec le bon mot de passe.
+- Chacun change son mot de passe : lien « Mot de passe » en bas de la barre de gauche (et en bas de page sur mobile), route `me/password`.
+- Tests : identifiants dans `dev/test-api.mjs` (Awen lune-rouge-4321, Bilot soleil-bleu-5555, VA nuage-vert-1111). Dev : `/__dev/legacyuser?name=&pin=` crée un ancien compte à code.
+
+## Refonte du design (2 nov., choisie par Bilot)
+- Direction : le bureau papier de Chloé (marché Taïwan / HK). Papier de riz chaud (`--paper` #f7f4ee, cartes `--card`), texte encre `--ink` #1f1b16, une couleur d'action indigo `--accent` #2d4a86, et un tampon vermillon `--seal` #c23b29 comme signature : logo, favicon et numéro de la tâche à faire maintenant. Nulle part ailleurs.
+- Police : Geist partout, une seule (Bilot a refusé les polices à empattement et à chasse fixe le 2 nov.). Chiffres en `tabular-nums`.
+- Un seul bouton plein par zone : la tâche n° 1 en indigo, les autres boutons de tâches en clair. Barre de gauche claire, ligne active = carte avec un filet.
+- Couleurs d'état inchangées dans leur sens (vert publié, rouge erreur, orange retard, violet warm-up quotidien), tons adoucis pour le papier.
+
+## Menu simplifié (2 nov., choisi par Bilot)
+- Le menu passe de 15 à 10 entrées (7 pour la VA). Aucune page supprimée, tous les ids d'onglet (`data-tab`) marchent toujours.
+- Regroupements : Créer un compte + Numéro SMS ; « Comptes en cours » = Warm-up, Setup, Metricool ; Comptes = Liste + Stats ; Réglages = Réglages + Alertes et journal (ancien Dashboard) + Contenu.
+- Une entrée à plusieurs pages affiche un sous-menu (`.subnav`) en haut de la page. Le badge du menu = somme des badges des pages.
+- Dans `render()`, chaque entrée est `[id, libellé, membres]`. Le bouton porte `data-members` ; les tests ouvrent d'abord l'entrée parente si la sous-page n'est pas visible.
