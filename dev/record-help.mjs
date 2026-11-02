@@ -20,8 +20,8 @@ async function call(path, body, tok) {
 }
 
 // ---- donnees de depart (fictives, neutres)
-const admin = (await call("login", { pin: "4321", name: "Manager" })).token;
-await call("users", { name: "VA", pin: "1111", role: "va" }, admin);
+const admin = (await call("login", { name: "Manager", password: "chef-orange-1" })).token;
+await call("users", { name: "VA", password: "nuage-vert-1111", role: "va" }, admin);
 await call("secrets", { rotationUrl: "https://rotate.test/x", mcToken: "TOKEN_TEST", mcUserId: "42", heroToken: "HERO_TEST" }, admin);
 await call("settings", {
   proxy: "proxy.test:8000:user:pass",
@@ -39,7 +39,8 @@ await call("settings", {
   const g = st.settings.groups.find((x) => !x.withPhoto) || st.settings.groups[0];
   await call("texts/bulk", { group: g.id, lines: list.map((x) => `${x.text} || ${x.fr}`).join("\n") }, admin);
 }
-const va = (await call("login", { pin: "1111" })).token;
+const va = (await call("login", { name: "VA", password: "nuage-vert-1111" })).token;
+await call("me/password", { current: "nuage-vert-1111", next: "nuage-vert-2222" }, va); // mot de passe provisoire -> le sien
 async function makeActive(pseudo) {
   await call("rotate", {}, va);
   const a = await call("accounts/create", { pseudo, phone: "+852 9" + Math.floor(1e6 + Math.random() * 8e6), password: "Pw" + pseudo }, va);
@@ -105,13 +106,14 @@ async function typeIn(sel, text) {
   await p.locator(sel).first().pressSequentially(text, { delay: 60 });
   await wait(400);
 }
-const tab = (id) => tap(`.nav[data-tab="${id}"]`, 1100);
+const tab = async (id) => { if (!(await p.locator(`[data-tab="${id}"]:visible`).count())) await tap(`.nav[data-members~="${id}"]`, 600); await tap(`[data-tab="${id}"]:visible >> nth=0`, 1100); };
 const cleanToast = () => p.evaluate(() => { const t = document.querySelector("#toast"); if (t) t.className = ""; });
 
 // login
 await p.goto(B);
-for (const d of "1111") await p.click(`[data-pin="${d}"]`);
-await p.click('[data-pin="go"]');
+await p.fill("#lg-name", "VA");
+await p.fill("#lg-pass", "nuage-vert-2222");
+await p.click("#loginform button[type=submit]");
 await p.waitForSelector(".bar");
 await wait(600);
 

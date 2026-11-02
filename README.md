@@ -26,5 +26,6 @@ node dev/test-ui.mjs       # parcours complet dans un navigateur (serveur neuf)
 ```
 
 ## Accès
-- Premier code tapé sur un site neuf = admin.
-- Ensuite : ⚙️ Réglages → 👥 Accès pour ajouter Bilot (admin) et la VA (VA).
+- Connexion par identifiant (le prénom) + mot de passe.
+- Premier compte créé sur un site neuf = admin.
+- Ensuite : Réglages > Accès pour ajouter Bilot (admin) et la VA (VA) avec un mot de passe provisoire : chacun choisit le sien à sa première connexion.

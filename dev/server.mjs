@@ -239,6 +239,16 @@ http
     }
     if (url.pathname === "/__dev/build") { devBuild = url.searchParams.get("v") || "b1"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/mcbrand") { brands.push({ id: 9000 + brands.length, label: "Marque vide", networksData: {}, timezone: "Asia/Taipei" }); res.writeHead(200); return res.end("ok"); }
+    // ancien compte a code (avant le passage au mot de passe, 2 nov.) : pour tester la migration
+    if (url.pathname === "/__dev/legacyuser") {
+      const name = url.searchParams.get("name"), pin = url.searchParams.get("pin");
+      const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("pin:" + pin));
+      const users = mem.get("users") || [];
+      users.push({ name, role: url.searchParams.get("role") || "va", pinHash: Buffer.from(d).toString("base64url") });
+      mem.set("users", users);
+      res.writeHead(200);
+      return res.end("ok");
+    }
     if (url.pathname === "/__dev/mcfull") { mcFull = url.searchParams.get("v") === "1"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/acc") {
       const want = String(url.searchParams.get("pseudo") || "").toLowerCase();

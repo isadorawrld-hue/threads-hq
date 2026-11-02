@@ -15,18 +15,44 @@ const step = (m) => console.log("✓", m);
 
 let r = await call("status");
 assert.equal(r.j.firstRun, true);
-r = ok(await call("login", { pin: "4321", name: "Awen" }), "premier login");
+r = ok(await call("login", { name: "Awen", password: "lune-rouge-4321" }), "premier login");
 const admin = r.token;
 tok = admin;
 step("premier accès = admin Awen");
-assert.equal((await call("login", { pin: "0000" })).s, 401);
+assert.equal((await call("login", { name: "Awen", password: "pas-le-bon-1" })).s, 401);
+assert.equal((await call("login", { name: "Personne", password: "lune-rouge-4321" })).s, 401);
+assert.equal(ok(await call("login", { name: "awen", password: "lune-rouge-4321" }), "identifiant sans majuscule").user.name, "Awen");
 step("mauvais code refusé");
 assert.equal((await call("state", null, "faux.jeton")).s, 401);
 step("jeton bidon refusé");
 
-ok(await call("users", { name: "Bilot", pin: "5555", role: "admin" }), "ajout Bilot");
-ok(await call("users", { name: "VA", pin: "1111", role: "va" }), "ajout VA");
-assert.equal((await call("users", { name: "X", pin: "1111", role: "va" })).s, 400);
+ok(await call("users", { name: "Bilot", password: "provisoire-b1", role: "admin" }), "ajout Bilot");
+ok(await call("users", { name: "VA", password: "provisoire-v1", role: "va" }), "ajout VA");
+assert.equal((await call("users", { name: "X", password: "1111", role: "va" })).s, 400, "que des chiffres refusé");
+assert.equal((await call("users", { name: "X", password: "court", role: "va" })).s, 400, "trop court refusé");
+assert.equal((await call("users", { name: "Xavier", password: "xavier2026", role: "va" })).s, 400, "prénom dedans refusé");
+assert.equal((await call("users", { name: "Y", role: "va" })).s, 400, "nouvel accès sans mot de passe refusé");
+// mot de passe provisoire donné par l'admin : on doit le changer à la 1re connexion
+for (const [n, prov, fin] of [["Bilot", "provisoire-b1", "soleil-bleu-5555"], ["VA", "provisoire-v1", "nuage-vert-1111"]]) {
+  const l = ok(await call("login", { name: n, password: prov }), "login provisoire " + n);
+  assert.equal(l.user.mustChange, true);
+  assert.equal(ok(await call("state", null, l.token), "state").me.mustChange, true);
+  assert.equal((await call("me/password", { current: "faux-faux-1", next: fin }, l.token)).s, 403);
+  assert.equal((await call("me/password", { current: prov, next: "12345678" }, l.token)).s, 400);
+  ok(await call("me/password", { current: prov, next: fin }, l.token), "nouveau mot de passe " + n);
+  assert.equal((await call("login", { name: n, password: prov })).s, 401, "provisoire mort");
+  assert.equal(ok(await call("login", { name: n, password: fin }), "login final").user.mustChange, false);
+}
+// ancien compte a code : le code marche une fois comme mot de passe, puis il faut en choisir un
+await fetch(B + "/__dev/legacyuser?name=Ancien&pin=2468");
+let lg = ok(await call("login", { name: "Ancien", password: "2468" }), "ancien code");
+assert.equal(lg.user.mustChange, true);
+ok(await call("me/password", { current: "2468", next: "foret-calme-77" }, lg.token), "migration");
+assert.equal((await call("login", { name: "Ancien", password: "2468" })).s, 401, "ancien code mort");
+ok(await call("users", { name: "Ancien", remove: true }), "retrait");
+// 5 essais rates = bloque 15 min, meme avec le bon mot de passe
+for (let i = 0; i < 5; i++) assert.equal((await call("login", { name: "Bloque", password: "faux-faux-" + i })).s, 401);
+assert.equal((await call("login", { name: "Bloque", password: "faux-faux-9" })).s, 429, "verrou anti force brute");
 step("utilisateurs + code unique");
 
 ok(await call("settings", { bioBank: { epingle: ["b1"], lien: ["b2"], relais: ["b3"] }, hub: { pseudo: "chloe_main", postUrl: "" }, proxy: "proxy.test:8000:user:pass", smsSiteUrl: "https://sms.test", links: ["https://tinyurl.com/a1", "https://tinyurl.com/a2", "https://tinyurl.com/a3"], bios: ["bio 1", "bio 2"], pinnedPost: "épinglé" }), "réglages");
@@ -41,7 +67,7 @@ assert.equal(JSON.stringify(st).includes("TOKEN_TEST"), false, "le token ne doit
 assert.equal(JSON.stringify(st).includes("rotate.test"), false, "le lien de rotation ne doit jamais sortir");
 step("secrets cachés au navigateur");
 
-const va = ok(await call("login", { pin: "1111" }), "login VA").token;
+const va = ok(await call("login", { name: "VA", password: "nuage-vert-1111" }), "login VA").token;
 tok = va;
 assert.equal((await call("secrets", { mcToken: "x" })).s, 403);
 assert.equal((await call("settings", { proxy: "x" })).s, 403);
