@@ -12,7 +12,7 @@ Ce fichier est pour toi, Claude, quand tu travailles sur ce dépôt. Lis-le en e
 ## Où sont les choses
 - `public/` : l'interface. HTML, CSS, JS, sans build ni framework.
   - `public/app.js` : toute l'interface (vues, actions, assistants).
-  - `public/style.css` : le design (noir et blanc, une seule couleur d'action : le bleu).
+  - `public/style.css` : le design (papier chaud, encre, indigo pour l'action, tampon vermillon en signature).
   - `public/seed-textes.json` : les 42 textes de départ, validés et déjà postés.
 - `lib/core.mjs` : toute la logique serveur (routes `/api/*`). Stockage, auth, Metricool, rotation IP.
 - `netlify/functions/api.mjs` : branche `lib/core.mjs` sur Netlify (stockage = Netlify Blobs).
@@ -127,7 +127,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Le 1er appel fixe `until`, le navigateur le renvoie si la fonction a coupé (partial). Jamais plus de J+30.
 
 ## Design : comment parler et montrer
-- Noir, blanc, une couleur d'action (le bleu). Couleurs d'état seulement en petits points ou fonds très légers.
+- Papier chaud, encre, une couleur d'action (l'indigo), le tampon vermillon seulement en signature. Couleurs d'état seulement en petits points ou fonds très légers.
 - Zéro emoji dans l'interface. Pas de majuscules pour les labels. Pas de flèches dans les boutons.
 - Français simple, phrases courtes, verbes à l'action. Un bouton dit ce qu'il fait ("Relier", "Enregistrer", "Setup fini").
 - La VA doit comprendre sans formation. Une action par ligne dans les procédures.
@@ -240,3 +240,9 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - 5 essais ratés sur un identifiant = bloqué 15 min (`loginfail/<hash>`), même avec le bon mot de passe.
 - Chacun change son mot de passe : lien « Mot de passe » en bas de la barre de gauche (et en bas de page sur mobile), route `me/password`.
 - Tests : identifiants dans `dev/test-api.mjs` (Awen lune-rouge-4321, Bilot soleil-bleu-5555, VA nuage-vert-1111). Dev : `/__dev/legacyuser?name=&pin=` crée un ancien compte à code.
+
+## Refonte du design (2 nov., choisie par Bilot)
+- Direction : le bureau papier de Chloé (marché Taïwan / HK). Papier de riz chaud (`--paper` #f7f4ee, cartes `--card`), texte encre `--ink` #1f1b16, une couleur d'action indigo `--accent` #2d4a86, et un tampon vermillon `--seal` #c23b29 comme signature : logo, favicon et numéro de la tâche à faire maintenant. Nulle part ailleurs.
+- Polices : Instrument Sans (interface), Instrument Serif (titres de page h2, titres de modale, solde de la Compta), IBM Plex Mono (IP, numéros, dates du planning, compteurs).
+- Un seul bouton plein par zone : la tâche n° 1 en indigo, les autres boutons de tâches en clair. Barre de gauche claire, ligne active = carte avec un filet.
+- Couleurs d'état inchangées dans leur sens (vert publié, rouge erreur, orange retard, violet warm-up quotidien), tons adoucis pour le papier.
