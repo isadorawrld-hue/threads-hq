@@ -402,43 +402,47 @@ const icon = (k) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${I
 function render() {
   clearInterval(timerInt);
   if (!S.token || !S.data) return renderLogin();
+  if (S.data.me.mustChange) return renderMustChange();
   const t = S.data.tasks;
+  const n = (a) => (a || []).length;
+  // Chaque entrée du menu : [id, libellé, membres [[tab, libellé, badge]]]
   const groups = [
     ["Travail du jour", [
-      ["today", "Aujourd'hui", 0],
-      ["numero", "Numéro", S.data.sms && S.data.sms.status === "attente" ? 1 : 0],
-      ["create", "Créer un compte", t.toReplace.length + t.reserveMissing],
-      ["warmup", "Warm-up", t.warmup.length],
-      ["setup", "Setup", t.setupReady.length],
-      ["metricool", "Metricool", t.toConnect.length + t.toPlan.length],
-      ["check", "Check du matin", t.toCheck.length],
+      ["today", "Aujourd'hui", [["today", "Aujourd'hui", 0]]],
+      ["create", "Créer un compte", [["create", "Créer un compte", n(t.toReplace) + t.reserveMissing], ["numero", "Numéro SMS", S.data.sms && S.data.sms.status === "attente" ? 1 : 0]]],
+      ["warmup", "Comptes en cours", [["warmup", "1. Warm-up", n(t.warmup)], ["setup", "2. Setup", n(t.setupReady)], ["metricool", "3. Metricool", n(t.toConnect) + n(t.toPlan)]]],
+      ["check", "Check du matin", [["check", "Check du matin", n(t.toCheck)]]],
     ]],
     ["Suivi", [
-      ["accounts", "Comptes", 0],
-      ["planning", "Planning", (t.postErrors || []).length + (t.postLate || []).length],
-      ["stats", "Stats", 0],
-      ["sop", "Guides (SOP)", 0],
+      ["accounts", "Comptes", [["accounts", "Liste", 0], ["stats", "Stats", 0]]],
+      ["planning", "Planning", [["planning", "Planning", n(t.postErrors) + n(t.postLate)]]],
+      ["sop", "Guides", [["sop", "Guides", 0]]],
     ]],
   ];
   if (isAdmin())
     groups.push(["Admin", [
-      ["dash", "Dashboard", (S.data.alerts || []).length],
-      ["compta", "Compta", 0],
-      ["vault", "Coffre-fort", 0],
-      ["content", "Contenu", 0],
-      ["settings", "Réglages", S.data.configured.rotation && S.data.configured.metricool && S.data.configured.proxy ? 0 : 1],
+      ["compta", "Compta", [["compta", "Compta", 0]]],
+      ["vault", "Coffre-fort", [["vault", "Coffre-fort", 0]]],
+      ["settings", "Réglages", [["settings", "Réglages", S.data.configured.rotation && S.data.configured.metricool && S.data.configured.proxy ? 0 : 1], ["dash", "Alertes et journal", n(S.data.alerts)], ["content", "Contenu", 0]]],
     ]]);
   const all = groups.flatMap((g) => g[1]);
-  if (!all.some((x) => x[0] === S.tab)) S.tab = "today";
+  if (!all.some((x) => x[2].some((m) => m[0] === S.tab))) S.tab = "today";
+  const cur = all.find((x) => x[2].some((m) => m[0] === S.tab));
   const ip = S.data.lastIp;
   const fresh = freshIp();
-  const navBtn = ([id, l, c]) => `<button class="nav ${S.tab === id ? "on" : ""}" data-tab="${id}">${icon(id)}<span>${l}</span>${c ? `<em>${c}</em>` : ""}</button>`;
+  const navBtn = (x) => {
+    const [id, l, mem] = x;
+    const c = mem.reduce((a, m) => a + m[2], 0);
+    const go = x === cur ? S.tab : (mem.find((m) => m[2]) || mem[0])[0];
+    return `<button class="nav ${x === cur ? "on" : ""}" data-tab="${go}" data-members="${mem.map((m) => m[0]).join(" ")}">${icon(id)}<span>${l}</span>${c ? `<em>${c}</em>` : ""}</button>`;
+  };
+  const sub = cur[2].length > 1 ? `<div class="subnav">${cur[2].map(([id, l, c]) => `<button class="${S.tab === id ? "on" : ""}" data-tab="${id}">${l}${c ? `<em>${c}</em>` : ""}</button>`).join("")}</div>` : "";
   app.innerHTML = `
   <div class="shell">
     <aside class="side">
       <div class="logo"><span class="mark">TH</span><div><b>Threads HQ</b></div></div>
       ${groups.map(([title, items]) => `<div class="navgroup"><div class="navtitle">${title}</div>${items.map(navBtn).join("")}</div>`).join("")}
-      <div class="me"><span>${esc(S.data.me.name)}</span><button class="link" data-act="logout">Se déconnecter</button></div>
+      <div class="me"><span>${esc(S.data.me.name)}</span><button class="link" data-act="myPassword">Mot de passe</button><button class="link" data-act="logout">Se déconnecter</button></div>
     </aside>
     <div class="body">
       <header class="bar">
@@ -446,20 +450,45 @@ function render() {
         <button class="btn accent" data-act="rotateGuard" data-wait="Changement de l'IP...">${icon("rotate")}Changer l'IP</button>
       </header>
       <nav class="mnav">${all.map(navBtn).join("")}</nav>
-      <main>${VIEWS[S.tab]()}</main>
+      <main>${sub}${VIEWS[S.tab]()}<div class="mme"><span>${esc(S.data.me.name)}</span><button class="link" data-act="myPassword">Mot de passe</button><button class="link" data-act="logout">Se déconnecter</button></div></main>
     </div>
   </div>`;
   afterRender();
 }
 
 function renderLogin() {
-  app.innerHTML = `<div class="login"><div class="login-card">
+  app.innerHTML = `<div class="login"><form class="login-card" id="loginform" autocomplete="on">
     <span class="mark big">TH</span><h1>Threads HQ</h1>
-    <p class="muted">${S.firstRun ? "Premier accès : choisis ton code (4 à 8 chiffres). Tu seras admin." : "Entre ton code d'accès"}</p>
-    ${S.firstRun ? '<input id="firstname" placeholder="Ton prénom" value="Awen" />' : ""}
-    <div class="pin-dots">${[0, 1, 2, 3, 4, 5].map((i) => `<span class="${i < S.pin.length ? "on" : ""}"></span>`).join("")}</div>
-    <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button data-pin="${n}">${n}</button>`).join("")}<button data-pin="del" class="k-del">Effacer</button><button data-pin="0">0</button><button class="k-go" data-pin="go">Entrer</button></div>
-  </div></div>`;
+    <p class="muted">${S.firstRun ? "Premier accès : crée ton compte. Tu seras admin." : "Connecte-toi avec ton identifiant et ton mot de passe"}</p>
+    <label class="f" for="lg-name">Identifiant</label>
+    <input id="lg-name" name="username" autocomplete="username" autocapitalize="off" placeholder="ton prénom" value="${esc(localStorage.getItem("hq_last") || "")}" required />
+    <label class="f" for="lg-pass">Mot de passe</label>
+    <input id="lg-pass" name="password" type="password" autocomplete="${S.firstRun ? "new-password" : "current-password"}" required />
+    ${S.firstRun ? '<p class="muted" style="margin:6px 0 0">8 caractères minimum, pas seulement des chiffres.</p>' : ""}
+    <button class="btn accent big" type="submit" style="width:100%;margin-top:18px">Se connecter</button>
+    ${S.firstRun ? "" : '<p class="muted" style="margin-top:14px">Première connexion depuis le changement ? Identifiant = ton prénom, mot de passe = ton ancien code. On te demandera d\'en choisir un nouveau.</p>'}
+  </form></div>`;
+  const n = $("#lg-name");
+  (n.value ? $("#lg-pass") : n).focus();
+}
+// mot de passe donne par l'admin ou ancien code : on en choisit un vrai avant d'entrer
+function renderMustChange() {
+  app.innerHTML = `<div class="login"><form class="login-card" id="mustform">
+    <span class="mark big">TH</span><h1>Choisis ton mot de passe</h1>
+    <p class="muted">Bonjour ${esc(S.data.me.name)}. Ton mot de passe actuel est provisoire : choisis le tien pour continuer.</p>
+    <input type="text" name="username" autocomplete="username" value="${esc(S.data.me.name)}" hidden />
+    <label class="f" for="mc-cur">Mot de passe actuel (ou ancien code)</label><input id="mc-cur" type="password" autocomplete="current-password" required />
+    <label class="f" for="mc-new">Nouveau mot de passe</label><input id="mc-new" type="password" autocomplete="new-password" required />
+    <label class="f" for="mc-new2">Encore une fois</label><input id="mc-new2" type="password" autocomplete="new-password" required />
+    <p class="muted" style="margin:6px 0 0">8 caractères minimum, pas seulement des chiffres, pas ton prénom.</p>
+    <button class="btn accent big" type="submit" style="width:100%;margin-top:18px">Enregistrer et entrer</button>
+    <button class="link" type="button" data-act="logout" style="margin-top:14px;color:var(--graphite)">Se déconnecter</button>
+  </form></div>`;
+  $("#mc-cur").focus();
+}
+async function changePassword(cur, n1, n2) {
+  if (n1 !== n2) throw new Error("Les deux nouveaux mots de passe ne sont pas pareils.");
+  await api("me/password", { current: cur, next: n1 });
 }
 
 // ------------------------------------------------------------ vues
@@ -497,7 +526,7 @@ const VIEWS = {
     if (t.reserveMissing) pri.push(["c-pink", `Créer ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"]);
     pri.forEach(([c, title, desc, tab, btn], i) => cards.push(task(i + 1, c, title, desc, tab, btn, i === 0)));
     const waiting = "";
-    return `<h2>Aujourd'hui</h2><p class="lead"><span class="today-date">${esc(new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }))}</span> · Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
+    return `<h2>Aujourd'hui</h2><p class="lead">${esc(new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }).replace(/^./, (c) => c.toUpperCase()))} · Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
       <div class="stats">${stat("c-green", t.active, "comptes actifs")}${stat("c-violet", t.reserve, "en réserve")}${stat("c-yellow", t.toCheck.length, "à checker")}${stat("c-red", t.toReplace.length, "à remplacer")}</div>
       ${cards.length ? `<div class="card list">${cards.join("")}</div>` : '<div class="card done-all"><b>Tout est à jour.</b><span>Si tu as le temps, crée un compte de réserve.</span></div>'}${waiting}
       ${warmList().length ? `<div class="card warmcard"><b>Pseudos violets = warm-up 10 min tous les jours</b><div class="row" style="margin-top:8px">${warmList().map((a) => psTag(a)).join("")}</div><span class="muted">${esc(WARM_TIP)}</span></div>` : ""}`;
@@ -873,7 +902,7 @@ const VIEWS = {
     return `<h2>Compta</h2><p class="lead">Dépenses et gains de ${esc(P1)} et ${esc(P2)}, partagés 50/50. Montants en euros (1 $ = ${String(C.usdRate).replace(".", ",")} €).</p>
       <div class="stats">${stat("c-red", eu(totDep), "investi")}${stat("c-green", eu(totGain), "gagné")}${stat(net >= 0 ? "c-green" : "c-red", eu(net), "résultat")}${stat("c-blue", roi, "rentabilité")}</div>
       <div class="stats">${stat("c-yellow", eu(totDep / nbM), "coût moyen par mois")}${stat("c-violet", eu(prevoir), "à prévoir par mois")}${stat("c-pink", eu(vaMonth), "paies VA ce mois")}${stat("c-pink", eu(sum(vaAll)), "paies VA en tout")}</div>
-      <div class="card"><b>Partage 50/50</b><p style="margin:8px 0 4px;font-size:18px">${balTxt}</p>
+      <div class="card"><b>Partage 50/50</b><p style="margin:8px 0 8px;font:600 20px/1.3 var(--font)">${balTxt}</p>
         <p class="muted" style="margin:0">${esc(P1)} a payé ${eu(paidBy(P1))} et reçu ${eu(recvBy(P1))}. ${esc(P2)} a payé ${eu(paidBy(P2))} et reçu ${eu(recvBy(P2))}. Caisse commune : ${eu(paidBy("Caisse"))} payés, ${eu(recvBy("Caisse"))} reçus.</p></div>
       <div class="card"><div class="row"><button class="btn sm ${f.kind === "depense" ? "" : "light"}" data-act="cKind" data-k="depense">Dépense</button><button class="btn sm ${f.kind === "gain" ? "" : "light"}" data-act="cKind" data-k="gain">Gain</button><div class="spacer"></div>${f.id ? '<span class="pill c-blue">Modification</span><button class="btn sm ghost" data-act="cCancel">Annuler</button>' : ""}</div>
         <div class="grid" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
@@ -891,7 +920,7 @@ const VIEWS = {
       <div class="card"><b>Où part l'argent</b>${cats.length ? cats.map(([c, v]) => `<div style="margin-top:10px"><div class="row"><span>${esc(c)}</span><div class="spacer"></div><b>${eu(v)}</b><span class="muted">${Math.round((v / (totDep || 1)) * 100)} %</span></div><div style="height:6px;background:var(--wash);border-radius:3px;margin-top:4px"><div style="height:6px;width:${Math.max(2, (v / maxCat) * 100)}%;background:var(--blue);border-radius:3px"></div></div></div>`).join("") : '<p class="muted">Aucune dépense pour l\'instant.</p>'}
         ${fixed.size ? `<p class="muted" style="margin-top:14px">Charges qui reviennent tous les mois : ${[...fixed.values()].map((e) => `${esc(e.label)} ${eu(eur(e))}`).join(", ")} (${eu(fixedTot)}).</p>` : ""}</div>
       <div class="card"><div class="row"><b>Toutes les lignes</b><div class="spacer"></div><select data-cmonth style="max-width:220px"><option value="">Tous les mois</option>${months.slice().reverse().map((m) => opt(m, filt, mLabel(m))).join("")}</select></div>
-        <div style="overflow:auto"><table class="tbl"><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Montant</th><th>Qui</th><th></th></tr>${list.map((e) => `<tr><td>${esc(e.date.split("-").reverse().join("/"))}</td><td>${esc(e.label)}${e.monthly ? ' <span class="pill">mensuel</span>' : ""}</td><td class="muted">${esc(e.cat)}</td><td style="white-space:nowrap;color:var(${e.kind === "gain" ? "--green" : "--ink"})">${e.kind === "gain" ? "+" : "−"}${(e.amountCents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${e.currency === "USD" ? "$" : "€"}</td><td class="muted">${esc(e.paidBy === "Caisse" ? "Caisse" : e.paidBy)}${e.kind === "depense" && e.forWho !== "50/50" ? ` (pour ${esc(e.forWho)})` : ""}</td><td style="white-space:nowrap"><button class="btn sm light" data-act="cEdit" data-id="${esc(e.id)}">Modifier</button> <button class="btn sm bad" data-act="cDel" data-id="${esc(e.id)}">Supprimer</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">Rien encore.</td></tr>'}</table></div></div>
+        <div style="overflow:auto"><table class="tbl"><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Montant</th><th>Qui</th><th></th></tr>${list.map((e) => `<tr><td>${esc(e.date.split("-").reverse().join("/"))}</td><td>${esc(e.label)}${e.monthly ? ' <span class="pill">mensuel</span>' : ""}</td><td class="muted">${esc(e.cat)}</td><td style="white-space:nowrap;color:var(${e.kind === "gain" ? "--green" : "--ink"})">${e.kind === "gain" ? "+" : "−"}${(e.amountCents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${e.currency === "USD" ? "$" : "€"}</td><td class="muted">${esc(e.paidBy === "Caisse" ? "Caisse" : e.paidBy)}${e.kind === "depense" && e.forWho !== "50/50" ? ` (pour ${esc(e.forWho)})` : ""}</td><td style="white-space:nowrap"><button class="btn sm ghost" data-act="cEdit" data-id="${esc(e.id)}">Modifier</button> <button class="btn sm ghost" data-act="cDel" data-id="${esc(e.id)}">Supprimer</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">Rien encore.</td></tr>'}</table></div></div>
       <div class="card"><div class="row"><span>1 $ =</span><input data-cusd style="max-width:100px" value="${esc(String(C.usdRate).replace(".", ","))}" /><span>€</span><button class="btn sm light" data-act="cRate" data-wait="...">Changer le taux</button></div></div>`;
   },
 
@@ -947,7 +976,7 @@ const VIEWS = {
       <div class="card"><h3 style="margin-top:0">Comptes achetés (stock)</h3>
         <p class="muted">Glisse le fichier .txt de la commande (ou colle la liste) : identifiant, mot de passe, clé 2FA par ligne. Les lignes de pub sont ignorées, les doublons aussi. Sandra clique « Prendre un compte acheté » et tout se remplit.</p>
         <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag ok">${sk.dispo || 0} en stock</span><span class="tag">${sk.pris || 0} en cours</span><span class="tag">${sk.utilise || 0} utilisés</span><span class="tag ${sk.rate ? "miss" : ""}">${sk.rate || 0} ratés</span><span class="tag ${sk.scam ? "miss" : ""}">${sk.scam || 0} scam</span></div>
-        ${scams.length ? `<div style="margin-top:10px"><b>Comptes scam (à réclamer au vendeur)</b><pre class="scamlist" style="white-space:pre-wrap;font-size:12px;background:#f6f6f6;padding:8px;border-radius:8px">${esc(scamTxt)}</pre><button class="btn sm light" data-act="copy" data-v="${esc(scamTxt)}">Copier la liste pour le vendeur</button></div>` : ""}
+        ${scams.length ? `<div style="margin-top:10px"><b>Comptes scam (à réclamer au vendeur)</b><pre class="scamlist" style="white-space:pre-wrap;font-size:12px;background:var(--wash);padding:8px;border-radius:8px">${esc(scamTxt)}</pre><button class="btn sm light" data-act="copy" data-v="${esc(scamTxt)}">Copier la liste pour le vendeur</button></div>` : ""}
         <label class="f">Fichiers de commande <small>(.txt, plusieurs d'un coup)</small></label><input type="file" id="stockFiles" accept=".txt,text/plain" multiple />
         <label class="f">ou colle la liste</label><textarea data-set="stockText" placeholder="identifiant&#9;motdepasse&#9;CLE 2FA" style="min-height:90px"></textarea>
         <button class="btn" data-act="stockImport" data-wait="Import...">Ajouter au stock</button>
@@ -1010,13 +1039,13 @@ const VIEWS = {
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSettings" data-wait="...">Enregistrer les réglages</button></div></div>
       <div class="card"><h3 style="margin-top:0">Accès</h3>
         ${(S.data.users || []).map((u) => `<div class="row" style="margin:6px 0"><b>${esc(u.name)}</b><span class="pill ${u.role === "admin" ? "c-violet" : "c-blue"}">${u.role === "admin" ? "Admin" : "VA"}</span>${u.name !== S.data.me.name ? `<button class="btn sm ghost" data-act="delUser" data-name="${esc(u.name)}">Retirer</button>` : ""}</div>`).join("")}
-        <div class="row" style="margin-top:10px"><input data-u="name" placeholder="Prénom" style="max-width:180px" /><input data-u="pin" placeholder="Code (4-8 chiffres)" inputmode="numeric" style="max-width:180px" /><select data-u="role" style="max-width:140px"><option value="va">VA</option><option value="admin">Admin</option></select><button class="btn" data-act="saveUser">Ajouter / changer le code</button></div></div>`;
+        <div class="row" style="margin-top:10px"><input data-u="name" placeholder="Prénom" style="max-width:180px" /><input data-u="password" type="password" autocomplete="new-password" placeholder="Mot de passe provisoire" style="max-width:220px" /><select data-u="role" style="max-width:140px"><option value="va">VA</option><option value="admin">Admin</option></select><button class="btn" data-act="saveUser">Ajouter / changer le mot de passe</button></div><p class="muted" style="margin-top:8px">Identifiant = le prénom. La personne choisit son propre mot de passe à sa première connexion. Laisse le mot de passe vide pour changer seulement le rôle.</p></div>`;
   },
 };
 
 // ------------------------------------------------------------ journal lisible
 const LOGS = {
-  premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
+  premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Connexion ratée", mdp_change: "Mot de passe changé", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
@@ -1050,7 +1079,7 @@ function logDetails(l) {
 // ------------------------------------------------------------ petits blocs
 function task(n, color, title, desc, tab, btn, first) {
   const num = n === "" ? `<span class="dot ${color}"></span>` : `<span class="prio ${color}">${esc(n)}</span>`;
-  return `<div class="task ${first ? "first" : ""}">${num}<div class="task-text"><b>${esc(title)}</b><span>${esc(desc)}</span></div><button class="btn sm ${first ? "accent" : ""}" data-tab="${tab}">${esc(btn)}</button></div>`;
+  return `<div class="task ${first ? "first" : ""}">${num}<div class="task-text"><b>${esc(title)}</b><span>${esc(desc)}</span></div><button class="btn sm ${first ? "accent" : "light"}" data-tab="${tab}">${esc(btn)}</button></div>`;
 }
 // planifie un compte en plusieurs appels si besoin (le serveur rend la main avant 10 s)
 async function planFull(accountId, days, btn, label, mode) {
@@ -1291,6 +1320,8 @@ async function compress(file) {
 let smsPoll = null;
 let emailPoll = null;
 function afterRender() {
+  const mn = document.querySelector(".mnav"), mon = mn && mn.querySelector(".nav.on");
+  if (mon) mn.scrollLeft = mon.offsetLeft - (mn.clientWidth - mon.offsetWidth) / 2;
   // prix Hero SMS charges tout seuls a l'arrivee sur l'etape
   if (document.querySelector('[data-act="smsPrices"]') && !S.smsPrices && !S.smsPricesLoading) {
     S.smsPricesLoading = true;
@@ -1407,6 +1438,15 @@ function tick(el, end) {
 
 // ------------------------------------------------------------ actions
 const ACT = {
+  myPassword() {
+    modal(`<h3>Changer mon mot de passe</h3><form id="pwform"><input type="text" name="username" autocomplete="username" value="${esc(S.data.me.name)}" hidden />
+      <label class="f" for="pw-cur">Mot de passe actuel</label><input id="pw-cur" type="password" autocomplete="current-password" required />
+      <label class="f" for="pw-new">Nouveau mot de passe</label><input id="pw-new" type="password" autocomplete="new-password" required />
+      <label class="f" for="pw-new2">Encore une fois</label><input id="pw-new2" type="password" autocomplete="new-password" required />
+      <p class="muted">8 caractères minimum, pas seulement des chiffres, pas ton prénom.</p>
+      <button class="btn accent" type="submit">Enregistrer</button></form>`);
+    $("#pw-cur").focus();
+  },
   vNew() {
     S.vForm = {};
     render();
@@ -2298,7 +2338,7 @@ const ACT = {
   async saveUser(b) {
     const v = (k) => $(`[data-u="${k}"]`).value.trim();
     await run(b, async () => {
-      await api("users", { name: v("name"), pin: v("pin"), role: v("role") });
+      await api("users", { name: v("name"), password: $('[data-u="password"]').value, role: v("role") });
       await refresh();
       toast("Accès enregistré");
     });
@@ -2332,8 +2372,6 @@ function readWizFields() {
 
 // ------------------------------------------------------------ evenements
 document.addEventListener("click", async (e) => {
-  const pinB = e.target.closest("[data-pin]");
-  if (pinB) return onPin(pinB.dataset.pin);
   const tabB = e.target.closest("[data-tab]");
   if (tabB) {
     S.tab = tabB.dataset.tab;
@@ -2418,29 +2456,40 @@ document.addEventListener("change", async (e) => {
   }
 });
 document.addEventListener("keydown", (e) => {
-  if (!S.data && /^\d$/.test(e.key)) onPin(e.key);
-  if (!S.data && e.key === "Backspace") onPin("del");
-  if (!S.data && e.key === "Enter") onPin("go");
   if (e.key === "Escape") closeModal();
 });
-async function onPin(k) {
-  if (k === "del") S.pin = S.pin.slice(0, -1);
-  else if (k === "go") {
-    try {
-      const name = $("#firstname")?.value;
-      const r = await api("login", { pin: S.pin, name });
+document.addEventListener("submit", async (e) => {
+  if (e.target.id === "loginform") {
+    e.preventDefault();
+    const btn = e.target.querySelector("button[type=submit]");
+    const name = $("#lg-name").value.trim();
+    await run(btn, async () => {
+      const r = await api("login", { name, password: $("#lg-pass").value });
+      try { localStorage.setItem("hq_last", r.user.name); } catch {}
       S.token = r.token;
       localStorage.setItem("hq_token", r.token);
-      S.pin = "";
+      S.firstRun = false;
       await refresh();
-      return;
-    } catch (e) {
-      S.pin = "";
-      toast(e.message, true);
-    }
-  } else if (S.pin.length < 8) S.pin += k;
-  renderLogin();
-}
+    });
+    if (!S.data && $("#lg-pass")) { $("#lg-pass").value = ""; $("#lg-pass").focus(); }
+  }
+  if (e.target.id === "mustform") {
+    e.preventDefault();
+    await run(e.target.querySelector("button[type=submit]"), async () => {
+      await changePassword($("#mc-cur").value, $("#mc-new").value, $("#mc-new2").value);
+      await refresh();
+      toast("Mot de passe enregistré");
+    });
+  }
+  if (e.target.id === "pwform") {
+    e.preventDefault();
+    await run(e.target.querySelector("button[type=submit]"), async () => {
+      await changePassword($("#pw-cur").value, $("#pw-new").value, $("#pw-new2").value);
+      closeModal();
+      toast("Mot de passe changé");
+    });
+  }
+});
 
 // ------------------------------------------------------------ demarrage
 (async () => {

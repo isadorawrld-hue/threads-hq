@@ -5,7 +5,8 @@ async function call(path, body, t) {
   const r = await fetch(B + "/api/" + path, { method: body ? "POST" : "GET", headers: { "content-type": "application/json", authorization: "Bearer " + t }, body: body ? JSON.stringify(body) : undefined });
   return { s: r.status, j: await r.json().catch(() => null), raw: "" };
 }
-const login = async (pin) => (await call("login", { pin })).j.token;
+const LOGINS = { "4321": ["Awen", "lune-rouge-4321"], "5555": ["Bilot", "soleil-bleu-5555"], "1111": ["VA", "nuage-vert-1111"] };
+const login = async (k) => (await call("login", { name: LOGINS[k][0], password: LOGINS[k][1] })).j.token;
 const awen = await login("4321");
 const bilot = await login("5555");
 const va = await login("1111");
