@@ -765,7 +765,7 @@ const VIEWS = {
     const rows = S.data.accounts.filter((a) => a.status !== "saute").map((a) => {
       const l = ls?.links?.[a.link];
       const up = S.data.posts.filter((p) => p.accountId === a.id && p.status === "programme" && new Date(p.at).getTime() > now).length;
-      const done = S.data.posts.filter((p) => p.accountId === a.id && p.status === "programme" && new Date(p.at).getTime() <= now).length;
+      const done = S.data.posts.filter((p) => p.accountId === a.id && p.status === "publie").length;
       return { a, l, up, done };
     });
     const sum = (k) => rows.reduce((n, r) => n + (r.l?.[k] || 0), 0);
