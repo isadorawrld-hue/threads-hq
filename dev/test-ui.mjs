@@ -28,7 +28,10 @@ async function login(p, name, pass, next) {
     await p.click("#mustform button[type=submit]");
   }
 }
-const tab = (p, id) => p.click(`.nav[data-tab="${id}"] >> visible=true`);
+const tab = async (p, id) => {
+  if (!(await p.locator(`[data-tab="${id}"]:visible`).count())) await p.click(`.nav[data-members~="${id}"] >> visible=true`);
+  await p.click(`[data-tab="${id}"]:visible >> nth=0`);
+};
 const waitToast = (p, re) => p.waitForFunction((r) => new RegExp(r).test(document.querySelector("#toast").textContent), re.source, { timeout: 15000 });
 
 // ---- admin : premier acces + reglages

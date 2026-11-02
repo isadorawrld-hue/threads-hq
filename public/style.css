@@ -334,3 +334,12 @@ table.plan td.tx.low { color: var(--red); font-weight: 500; }
   .login-card { padding: 32px 20px 24px; }
 }
 body { font-variant-numeric: tabular-nums; }
+
+/* Sous-menu : étapes d'une même entrée du menu */
+.subnav { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 24px; background: var(--raised); border-radius: 10px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.subnav::-webkit-scrollbar { display: none; }
+.subnav button { flex: none; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--graphite); font: 500 14px var(--font); cursor: pointer; }
+.subnav button:hover { color: var(--ink); }
+.subnav button.on { background: var(--card); color: var(--ink); border-color: var(--line); box-shadow: 0 1px 2px rgba(31, 27, 22, 0.05); }
+.subnav em { font: 500 12px var(--mono); font-style: normal; min-width: 20px; height: 18px; padding: 0 5px; border-radius: 5px; background: var(--card); display: grid; place-items: center; }
+.subnav button.on em { background: var(--accent); color: #fff; }
