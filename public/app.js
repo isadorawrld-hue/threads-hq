@@ -899,7 +899,7 @@ const VIEWS = {
     return `<h2>Compta</h2><p class="lead">Dépenses et gains de ${esc(P1)} et ${esc(P2)}, partagés 50/50. Montants en euros (1 $ = ${String(C.usdRate).replace(".", ",")} €).</p>
       <div class="stats">${stat("c-red", eu(totDep), "investi")}${stat("c-green", eu(totGain), "gagné")}${stat(net >= 0 ? "c-green" : "c-red", eu(net), "résultat")}${stat("c-blue", roi, "rentabilité")}</div>
       <div class="stats">${stat("c-yellow", eu(totDep / nbM), "coût moyen par mois")}${stat("c-violet", eu(prevoir), "à prévoir par mois")}${stat("c-pink", eu(vaMonth), "paies VA ce mois")}${stat("c-pink", eu(sum(vaAll)), "paies VA en tout")}</div>
-      <div class="card"><b>Partage 50/50</b><p style="margin:8px 0 8px;font:400 30px/1.2 var(--serif)">${balTxt}</p>
+      <div class="card"><b>Partage 50/50</b><p style="margin:8px 0 8px;font:600 20px/1.3 var(--font)">${balTxt}</p>
         <p class="muted" style="margin:0">${esc(P1)} a payé ${eu(paidBy(P1))} et reçu ${eu(recvBy(P1))}. ${esc(P2)} a payé ${eu(paidBy(P2))} et reçu ${eu(recvBy(P2))}. Caisse commune : ${eu(paidBy("Caisse"))} payés, ${eu(recvBy("Caisse"))} reçus.</p></div>
       <div class="card"><div class="row"><button class="btn sm ${f.kind === "depense" ? "" : "light"}" data-act="cKind" data-k="depense">Dépense</button><button class="btn sm ${f.kind === "gain" ? "" : "light"}" data-act="cKind" data-k="gain">Gain</button><div class="spacer"></div>${f.id ? '<span class="pill c-blue">Modification</span><button class="btn sm ghost" data-act="cCancel">Annuler</button>' : ""}</div>
         <div class="grid" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">

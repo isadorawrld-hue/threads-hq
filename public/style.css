@@ -25,9 +25,10 @@
   --r: 14px;
   --side: 256px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --font: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --serif: "Instrument Serif", ui-serif, Georgia, serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* une seule police partout (demande de Bilot, 2 nov.) : titres, chiffres, IP compris */
+  --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: var(--font);
+  --mono: var(--font);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
@@ -45,7 +46,7 @@ a { color: var(--accent); text-underline-offset: 3px; }
 /* ---------- connexion */
 .login { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--paper); }
 .login-card { width: min(380px, 100%); text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 40px 32px 32px; box-shadow: 0 8px 24px rgba(31, 27, 22, 0.06); }
-.login-card h1 { font: 400 36px/1.15 var(--serif); margin: 20px 0 4px; }
+.login-card h1 { font: 600 26px/1.2 var(--font); margin: 20px 0 4px; }
 .login-card input { text-align: left; }
 .login-card label.f { text-align: left; margin: 16px 0 6px; }
 
@@ -81,7 +82,7 @@ a { color: var(--accent); text-underline-offset: 3px; }
 .mnav { display: none; }
 .mme { display: none; }
 main { max-width: 1240px; padding: 40px 32px 96px; }
-h2 { font: 400 40px/1.1 var(--serif); letter-spacing: -0.01em; margin: 0 0 8px; }
+h2 { font: 600 30px/1.2 var(--font); letter-spacing: -0.02em; margin: 0 0 8px; }
 h3 { font-size: 16px; font-weight: 600; margin: 32px 0 12px; }
 .lead { color: var(--graphite); margin: 0 0 28px; max-width: 64ch; font-size: 15px; }
 .muted { color: var(--graphite); font-size: 13px; }
@@ -101,7 +102,7 @@ code { background: var(--raised); padding: 1px 6px; border-radius: 4px; font: 12
 .task-text b { display: block; font-weight: 600; }
 .task-text span { color: var(--graphite); font-size: 13px; }
 .done-all { padding: 32px; text-align: left; }
-.done-all b { display: block; font: 400 24px/1.2 var(--serif); }
+.done-all b { display: block; font: 600 17px/1.3 var(--font); }
 .done-all span { color: var(--graphite); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 16px; overflow: hidden; }
 .stat { padding: 20px 24px; border-right: 1px solid var(--line); }
@@ -192,10 +193,10 @@ details.card[open] > summary { margin-bottom: 8px; }
 .steps span { flex: 1; height: 3px; border-radius: 2px; background: var(--line-2); }
 .steps span.on { background: var(--accent); }
 .stepnum { color: var(--mute); font: 400 12px var(--mono); }
-.stepnum + h3 { margin-top: 4px; font: 400 28px/1.15 var(--serif); }
+.stepnum + h3 { margin-top: 4px; font: 600 20px/1.25 var(--font); }
 .checklist label { display: flex; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; margin: 8px 0; cursor: pointer; font-size: 14px; color: var(--ink); }
 .checklist label:has(input:checked) { border-color: var(--accent); background: var(--accent-wash); }
-.timer { font: 400 64px/1 var(--mono); letter-spacing: -0.02em; text-align: left; margin: 8px 0 12px; }
+.timer { font: 600 56px/1 var(--font); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; text-align: left; margin: 8px 0 12px; }
 .card ol { padding-left: 20px; margin: 8px 0; }
 .card li { margin: 4px 0; }
 
@@ -240,7 +241,7 @@ details.card[open] > summary { margin-bottom: 8px; }
 .toast.err { background: var(--red); }
 .modal { position: fixed; inset: 0; background: rgba(31, 27, 22, 0.4); display: grid; place-items: center; z-index: 40; padding: 16px; }
 .modal-box { background: var(--card); border-radius: 18px; padding: 28px; width: min(560px, 100%); max-height: 90vh; overflow: auto; position: relative; box-shadow: 0 16px 48px rgba(31, 27, 22, 0.18); }
-.modal-box h3 { margin-top: 0; font: 400 26px/1.15 var(--serif); padding-right: 40px; }
+.modal-box h3 { margin-top: 0; font: 600 18px/1.3 var(--font); padding-right: 40px; }
 .modal-x { position: absolute; top: 16px; right: 16px; border: 1px solid var(--line); background: var(--card); color: var(--graphite); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; }
 .modal-x:hover { background: var(--raised); color: var(--ink); }
 .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: currentColor; border-radius: 50%; animation: sp 0.8s linear infinite; }
@@ -322,7 +323,7 @@ table.plan td.tx.low { color: var(--red); font-weight: 500; }
   .mnav .nav.on .ico { color: #fdfbf7; }
   .mnav .nav.on em { background: #fdfbf7; color: var(--ink); }
   main { padding: 24px 16px 80px; }
-  h2 { font-size: 32px; }
+  h2 { font-size: 24px; }
   .card { padding: 20px; }
   .task { flex-wrap: wrap; padding: 16px 20px; }
   .task .btn { width: 100%; }
@@ -332,3 +333,4 @@ table.plan td.tx.low { color: var(--red); font-weight: 500; }
   .stat b { font-size: 26px; }
   .login-card { padding: 32px 20px 24px; }
 }
+body { font-variant-numeric: tabular-nums; }

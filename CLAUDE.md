@@ -243,6 +243,6 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 
 ## Refonte du design (2 nov., choisie par Bilot)
 - Direction : le bureau papier de Chloé (marché Taïwan / HK). Papier de riz chaud (`--paper` #f7f4ee, cartes `--card`), texte encre `--ink` #1f1b16, une couleur d'action indigo `--accent` #2d4a86, et un tampon vermillon `--seal` #c23b29 comme signature : logo, favicon et numéro de la tâche à faire maintenant. Nulle part ailleurs.
-- Polices : Instrument Sans (interface), Instrument Serif (titres de page h2, titres de modale, solde de la Compta), IBM Plex Mono (IP, numéros, dates du planning, compteurs).
+- Police : Geist partout, une seule (Bilot a refusé les polices à empattement et à chasse fixe le 2 nov.). Chiffres en `tabular-nums`.
 - Un seul bouton plein par zone : la tâche n° 1 en indigo, les autres boutons de tâches en clair. Barre de gauche claire, ligne active = carte avec un filet.
 - Couleurs d'état inchangées dans leur sens (vert publié, rouge erreur, orange retard, violet warm-up quotidien), tons adoucis pour le papier.
