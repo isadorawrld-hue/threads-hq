@@ -15,7 +15,7 @@ async function login(pin) {
   await p.waitForTimeout(1500);
   return p;
 }
-const tab = async (p, t) => { await p.evaluate((t) => document.querySelector(`[data-tab="${t}"]`).click(), t); await p.waitForTimeout(500); };
+const tab = async (p, t) => { await p.evaluate((t) => (document.querySelector(`[data-tab="${t}"]`) || (document.querySelector(`[data-members~="${t}"]`).click(), document.querySelector(`[data-tab="${t}"]`))).click(), t); await p.waitForTimeout(500); };
 // admin : bouton violet au hasard + bascule sur les cartes
 const a = await login("4321");
 await tab(a, "accounts");

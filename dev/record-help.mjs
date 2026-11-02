@@ -106,7 +106,7 @@ async function typeIn(sel, text) {
   await p.locator(sel).first().pressSequentially(text, { delay: 60 });
   await wait(400);
 }
-const tab = (id) => tap(`.nav[data-tab="${id}"]`, 1100);
+const tab = async (id) => { if (!(await p.locator(`[data-tab="${id}"]:visible`).count())) await tap(`.nav[data-members~="${id}"]`, 600); await tap(`[data-tab="${id}"]:visible >> nth=0`, 1100); };
 const cleanToast = () => p.evaluate(() => { const t = document.querySelector("#toast"); if (t) t.className = ""; });
 
 // login
