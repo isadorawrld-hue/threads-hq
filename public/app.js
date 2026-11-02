@@ -402,6 +402,7 @@ const icon = (k) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${I
 function render() {
   clearInterval(timerInt);
   if (!S.token || !S.data) return renderLogin();
+  if (S.data.me.mustChange) return renderMustChange();
   const t = S.data.tasks;
   const groups = [
     ["Travail du jour", [
@@ -438,7 +439,7 @@ function render() {
     <aside class="side">
       <div class="logo"><span class="mark">TH</span><div><b>Threads HQ</b></div></div>
       ${groups.map(([title, items]) => `<div class="navgroup"><div class="navtitle">${title}</div>${items.map(navBtn).join("")}</div>`).join("")}
-      <div class="me"><span>${esc(S.data.me.name)}</span><button class="link" data-act="logout">Se déconnecter</button></div>
+      <div class="me"><span>${esc(S.data.me.name)}</span><button class="link" data-act="myPassword">Mot de passe</button><button class="link" data-act="logout">Se déconnecter</button></div>
     </aside>
     <div class="body">
       <header class="bar">
@@ -446,20 +447,45 @@ function render() {
         <button class="btn accent" data-act="rotateGuard" data-wait="Changement de l'IP...">${icon("rotate")}Changer l'IP</button>
       </header>
       <nav class="mnav">${all.map(navBtn).join("")}</nav>
-      <main>${VIEWS[S.tab]()}</main>
+      <main>${VIEWS[S.tab]()}<div class="mme"><span>${esc(S.data.me.name)}</span><button class="link" data-act="myPassword">Mot de passe</button><button class="link" data-act="logout">Se déconnecter</button></div></main>
     </div>
   </div>`;
   afterRender();
 }
 
 function renderLogin() {
-  app.innerHTML = `<div class="login"><div class="login-card">
+  app.innerHTML = `<div class="login"><form class="login-card" id="loginform" autocomplete="on">
     <span class="mark big">TH</span><h1>Threads HQ</h1>
-    <p class="muted">${S.firstRun ? "Premier accès : choisis ton code (4 à 8 chiffres). Tu seras admin." : "Entre ton code d'accès"}</p>
-    ${S.firstRun ? '<input id="firstname" placeholder="Ton prénom" value="Awen" />' : ""}
-    <div class="pin-dots">${[0, 1, 2, 3, 4, 5].map((i) => `<span class="${i < S.pin.length ? "on" : ""}"></span>`).join("")}</div>
-    <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button data-pin="${n}">${n}</button>`).join("")}<button data-pin="del" class="k-del">Effacer</button><button data-pin="0">0</button><button class="k-go" data-pin="go">Entrer</button></div>
-  </div></div>`;
+    <p class="muted">${S.firstRun ? "Premier accès : crée ton compte. Tu seras admin." : "Connecte-toi avec ton identifiant et ton mot de passe"}</p>
+    <label class="f" for="lg-name">Identifiant</label>
+    <input id="lg-name" name="username" autocomplete="username" autocapitalize="off" placeholder="ton prénom" value="${esc(localStorage.getItem("hq_last") || "")}" required />
+    <label class="f" for="lg-pass">Mot de passe</label>
+    <input id="lg-pass" name="password" type="password" autocomplete="${S.firstRun ? "new-password" : "current-password"}" required />
+    ${S.firstRun ? '<p class="muted" style="margin:6px 0 0">8 caractères minimum, pas seulement des chiffres.</p>' : ""}
+    <button class="btn accent big" type="submit" style="width:100%;margin-top:18px">Se connecter</button>
+    ${S.firstRun ? "" : '<p class="muted" style="margin-top:14px">Première connexion depuis le changement ? Identifiant = ton prénom, mot de passe = ton ancien code. On te demandera d\'en choisir un nouveau.</p>'}
+  </form></div>`;
+  const n = $("#lg-name");
+  (n.value ? $("#lg-pass") : n).focus();
+}
+// mot de passe donne par l'admin ou ancien code : on en choisit un vrai avant d'entrer
+function renderMustChange() {
+  app.innerHTML = `<div class="login"><form class="login-card" id="mustform">
+    <span class="mark big">TH</span><h1>Choisis ton mot de passe</h1>
+    <p class="muted">Bonjour ${esc(S.data.me.name)}. Ton mot de passe actuel est provisoire : choisis le tien pour continuer.</p>
+    <input type="text" name="username" autocomplete="username" value="${esc(S.data.me.name)}" hidden />
+    <label class="f" for="mc-cur">Mot de passe actuel (ou ancien code)</label><input id="mc-cur" type="password" autocomplete="current-password" required />
+    <label class="f" for="mc-new">Nouveau mot de passe</label><input id="mc-new" type="password" autocomplete="new-password" required />
+    <label class="f" for="mc-new2">Encore une fois</label><input id="mc-new2" type="password" autocomplete="new-password" required />
+    <p class="muted" style="margin:6px 0 0">8 caractères minimum, pas seulement des chiffres, pas ton prénom.</p>
+    <button class="btn accent big" type="submit" style="width:100%;margin-top:18px">Enregistrer et entrer</button>
+    <button class="link" type="button" data-act="logout" style="margin-top:14px;color:var(--graphite)">Se déconnecter</button>
+  </form></div>`;
+  $("#mc-cur").focus();
+}
+async function changePassword(cur, n1, n2) {
+  if (n1 !== n2) throw new Error("Les deux nouveaux mots de passe ne sont pas pareils.");
+  await api("me/password", { current: cur, next: n1 });
 }
 
 // ------------------------------------------------------------ vues
@@ -497,7 +523,7 @@ const VIEWS = {
     if (t.reserveMissing) pri.push(["c-pink", `Créer ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"]);
     pri.forEach(([c, title, desc, tab, btn], i) => cards.push(task(i + 1, c, title, desc, tab, btn, i === 0)));
     const waiting = "";
-    return `<h2>Aujourd'hui</h2><p class="lead"><span class="today-date">${esc(new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }))}</span> · Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
+    return `<h2>Aujourd'hui</h2><p class="lead">${esc(new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }).replace(/^./, (c) => c.toUpperCase()))} · Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
       <div class="stats">${stat("c-green", t.active, "comptes actifs")}${stat("c-violet", t.reserve, "en réserve")}${stat("c-yellow", t.toCheck.length, "à checker")}${stat("c-red", t.toReplace.length, "à remplacer")}</div>
       ${cards.length ? `<div class="card list">${cards.join("")}</div>` : '<div class="card done-all"><b>Tout est à jour.</b><span>Si tu as le temps, crée un compte de réserve.</span></div>'}${waiting}
       ${warmList().length ? `<div class="card warmcard"><b>Pseudos violets = warm-up 10 min tous les jours</b><div class="row" style="margin-top:8px">${warmList().map((a) => psTag(a)).join("")}</div><span class="muted">${esc(WARM_TIP)}</span></div>` : ""}`;
@@ -1010,13 +1036,13 @@ const VIEWS = {
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSettings" data-wait="...">Enregistrer les réglages</button></div></div>
       <div class="card"><h3 style="margin-top:0">Accès</h3>
         ${(S.data.users || []).map((u) => `<div class="row" style="margin:6px 0"><b>${esc(u.name)}</b><span class="pill ${u.role === "admin" ? "c-violet" : "c-blue"}">${u.role === "admin" ? "Admin" : "VA"}</span>${u.name !== S.data.me.name ? `<button class="btn sm ghost" data-act="delUser" data-name="${esc(u.name)}">Retirer</button>` : ""}</div>`).join("")}
-        <div class="row" style="margin-top:10px"><input data-u="name" placeholder="Prénom" style="max-width:180px" /><input data-u="pin" placeholder="Code (4-8 chiffres)" inputmode="numeric" style="max-width:180px" /><select data-u="role" style="max-width:140px"><option value="va">VA</option><option value="admin">Admin</option></select><button class="btn" data-act="saveUser">Ajouter / changer le code</button></div></div>`;
+        <div class="row" style="margin-top:10px"><input data-u="name" placeholder="Prénom" style="max-width:180px" /><input data-u="password" type="password" autocomplete="new-password" placeholder="Mot de passe provisoire" style="max-width:220px" /><select data-u="role" style="max-width:140px"><option value="va">VA</option><option value="admin">Admin</option></select><button class="btn" data-act="saveUser">Ajouter / changer le mot de passe</button></div><p class="muted" style="margin-top:8px">Identifiant = le prénom. La personne choisit son propre mot de passe à sa première connexion. Laisse le mot de passe vide pour changer seulement le rôle.</p></div>`;
   },
 };
 
 // ------------------------------------------------------------ journal lisible
 const LOGS = {
-  premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Code faux", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
+  premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Connexion ratée", mdp_change: "Mot de passe changé", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
@@ -1407,6 +1433,15 @@ function tick(el, end) {
 
 // ------------------------------------------------------------ actions
 const ACT = {
+  myPassword() {
+    modal(`<h3>Changer mon mot de passe</h3><form id="pwform"><input type="text" name="username" autocomplete="username" value="${esc(S.data.me.name)}" hidden />
+      <label class="f" for="pw-cur">Mot de passe actuel</label><input id="pw-cur" type="password" autocomplete="current-password" required />
+      <label class="f" for="pw-new">Nouveau mot de passe</label><input id="pw-new" type="password" autocomplete="new-password" required />
+      <label class="f" for="pw-new2">Encore une fois</label><input id="pw-new2" type="password" autocomplete="new-password" required />
+      <p class="muted">8 caractères minimum, pas seulement des chiffres, pas ton prénom.</p>
+      <button class="btn accent" type="submit">Enregistrer</button></form>`);
+    $("#pw-cur").focus();
+  },
   vNew() {
     S.vForm = {};
     render();
@@ -2298,7 +2333,7 @@ const ACT = {
   async saveUser(b) {
     const v = (k) => $(`[data-u="${k}"]`).value.trim();
     await run(b, async () => {
-      await api("users", { name: v("name"), pin: v("pin"), role: v("role") });
+      await api("users", { name: v("name"), password: $('[data-u="password"]').value, role: v("role") });
       await refresh();
       toast("Accès enregistré");
     });
@@ -2332,8 +2367,6 @@ function readWizFields() {
 
 // ------------------------------------------------------------ evenements
 document.addEventListener("click", async (e) => {
-  const pinB = e.target.closest("[data-pin]");
-  if (pinB) return onPin(pinB.dataset.pin);
   const tabB = e.target.closest("[data-tab]");
   if (tabB) {
     S.tab = tabB.dataset.tab;
@@ -2418,29 +2451,40 @@ document.addEventListener("change", async (e) => {
   }
 });
 document.addEventListener("keydown", (e) => {
-  if (!S.data && /^\d$/.test(e.key)) onPin(e.key);
-  if (!S.data && e.key === "Backspace") onPin("del");
-  if (!S.data && e.key === "Enter") onPin("go");
   if (e.key === "Escape") closeModal();
 });
-async function onPin(k) {
-  if (k === "del") S.pin = S.pin.slice(0, -1);
-  else if (k === "go") {
-    try {
-      const name = $("#firstname")?.value;
-      const r = await api("login", { pin: S.pin, name });
+document.addEventListener("submit", async (e) => {
+  if (e.target.id === "loginform") {
+    e.preventDefault();
+    const btn = e.target.querySelector("button[type=submit]");
+    const name = $("#lg-name").value.trim();
+    await run(btn, async () => {
+      const r = await api("login", { name, password: $("#lg-pass").value });
+      try { localStorage.setItem("hq_last", r.user.name); } catch {}
       S.token = r.token;
       localStorage.setItem("hq_token", r.token);
-      S.pin = "";
+      S.firstRun = false;
       await refresh();
-      return;
-    } catch (e) {
-      S.pin = "";
-      toast(e.message, true);
-    }
-  } else if (S.pin.length < 8) S.pin += k;
-  renderLogin();
-}
+    });
+    if (!S.data && $("#lg-pass")) { $("#lg-pass").value = ""; $("#lg-pass").focus(); }
+  }
+  if (e.target.id === "mustform") {
+    e.preventDefault();
+    await run(e.target.querySelector("button[type=submit]"), async () => {
+      await changePassword($("#mc-cur").value, $("#mc-new").value, $("#mc-new2").value);
+      await refresh();
+      toast("Mot de passe enregistré");
+    });
+  }
+  if (e.target.id === "pwform") {
+    e.preventDefault();
+    await run(e.target.querySelector("button[type=submit]"), async () => {
+      await changePassword($("#pw-cur").value, $("#pw-new").value, $("#pw-new2").value);
+      closeModal();
+      toast("Mot de passe changé");
+    });
+  }
+});
 
 // ------------------------------------------------------------ demarrage
 (async () => {

@@ -4,12 +4,14 @@ import assert from "node:assert/strict";
 const B = process.env.BASE || "http://localhost:8788";
 const br = await chromium.launch();
 const errs = [];
+const LOGINS = { "4321": ["Awen", "lune-rouge-4321"], "5555": ["Bilot", "soleil-bleu-5555"], "1111": ["VA", "nuage-vert-1111"] };
 async function login(pin) {
   const p = await br.newPage({ viewport: { width: 1400, height: 1000 } });
   p.on("pageerror", (e) => errs.push(e.message));
   await p.goto(B);
-  for (const d of pin) await p.click(`[data-pin="${d}"]`);
-  await p.click('[data-pin="go"]');
+  await p.fill("#lg-name", LOGINS[pin][0]);
+  await p.fill("#lg-pass", LOGINS[pin][1]);
+  await p.click("#loginform button[type=submit]");
   await p.waitForTimeout(1500);
   return p;
 }

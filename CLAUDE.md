@@ -232,3 +232,11 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Les secrets ne sont jamais dans `state` ni dans `GET vault` : ils sortent un par un via `POST vault/reveal`, et chaque affichage est noté (`coffre_vu`, sans la valeur). Affichage masqué tout seul après 30 s. Code 2FA calculé dans le navigateur.
 - En modification, un champ secret laissé vide garde l'ancienne valeur.
 - Tests : `node dev/test-vault.mjs` après `dev/test-api.mjs` (même serveur).
+
+## Connexion identifiant + mot de passe (2 nov., demandé par Bilot)
+- Avant : un code à 6 chiffres (pavé numérique). Maintenant : identifiant (prénom, sans tenir compte des majuscules) + mot de passe.
+- Mots de passe en PBKDF2-SHA256, 150 000 tours, sel par utilisateur (`passHash` / `passCheck`). Règles (`passProblem`) : 8 caractères min, pas que des chiffres, pas le prénom dedans.
+- Migration : un ancien compte n'a que `pinHash`. Son ancien code marche une fois comme mot de passe, puis `mustChange` l'oblige à en choisir un (écran « Choisis ton mot de passe »). Un mot de passe donné par l'admin dans Réglages > Accès est aussi provisoire (`mustChange`).
+- 5 essais ratés sur un identifiant = bloqué 15 min (`loginfail/<hash>`), même avec le bon mot de passe.
+- Chacun change son mot de passe : lien « Mot de passe » en bas de la barre de gauche (et en bas de page sur mobile), route `me/password`.
+- Tests : identifiants dans `dev/test-api.mjs` (Awen lune-rouge-4321, Bilot soleil-bleu-5555, VA nuage-vert-1111). Dev : `/__dev/legacyuser?name=&pin=` crée un ancien compte à code.

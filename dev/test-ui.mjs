@@ -15,9 +15,18 @@ async function page(w = 1280, h = 860) {
   return p;
 }
 const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png`, fullPage: true });
-async function pin(p, code) {
-  for (const d of code) await p.click(`[data-pin="${d}"]`);
-  await p.click('[data-pin="go"]');
+// connexion identifiant + mot de passe ; si le mot de passe est provisoire, on en choisit un
+async function login(p, name, pass, next) {
+  await p.fill("#lg-name", name);
+  await p.fill("#lg-pass", pass);
+  await p.click("#loginform button[type=submit]");
+  if (next) {
+    await p.waitForSelector("#mustform");
+    await p.fill("#mc-cur", pass);
+    await p.fill("#mc-new", next);
+    await p.fill("#mc-new2", next);
+    await p.click("#mustform button[type=submit]");
+  }
 }
 const tab = (p, id) => p.click(`.nav[data-tab="${id}"] >> visible=true`);
 const waitToast = (p, re) => p.waitForFunction((r) => new RegExp(r).test(document.querySelector("#toast").textContent), re.source, { timeout: 15000 });
@@ -25,9 +34,9 @@ const waitToast = (p, re) => p.waitForFunction((r) => new RegExp(r).test(documen
 // ---- admin : premier acces + reglages
 const a = await page();
 await a.goto(B);
-await a.waitForSelector(".keypad");
+await a.waitForSelector("#loginform");
 await shot(a, "01-login-first");
-await pin(a, "4321");
+await login(a, "Awen", "lune-rouge-4321");
 await a.waitForSelector(".bar");
 await tab(a, "settings");
 await a.fill('[data-sec="rotationUrl"]', "https://rotate.test/x");
@@ -46,7 +55,7 @@ await waitToast(a, /Metricool OK : 3/);
 await a.click('[data-act="testIp"]');
 await waitToast(a, /Proxy OK/);
 await a.fill('[data-u="name"]', "VA");
-await a.fill('[data-u="pin"]', "1111");
+await a.fill('[data-u="password"]', "provisoire-v1");
 await a.click('[data-act="saveUser"]');
 await waitToast(a, /Accès enregistré/);
 await shot(a, "02-settings");
@@ -82,7 +91,7 @@ const v = await page(390, 844);
 v.on("pageerror", (e) => console.log("  [page error]", e.message));
 v.on("console", (m) => { if (m.type() === "error") console.log("  [console]", m.text()); });
 await v.goto(B);
-await pin(v, "1111");
+await login(v, "VA", "provisoire-v1", "nuage-vert-1111");
 await v.waitForSelector(".bar");
 await shot(v, "04-va-today");
 // bouton ? : ouvre l'explication pas a pas
