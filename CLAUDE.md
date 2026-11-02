@@ -217,3 +217,9 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Étape 4 « Non, ça n'a pas marché » avec un de ces 3 motifs = même chose (scam + suivant, téléphone gardé). Vérification / autre = échec classique (téléphone grillé, retour étape 1).
 - « Rendre au stock » remet aussi le compte en fin de file (bug : on redonnait toujours le même).
 - Réglages > Comptes achetés : compteur scam + liste « à réclamer au vendeur » avec Copier.
+
+## Compta (2 nov., demandé par Bilot)
+- Onglet « Compta » (admins seulement, la VA ne le voit pas et l'API lui répond 403). Inspiré des dépenses du cockpit.
+- Chaque ligne : dépense ou gain, date, montant en € ou $, catégorie (`COMPTA_CATS`), libellé, payé / reçu par Awen, Bilot ou la caisse commune, à la charge de 50/50 (défaut) ou d'un seul, case « revient tous les mois ». Stockage `compta/<id>`, taux dollar dans `comptaSettings.usdRate` (0,92 par défaut).
+- Écran : investi, gagné, résultat, rentabilité, coût moyen par mois (depuis le 1er mois saisi), à prévoir par mois (dernière valeur de chaque charge mensuelle ; paie VA = moyenne si aucune paie n'est mensuelle), paies VA, qui doit combien à qui (50/50), mois par mois avec cumul, répartition par catégorie, liste modifiable.
+- Routes : `GET compta`, `POST compta/entry` (avec `id` = modification), `POST compta/delete`, `POST compta/settings`. Tests : `node dev/test-compta.mjs` juste après `dev/test-api.mjs` (même serveur).

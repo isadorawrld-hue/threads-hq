@@ -393,6 +393,7 @@ const ICONS = {
   planning: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   content: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>',
+  compta: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>',
   rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
 };
 const icon = (k) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ""}</svg>`;
@@ -421,6 +422,7 @@ function render() {
   if (isAdmin())
     groups.push(["Admin", [
       ["dash", "Dashboard", (S.data.alerts || []).length],
+      ["compta", "Compta", 0],
       ["content", "Contenu", 0],
       ["settings", "Réglages", S.data.configured.rotation && S.data.configured.metricool && S.data.configured.proxy ? 0 : 1],
     ]]);
@@ -772,6 +774,90 @@ const VIEWS = {
         <div style="overflow:auto"><table class="tbl"><tr><th>Quand</th><th>Qui</th><th>Action</th><th>Détails</th></tr>${logs.slice(0, 200).map((l) => `<tr><td>${fmt(l.at)}</td><td>${esc(l.who)}</td><td>${esc(LOGS[l.action] || l.action)}</td><td class="muted">${esc(logDetails(l))}</td></tr>`).join("")}</table></div></div>`;
   },
 
+  compta() {
+    const C = S.data.compta || { entries: [], usdRate: 0.92, people: ["Awen", "Bilot"], cats: { depense: [], gain: [] } };
+    const [P1, P2] = C.people;
+    const eur = (e) => (e.currency === "USD" ? e.amountCents * C.usdRate : e.amountCents) / 100;
+    const E = C.entries;
+    const dep = E.filter((e) => e.kind === "depense");
+    const gai = E.filter((e) => e.kind === "gain");
+    const sum = (l) => l.reduce((t, e) => t + eur(e), 0);
+    const totDep = sum(dep), totGain = sum(gai), net = totGain - totDep;
+    // date de Paris/Bruxelles (navigateur), pas le fuseau de Taipei du planning
+    const todayHere = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 10);
+    const nowM = todayHere.slice(0, 7);
+    const months = [];
+    const firstM = E.length ? E.map((e) => e.date.slice(0, 7)).sort()[0] : nowM;
+    for (let m = firstM; m <= nowM; ) {
+      months.push(m);
+      const [y, mo] = m.split("-").map(Number);
+      m = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`;
+    }
+    const nbM = Math.max(1, months.length);
+    const vaAll = dep.filter((e) => e.cat === "Paie VA");
+    const vaMonth = sum(vaAll.filter((e) => e.date.startsWith(nowM)));
+    // charges fixes : la derniere valeur de chaque depense marquee « tous les mois »
+    const fixed = new Map();
+    for (const e of [...dep].reverse()) if (e.monthly) fixed.set(e.label.toLowerCase(), e);
+    const fixedTot = sum([...fixed.values()]);
+    const vaAvg = sum(vaAll) / nbM;
+    const fixedNoVa = sum([...fixed.values()].filter((e) => e.cat !== "Paie VA"));
+    const prevoir = fixedNoVa + (vaAll.some((e) => e.monthly) ? sum([...fixed.values()].filter((e) => e.cat === "Paie VA")) : vaAvg);
+    // equilibre 50/50 : ce que chacun a avance moins sa part, moins les gains qu'il garde pour l'autre
+    const part = (e, p) => (e.forWho === "50/50" ? eur(e) / 2 : e.forWho === p ? eur(e) : 0);
+    const bal = (p) => {
+      let b = 0;
+      for (const e of dep) if (e.paidBy !== "Caisse") b += (e.paidBy === p ? eur(e) : 0) - part(e, p);
+      for (const e of gai) if (e.paidBy !== "Caisse") b -= (e.paidBy === p ? eur(e) : 0) - eur(e) / 2;
+      return b;
+    };
+    const b1 = bal(P1);
+    const paidBy = (p) => sum(dep.filter((e) => e.paidBy === p));
+    const recvBy = (p) => sum(gai.filter((e) => e.paidBy === p));
+    const eu = (n) => (Math.round(n * 100) / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+    const roi = totDep ? Math.round((net / totDep) * 100) + " %" : "–";
+    const byCat = new Map();
+    for (const e of dep) byCat.set(e.cat, (byCat.get(e.cat) || 0) + eur(e));
+    const cats = [...byCat].sort((a, b) => b[1] - a[1]);
+    const maxCat = cats.length ? cats[0][1] : 1;
+    let cumul = 0;
+    const rows = months.map((m) => {
+      const d = sum(dep.filter((e) => e.date.startsWith(m))), g = sum(gai.filter((e) => e.date.startsWith(m)));
+      cumul += g - d;
+      return { m, d, g, n: g - d, c: cumul };
+    });
+    const mLabel = (m) => new Date(m + "-01T12:00:00Z").toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    const f = S.cForm || (S.cForm = { kind: "depense", date: todayHere, currency: "EUR", paidBy: S.data.me.name === P2 ? P2 : P1, forWho: "50/50" });
+    const catsK = C.cats[f.kind] || [];
+    const filt = S.cMonth || "";
+    const list = E.filter((e) => !filt || e.date.startsWith(filt));
+    const opt = (v, cur, l) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l ?? v)}</option>`;
+    const balTxt = Math.abs(b1) < 0.01 ? "Vous êtes à égalité." : b1 > 0 ? `${esc(P2)} doit ${eu(b1)} à ${esc(P1)}.` : `${esc(P1)} doit ${eu(-b1)} à ${esc(P2)}.`;
+    return `<h2>Compta</h2><p class="lead">Dépenses et gains de ${esc(P1)} et ${esc(P2)}, partagés 50/50. Montants en euros (1 $ = ${String(C.usdRate).replace(".", ",")} €).</p>
+      <div class="stats">${stat("c-red", eu(totDep), "investi")}${stat("c-green", eu(totGain), "gagné")}${stat(net >= 0 ? "c-green" : "c-red", eu(net), "résultat")}${stat("c-blue", roi, "rentabilité")}</div>
+      <div class="stats">${stat("c-yellow", eu(totDep / nbM), "coût moyen par mois")}${stat("c-violet", eu(prevoir), "à prévoir par mois")}${stat("c-pink", eu(vaMonth), "paies VA ce mois")}${stat("c-pink", eu(sum(vaAll)), "paies VA en tout")}</div>
+      <div class="card"><b>Partage 50/50</b><p style="margin:8px 0 4px;font-size:18px">${balTxt}</p>
+        <p class="muted" style="margin:0">${esc(P1)} a payé ${eu(paidBy(P1))} et reçu ${eu(recvBy(P1))}. ${esc(P2)} a payé ${eu(paidBy(P2))} et reçu ${eu(recvBy(P2))}. Caisse commune : ${eu(paidBy("Caisse"))} payés, ${eu(recvBy("Caisse"))} reçus.</p></div>
+      <div class="card"><div class="row"><button class="btn sm ${f.kind === "depense" ? "" : "light"}" data-act="cKind" data-k="depense">Dépense</button><button class="btn sm ${f.kind === "gain" ? "" : "light"}" data-act="cKind" data-k="gain">Gain</button><div class="spacer"></div>${f.id ? '<span class="pill c-blue">Modification</span><button class="btn sm ghost" data-act="cCancel">Annuler</button>' : ""}</div>
+        <div class="grid" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+          <label>Date<input type="date" data-c="date" value="${esc(f.date)}" /></label>
+          <label>Montant<input data-c="amount" inputmode="decimal" placeholder="0,00" value="${esc(f.amount || "")}" /></label>
+          <label>Devise<select data-c="currency">${opt("EUR", f.currency, "Euro €")}${opt("USD", f.currency, "Dollar $")}</select></label>
+          <label>Catégorie<select data-c="cat">${catsK.map((c) => opt(c, f.cat)).join("")}</select></label>
+          <label style="grid-column:1/-1">Libellé<input data-c="label" placeholder="${f.kind === "gain" ? "ex : OnlyChat semaine 44" : "ex : paie Sandra semaine 44"}" value="${esc(f.label || "")}" /></label>
+          <label>${f.kind === "gain" ? "Reçu par" : "Payé par"}<select data-c="paidBy">${opt(P1, f.paidBy)}${opt(P2, f.paidBy)}${opt("Caisse", f.paidBy, "Caisse commune")}</select></label>
+          ${f.kind === "depense" ? `<label>À la charge de<select data-c="forWho">${opt("50/50", f.forWho, "50/50")}${opt(P1, f.forWho, P1 + " seul")}${opt(P2, f.forWho, P2 + " seul")}</select></label>
+          <label class="row" style="gap:8px;align-self:end"><input type="checkbox" data-c="monthly" ${f.monthly ? "checked" : ""} style="width:auto" />Revient tous les mois</label>` : ""}
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn accent" data-act="cSave" data-wait="Enregistrement...">${f.id ? "Enregistrer" : f.kind === "gain" ? "Ajouter le gain" : "Ajouter la dépense"}</button></div></div>
+      <div class="card"><b>Mois par mois</b><div style="overflow:auto"><table class="tbl"><tr><th>Mois</th><th>Dépenses</th><th>Gains</th><th>Résultat</th><th>Cumul</th></tr>${rows.slice().reverse().map((r) => `<tr><td>${esc(mLabel(r.m))}</td><td>${eu(r.d)}</td><td>${eu(r.g)}</td><td style="color:var(${r.n >= 0 ? "--green" : "--red"})">${eu(r.n)}</td><td style="color:var(${r.c >= 0 ? "--green" : "--red"})">${eu(r.c)}</td></tr>`).join("")}</table></div></div>
+      <div class="card"><b>Où part l'argent</b>${cats.length ? cats.map(([c, v]) => `<div style="margin-top:10px"><div class="row"><span>${esc(c)}</span><div class="spacer"></div><b>${eu(v)}</b><span class="muted">${Math.round((v / (totDep || 1)) * 100)} %</span></div><div style="height:6px;background:var(--wash);border-radius:3px;margin-top:4px"><div style="height:6px;width:${Math.max(2, (v / maxCat) * 100)}%;background:var(--blue);border-radius:3px"></div></div></div>`).join("") : '<p class="muted">Aucune dépense pour l\'instant.</p>'}
+        ${fixed.size ? `<p class="muted" style="margin-top:14px">Charges qui reviennent tous les mois : ${[...fixed.values()].map((e) => `${esc(e.label)} ${eu(eur(e))}`).join(", ")} (${eu(fixedTot)}).</p>` : ""}</div>
+      <div class="card"><div class="row"><b>Toutes les lignes</b><div class="spacer"></div><select data-cmonth style="max-width:220px"><option value="">Tous les mois</option>${months.slice().reverse().map((m) => opt(m, filt, mLabel(m))).join("")}</select></div>
+        <div style="overflow:auto"><table class="tbl"><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Montant</th><th>Qui</th><th></th></tr>${list.map((e) => `<tr><td>${esc(e.date.split("-").reverse().join("/"))}</td><td>${esc(e.label)}${e.monthly ? ' <span class="pill">mensuel</span>' : ""}</td><td class="muted">${esc(e.cat)}</td><td style="white-space:nowrap;color:var(${e.kind === "gain" ? "--green" : "--ink"})">${e.kind === "gain" ? "+" : "−"}${(e.amountCents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${e.currency === "USD" ? "$" : "€"}</td><td class="muted">${esc(e.paidBy === "Caisse" ? "Caisse" : e.paidBy)}${e.kind === "depense" && e.forWho !== "50/50" ? ` (pour ${esc(e.forWho)})` : ""}</td><td style="white-space:nowrap"><button class="btn sm light" data-act="cEdit" data-id="${esc(e.id)}">Modifier</button> <button class="btn sm bad" data-act="cDel" data-id="${esc(e.id)}">Supprimer</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">Rien encore.</td></tr>'}</table></div></div>
+      <div class="card"><div class="row"><span>1 $ =</span><input data-cusd style="max-width:100px" value="${esc(String(C.usdRate).replace(".", ","))}" /><span>€</span><button class="btn sm light" data-act="cRate" data-wait="...">Changer le taux</button></div></div>`;
+  },
+
   content() {
     const st = S.data.settings;
     const usedLinks = new Map(S.data.accounts.filter((a) => a.status !== "saute" && a.link).map((a) => [a.link, a.pseudo]));
@@ -897,7 +983,7 @@ const LOGS = {
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré",
+  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar",
 };
 function logDetails(l) {
   const out = [];
@@ -913,6 +999,7 @@ function logDetails(l) {
   if (l.phone) out.push(l.phone);
   if (l.reason) out.push(l.reason);
   if (l.raison) out.push(l.raison);
+  if (l.compta) out.push(l.compta);
   if (l.lien) out.push(l.lien);
   if (l.strategy) out.push((S.data.strategyLabels || {})[l.strategy] || l.strategy);
   if (l.added != null) out.push(`${l.added} ajouté(s)`);
@@ -1281,6 +1368,51 @@ function tick(el, end) {
 
 // ------------------------------------------------------------ actions
 const ACT = {
+  cKind(b) {
+    readCForm();
+    S.cForm.kind = b.dataset.k;
+    S.cForm.cat = "";
+    if (b.dataset.k === "gain") S.cForm.monthly = false;
+    render();
+  },
+  cCancel() {
+    S.cForm = null;
+    render();
+  },
+  async cSave(b) {
+    readCForm();
+    await run(b, async () => {
+      const f = S.cForm;
+      S.data.compta = await api("compta/entry", { ...f, cat: f.cat || (S.data.compta.cats[f.kind] || [])[0] });
+      const keep = { kind: f.kind, date: f.date, currency: f.currency, paidBy: f.paidBy, forWho: "50/50" };
+      S.cForm = keep;
+      render();
+      toast(f.id ? "Ligne modifiée" : f.kind === "gain" ? "Gain ajouté" : "Dépense ajoutée");
+    });
+  },
+  cEdit(b) {
+    const e = S.data.compta.entries.find((x) => x.id === b.dataset.id);
+    if (!e) return;
+    S.cForm = { id: e.id, kind: e.kind, date: e.date, amount: String(e.amountCents / 100).replace(".", ","), currency: e.currency, cat: e.cat, label: e.label, paidBy: e.paidBy, forWho: e.forWho, monthly: !!e.monthly };
+    render();
+    window.scrollTo(0, 0);
+  },
+  async cDel(b) {
+    if (!confirmTwice(b)) return;
+    await run(b, async () => {
+      S.data.compta = await api("compta/delete", { id: b.dataset.id });
+      if (S.cForm && S.cForm.id === b.dataset.id) S.cForm = null;
+      render();
+      toast("Ligne supprimée");
+    });
+  },
+  async cRate(b) {
+    await run(b, async () => {
+      S.data.compta = await api("compta/settings", { usdRate: $("[data-cusd]").value });
+      render();
+      toast("Taux changé");
+    });
+  },
   copy: (b) => copy(b.dataset.v),
   async copyTotp(b) {
     const sec = totpSecret(b.dataset.id);
@@ -2075,6 +2207,10 @@ const ACT = {
     });
   },
 };
+function readCForm() {
+  if (!S.cForm) return;
+  document.querySelectorAll("[data-c]").forEach((el) => (S.cForm[el.dataset.c] = el.type === "checkbox" ? el.checked : el.value.trim()));
+}
 function confirmTwice(b) {
   if (b.dataset.armed) return true;
   b.dataset.armed = "1";
@@ -2138,6 +2274,15 @@ document.addEventListener("input", (e) => {
   }
 });
 document.addEventListener("change", async (e) => {
+  if (e.target.matches("[data-cmonth]")) {
+    readCForm();
+    S.cMonth = e.target.value;
+    return render();
+  }
+  if (e.target.matches("[data-c]") && e.target.tagName === "SELECT") {
+    readCForm();
+    return render();
+  }
   if (e.target.matches("[data-logfilter]")) {
     S.logFilter = e.target.value;
     return render();
@@ -2214,7 +2359,7 @@ async function onPin(k) {
   window.addEventListener("focus", checkBuild);
   // rafraichit les compteurs chaque minute, mais jamais au milieu d'un assistant ou d'une saisie
   setInterval(() => {
-    const working = ["create", "warmup", "setup", "content", "settings"].includes(S.tab) || S.setup;
+    const working = ["create", "warmup", "setup", "content", "settings", "compta"].includes(S.tab) || S.setup;
     // une video en lecture (ou en plein ecran) ne doit jamais etre coupee par le rafraichissement
     const watching = document.fullscreenElement || [...document.querySelectorAll("video")].some((v) => !v.paused && !v.ended);
     if (S.token && S.data && !S.busy && !working && !watching && $("#modal").classList.contains("hidden") && !document.activeElement?.matches("input,textarea,select")) refresh().catch(() => {});
