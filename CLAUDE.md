@@ -224,3 +224,11 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Chaque ligne : dépense ou gain, date, montant en € ou $, catégorie (`COMPTA_CATS`), libellé, payé / reçu par Awen, Bilot ou la caisse commune, à la charge de 50/50 (défaut) ou d'un seul, case « revient tous les mois ». Stockage `compta/<id>`, taux dollar dans `comptaSettings.usdRate` (0,92 par défaut).
 - Écran : investi, gagné, résultat, rentabilité, coût moyen par mois (depuis le 1er mois saisi), à prévoir par mois (dernière valeur de chaque charge mensuelle ; paie VA = moyenne si aucune paie n'est mensuelle), paies VA, qui doit combien à qui (50/50), mois par mois avec cumul, répartition par catégorie, liste modifiable.
 - Routes : `GET compta`, `POST compta/entry` (avec `id` = modification), `POST compta/delete`, `POST compta/settings`. Tests : `node dev/test-compta.mjs` juste après `dev/test-api.mjs` (même serveur).
+
+## Coffre-fort (2 nov., demandé par Bilot)
+- Onglet « Coffre-fort » (admins seulement, VA = 403). Inspiré du coffre du cockpit.
+- Entrée : nom, identifiant, mot de passe, clé 2FA, lien, catégorie, note, « privé » (visible par son auteur seul). Stockage `vault/<id>`.
+- Mot de passe, clé 2FA et note chiffrés en AES-256-GCM (`vaultEnc` / `vaultDec`). Clé = SHA-256 de la variable Netlify `VAULT_SECRET` (32 caractères min, à créer par Awen dans Netlify) ; sans elle, on prend le secret du site stocké dans Blobs (moins sûr : la clé est à côté des données). Changer `VAULT_SECRET` après coup rend les entrées illisibles.
+- Les secrets ne sont jamais dans `state` ni dans `GET vault` : ils sortent un par un via `POST vault/reveal`, et chaque affichage est noté (`coffre_vu`, sans la valeur). Affichage masqué tout seul après 30 s. Code 2FA calculé dans le navigateur.
+- En modification, un champ secret laissé vide garde l'ancienne valeur.
+- Tests : `node dev/test-vault.mjs` après `dev/test-api.mjs` (même serveur).

@@ -29,6 +29,7 @@ export default async (req, context) =>
   handle(req, {
     build: context?.deploy?.id || process.env.DEPLOY_ID || "",
     store: makeStore(),
+    vaultSecret: process.env.VAULT_SECRET || "",
     fetch: (u, o = {}) => fetch(u, { ...o, signal: AbortSignal.timeout(25000) }),
     proxyFetch,
   });

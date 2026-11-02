@@ -193,6 +193,13 @@ details.card[open] > summary { margin-bottom: 8px; }
 .acc .num { color: var(--mute); font: 400 12px var(--mono); }
 .acc .foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line); gap: 4px; }
 .acc .foot .btn.ghost { padding: 0 8px; }
+.mono { font-family: var(--mono); font-size: 13px; }
+.vline { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 2px 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.acc .foot.nowrap { flex-wrap: nowrap; }
+.acc .foot .meta { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vline .k { grid-column: 1 / -1; color: var(--graphite); font-size: 12px; }
+.vline .v { min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+.vline .btn.sm { min-height: 30px; padding: 0 10px; font-size: 12px; }
 .acc .ps { font-weight: 600; font-size: 16px; word-break: break-all; letter-spacing: -0.01em; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 14px; }
 .chip { border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; background: #fff; font: 500 13px var(--font); cursor: pointer; color: var(--graphite); }

@@ -394,6 +394,7 @@ const ICONS = {
   content: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>',
   compta: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>',
+  vault: '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/>',
   rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
 };
 const icon = (k) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ""}</svg>`;
@@ -423,6 +424,7 @@ function render() {
     groups.push(["Admin", [
       ["dash", "Dashboard", (S.data.alerts || []).length],
       ["compta", "Compta", 0],
+      ["vault", "Coffre-fort", 0],
       ["content", "Contenu", 0],
       ["settings", "Réglages", S.data.configured.rotation && S.data.configured.metricool && S.data.configured.proxy ? 0 : 1],
     ]]);
@@ -774,6 +776,41 @@ const VIEWS = {
         <div style="overflow:auto"><table class="tbl"><tr><th>Quand</th><th>Qui</th><th>Action</th><th>Détails</th></tr>${logs.slice(0, 200).map((l) => `<tr><td>${fmt(l.at)}</td><td>${esc(l.who)}</td><td>${esc(LOGS[l.action] || l.action)}</td><td class="muted">${esc(logDetails(l))}</td></tr>`).join("")}</table></div></div>`;
   },
 
+  vault() {
+    const V = S.data.vault || { entries: [] };
+    const q = (S.vSearch || "").toLowerCase();
+    const list = V.entries.filter((e) => !q || [e.title, e.login, e.url, e.cat].some((x) => String(x || "").toLowerCase().includes(q)));
+    const f = S.vForm;
+    const shown = S.vShown || {};
+    const secretLine = (e, field, label) => {
+      const k = e.id + ":" + field;
+      const v = shown[k];
+      return `<div class="vline"><span class="k">${label}</span><span class="v mono">${v != null ? esc(v) : "••••••••••"}</span><button class="btn sm ghost" data-act="vShow" data-id="${esc(e.id)}" data-f="${field}" data-wait="...">${v != null ? "Masquer" : "Afficher"}</button><button class="btn sm light" data-act="vCopy" data-id="${esc(e.id)}" data-f="${field}" data-wait="...">Copier</button></div>`;
+    };
+    const form = f ? `<div class="card"><div class="row"><b>${f.id ? "Modifier " + esc(f.title || "") : "Nouvelle entrée"}</b><div class="spacer"></div><button class="btn sm ghost" data-act="vCancel">Annuler</button></div>
+        <div class="grid" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+          <label>Nom<input data-v="title" placeholder="ex : GeeLark" value="${esc(f.title || "")}" /></label>
+          <label>Identifiant<input data-v="login" autocomplete="off" placeholder="e-mail ou pseudo" value="${esc(f.login || "")}" /></label>
+          <label>Mot de passe<input data-v="password" type="password" autocomplete="new-password" placeholder="${f.id && f.hasPassword ? "vide = on garde l'actuel" : ""}" /></label>
+          <label>Clé 2FA<input data-v="twofa" autocomplete="off" placeholder="${f.id && f.hasTwofa ? "vide = on garde l'actuelle" : "facultatif"}" /></label>
+          <label>Lien<input data-v="url" placeholder="https://..." value="${esc(f.url || "")}" /></label>
+          <label>Catégorie<input data-v="cat" placeholder="ex : outils, numéros, Chloé" value="${esc(f.cat || "")}" /></label>
+          <label style="grid-column:1/-1">Note<textarea data-v="note" placeholder="${f.id && f.hasNote ? "vide = on garde l'actuelle" : "facultatif (codes de secours, question secrète...)"}"></textarea></label>
+          <label class="row" style="gap:8px"><input type="checkbox" data-v="private" ${f.private ? "checked" : ""} style="width:auto" />Privé (visible par moi seul)</label>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn accent" data-act="vSave" data-wait="Chiffrement...">Enregistrer</button></div></div>` : "";
+    return `<h2>Coffre-fort</h2><p class="lead">Les accès d'Awen et Bilot, chiffrés. Un mot de passe ne s'affiche que quand tu cliques, et chaque affichage est noté au journal. La VA n'y a pas accès.</p>
+      <div class="row" style="margin-bottom:14px"><input data-vsearch placeholder="Chercher" value="${esc(S.vSearch || "")}" style="max-width:320px" /><div class="spacer"></div>${f ? "" : '<button class="btn" data-act="vNew">Ajouter un accès</button>'}</div>
+      ${form}
+      <div class="grid">${list.map((e) => `<div class="card acc"><div class="head"><span class="ps">${esc(e.title)}</span><div class="spacer"></div>${e.private ? '<span class="pill">privé</span>' : ""}${e.cat ? `<span class="pill">${esc(e.cat)}</span>` : ""}</div>
+        ${e.login ? `<div class="vline"><span class="k">Identifiant</span><span class="v mono">${esc(e.login)}</span><button class="btn sm light" data-act="copy" data-v="${esc(e.login)}">Copier</button></div>` : ""}
+        ${e.hasPassword ? secretLine(e, "password", "Mot de passe") : ""}
+        ${e.hasTwofa ? `<div class="vline"><span class="k">Code 2FA</span><span class="v mono">${shown[e.id + ":code"] ? esc(shown[e.id + ":code"]) : "······"}</span><button class="btn sm light" data-act="vCode" data-id="${esc(e.id)}" data-wait="...">Copier le code</button></div>` : ""}
+        ${e.hasNote ? secretLine(e, "note", "Note") : ""}
+        ${e.url ? `<div class="vline"><span class="k">Lien</span><span class="v"><a href="${esc(/^https?:\/\//.test(e.url) ? e.url : "https://" + e.url)}" target="_blank" rel="noopener noreferrer">${esc(e.url.replace(/^https?:\/\//, "").slice(0, 40))}</a></span></div>` : ""}
+        <div class="row foot nowrap"><span class="muted meta">${esc(e.updatedBy || e.by)}, ${e.updatedAt ? ago(e.updatedAt) : ""}</span><button class="btn sm ghost" data-act="vEdit" data-id="${esc(e.id)}">Modifier</button><button class="btn sm ghost" data-act="vDel" data-id="${esc(e.id)}">Supprimer</button></div></div>`).join("") || `<div class="card muted">${q ? "Rien trouvé." : "Le coffre est vide. Ajoute le premier accès."}</div>`}</div>`;
+  },
+
   compta() {
     const C = S.data.compta || { entries: [], usdRate: 0.92, people: ["Awen", "Bilot"], cats: { depense: [], gain: [] } };
     const [P1, P2] = C.people;
@@ -983,7 +1020,7 @@ const LOGS = {
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar",
+  transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar", coffre_ajout: "Coffre : accès ajouté", coffre_modif: "Coffre : accès modifié", coffre_suppr: "Coffre : accès supprimé", coffre_vu: "Coffre : secret affiché",
 };
 function logDetails(l) {
   const out = [];
@@ -1000,6 +1037,7 @@ function logDetails(l) {
   if (l.reason) out.push(l.reason);
   if (l.raison) out.push(l.raison);
   if (l.compta) out.push(l.compta);
+  if (l.coffre) out.push(l.coffre + (l.champ ? " (" + l.champ + ")" : ""));
   if (l.lien) out.push(l.lien);
   if (l.strategy) out.push((S.data.strategyLabels || {})[l.strategy] || l.strategy);
   if (l.added != null) out.push(`${l.added} ajouté(s)`);
@@ -1369,6 +1407,71 @@ function tick(el, end) {
 
 // ------------------------------------------------------------ actions
 const ACT = {
+  vNew() {
+    S.vForm = {};
+    render();
+  },
+  vCancel() {
+    S.vForm = null;
+    render();
+  },
+  vEdit(b) {
+    const e = S.data.vault.entries.find((x) => x.id === b.dataset.id);
+    if (!e) return;
+    S.vForm = { ...e };
+    render();
+    window.scrollTo(0, 0);
+  },
+  async vSave(b) {
+    const v = (k) => $(`[data-v="${k}"]`);
+    const body = { id: S.vForm.id, title: v("title").value, login: v("login").value, url: v("url").value, cat: v("cat").value, private: v("private").checked };
+    // en modification, un champ secret laisse vide garde la valeur actuelle
+    for (const k of ["password", "twofa", "note"]) if (v(k).value || !S.vForm.id) body[k] = v(k).value;
+    if (body.twofa && !cleanTotpC(body.twofa)) return toast("Clé 2FA invalide : colle la clé (lettres et chiffres) ou le lien otpauth://.", true);
+    await run(b, async () => {
+      S.data.vault = await api("vault/save", body);
+      S.vForm = null;
+      S.vShown = {};
+      render();
+      toast("Accès enregistré");
+    });
+  },
+  async vShow(b) {
+    const k = b.dataset.id + ":" + b.dataset.f;
+    S.vShown = S.vShown || {};
+    if (S.vShown[k] != null) {
+      delete S.vShown[k];
+      return render();
+    }
+    await run(b, async () => {
+      S.vShown[k] = (await api("vault/reveal", { id: b.dataset.id, field: b.dataset.f })).value;
+      render();
+      // masque tout seul au bout de 30 s
+      setTimeout(() => { if (S.vShown && S.vShown[k] != null) { delete S.vShown[k]; if (S.tab === "vault") render(); } }, 30000);
+    });
+  },
+  async vCopy(b) {
+    await run(b, async () => {
+      copy((await api("vault/reveal", { id: b.dataset.id, field: b.dataset.f })).value);
+    });
+  },
+  async vCode(b) {
+    await run(b, async () => {
+      const sec = cleanTotpC((await api("vault/reveal", { id: b.dataset.id, field: "twofa" })).value);
+      if (!sec) throw new Error("Clé 2FA invalide dans le coffre.");
+      const code = await totpCode(sec);
+      copy(code);
+      toast(`Code 2FA ${code} copié (valable ${30 - (Math.floor(Date.now() / 1000) % 30)} s)`);
+    });
+  },
+  async vDel(b) {
+    if (!confirmTwice(b)) return;
+    await run(b, async () => {
+      S.data.vault = await api("vault/delete", { id: b.dataset.id });
+      render();
+      toast("Accès supprimé");
+    });
+  },
   cKind(b) {
     readCForm();
     S.cForm.kind = b.dataset.k;
@@ -2265,6 +2368,14 @@ document.addEventListener("input", (e) => {
     S.np[e.target.dataset.newpseudo] = e.target.value.trim();
     S.np[e.target.dataset.newpseudo + "_own"] = true;
   }
+  if (e.target.matches("[data-vsearch]")) {
+    S.vSearch = e.target.value;
+    const pos = e.target.selectionStart;
+    render();
+    const el = $("[data-vsearch]");
+    el.focus();
+    el.setSelectionRange(pos, pos);
+  }
   if (e.target.matches("[data-search]")) {
     S.search = e.target.value;
     const pos = e.target.selectionStart;
@@ -2360,7 +2471,7 @@ async function onPin(k) {
   window.addEventListener("focus", checkBuild);
   // rafraichit les compteurs chaque minute, mais jamais au milieu d'un assistant ou d'une saisie
   setInterval(() => {
-    const working = ["create", "warmup", "setup", "content", "settings", "compta"].includes(S.tab) || S.setup;
+    const working = ["create", "warmup", "setup", "content", "settings", "compta", "vault"].includes(S.tab) || S.setup;
     // une video en lecture (ou en plein ecran) ne doit jamais etre coupee par le rafraichissement
     const watching = document.fullscreenElement || [...document.querySelectorAll("video")].some((v) => !v.paused && !v.ended);
     if (S.token && S.data && !S.busy && !working && !watching && $("#modal").classList.contains("hidden") && !document.activeElement?.matches("input,textarea,select")) refresh().catch(() => {});
