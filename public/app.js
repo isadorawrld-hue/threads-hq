@@ -495,7 +495,7 @@ const VIEWS = {
     if (t.reserveMissing) pri.push(["c-pink", `Créer ${t.reserveMissing} compte(s) de réserve`, `Objectif : ${S.data.settings.reserveTarget} comptes d'avance si un compte saute.`, "create", "Créer"]);
     pri.forEach(([c, title, desc, tab, btn], i) => cards.push(task(i + 1, c, title, desc, tab, btn, i === 0)));
     const waiting = "";
-    return `<h2>Bonjour ${esc(S.data.me.name)}</h2><p class="lead">Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
+    return `<h2>Aujourd'hui</h2><p class="lead"><span class="today-date">${esc(new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }))}</span> · Fais les tâches dans l'ordre, de haut en bas.</p>${hint("today")}
       <div class="stats">${stat("c-green", t.active, "comptes actifs")}${stat("c-violet", t.reserve, "en réserve")}${stat("c-yellow", t.toCheck.length, "à checker")}${stat("c-red", t.toReplace.length, "à remplacer")}</div>
       ${cards.length ? `<div class="card list">${cards.join("")}</div>` : '<div class="card done-all"><b>Tout est à jour.</b><span>Si tu as le temps, crée un compte de réserve.</span></div>'}${waiting}
       ${warmList().length ? `<div class="card warmcard"><b>Pseudos violets = warm-up 10 min tous les jours</b><div class="row" style="margin-top:8px">${warmList().map((a) => psTag(a)).join("")}</div><span class="muted">${esc(WARM_TIP)}</span></div>` : ""}`;
@@ -526,14 +526,14 @@ const VIEWS = {
     const have = w.kind === "have";
     const N = have ? 4 : 5;
     const bar = `<div class="steps">${(have ? [1, 2, 3, 4] : [1, 2, 3, 4, 5]).map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
-    const kindPick = w.step === 1 ? `<div class="row" style="margin:4px 0 12px">${[["new", "🆕 Créer un nouveau compte"], ["have", "🔑 J'ai déjà un compte"]].map(([k, l]) => `<button class="btn ${(w.kind || "new") === k ? "" : "light"}" data-act="wizKind" data-v="${k}">${(w.kind || "new") === k ? "✓ " : ""}${l}</button>`).join("")}</div>${have ? '<p class="muted">Compte acheté : même proxy, même GeeLark neuf, puis tu te connectes avec l\'identifiant, le mot de passe et le code 2FA du CRM.</p>' : ""}` : "";
+    const kindPick = w.step === 1 ? `<div class="row" style="margin:4px 0 12px">${[["new", "Créer un nouveau compte"], ["have", "J'ai déjà un compte"]].map(([k, l]) => `<button class="btn ${(w.kind || "new") === k ? "" : "light"}" data-act="wizKind" data-v="${k}">${(w.kind || "new") === k ? "✓ " : ""}${l}</button>`).join("")}</div>${have ? '<p class="muted">Compte acheté : même proxy, même GeeLark neuf, puis tu te connectes avec l\'identifiant, le mot de passe et le code 2FA du CRM.</p>' : ""}` : "";
     const head = `<h2>${have ? "Connecter un compte existant" : "Créer un compte"}</h2>${kindPick}${replacing ? `<div class="alert c-red">Ce compte remplace <b>@${esc(replacing.pseudo)}</b> (groupe ${esc(group(replacing.group).name)}). Va jusqu'à Metricool sans pause : les posts repartent dès que Threads est connecté.</div>${w.step === 1 ? hint("remplacement") : ""}` : ""}${bar}`;
     const nav = (canNext, label = "Étape suivante") =>
       `<div class="row" style="margin-top:16px">${w.step > 1 ? '<button class="btn ghost" data-act="wizBack">Retour</button>' : ""}<div class="spacer"></div><button class="btn" data-act="wizNext" ${canNext ? "" : "disabled"}>${label}</button></div>`;
     const proxy = parseProxy(S.data.settings.proxy);
     if (w.step === 1)
       return `${head}<div class="card"><div class="stepnum">Étape 1 sur ${N}</div><h3>${ukReady() ? "Choisis le pays, puis change l'IP" : "Change l'IP"}</h3>${hint("rotation")}
-        ${ukReady() ? `<div class="row" style="margin:6px 0 4px">${[["fr", "🇫🇷 France"], ["uk", "🇬🇧 UK"]].map(([k, l]) => `<button class="btn ${prof() === k ? "" : "light"}" data-act="pickProfile" data-v="${k}" data-wait="...">${prof() === k ? "✓ " : ""}${l}</button>`).join("")}</div>
+        ${ukReady() ? `<div class="row" style="margin:6px 0 4px">${[["fr", "France"], ["uk", "Royaume-Uni"]].map(([k, l]) => `<button class="btn ${prof() === k ? "" : "light"}" data-act="pickProfile" data-v="${k}" data-wait="...">${prof() === k ? "✓ " : ""}${l}</button>`).join("")}</div>
         <p class="muted">${prof() === "uk" ? "Proxy UK + numéro UK. L'IP UK ne peut changer que toutes les 5 min." : "Proxy France + numéro français."} Le numéro suit tout seul le pays choisi.</p>` : ""}
         <p>Clique sur le bouton, puis attends que la nouvelle IP s'affiche.</p>
         <button class="btn big rot" data-act="rotate" data-wait="Changement de l'IP...">Changer l'IP</button>
@@ -548,9 +548,9 @@ const VIEWS = {
         ${nav(true)}</div>`;
     if (have && w.step === 3 && !w.f.stockId && stk.mine) Object.assign(w.f, stockFill(stk.mine));
     const stockBox = !have ? "" : w.f.stockId
-      ? `<div class="alert c-green">📦 Compte acheté pris dans le stock${w.f.stockOrder ? ` (commande ${esc(w.f.stockOrder)})` : ""} : identifiant, mot de passe et 2FA déjà remplis. <button class="btn sm ghost" data-act="stockRelease" data-wait="...">Rendre au stock</button></div>
+      ? `<div class="alert c-green">Compte acheté pris dans le stock${w.f.stockOrder ? ` (commande ${esc(w.f.stockOrder)})` : ""} : identifiant, mot de passe et 2FA déjà remplis. <button class="btn sm ghost" data-act="stockRelease" data-wait="...">Rendre au stock</button></div>
         <div class="card" style="margin:10px 0"><b>Ce compte ne marche pas ?</b> <span class="muted">(mot de passe faux, 2FA refusée, compte banni, autre souci)</span><div class="row" style="margin-top:8px"><button class="btn bad" data-act="stockNextAsk">Passer au compte suivant</button></div><p class="muted" style="margin:6px 0 0">Tu gardes le même téléphone GeeLark et la même IP.</p></div>`
-      : stk.dispo ? `<button class="btn big" data-act="stockTake" data-wait="...">📦 Prendre un compte acheté (${stk.dispo} en stock)</button><p class="muted">Tout se remplit tout seul (identifiant, mot de passe, 2FA).</p>`
+      : stk.dispo ? `<button class="btn big" data-act="stockTake" data-wait="...">Prendre un compte acheté (${stk.dispo} en stock)</button><p class="muted">Tout se remplit tout seul (identifiant, mot de passe, 2FA).</p>`
       : `<div class="alert c-yellow">Plus de compte acheté en stock : colle les infos du compte à la main, ou préviens Awen.</div>`;
     if (have && w.step === 3)
       return `${head}<div class="card"><div class="stepnum">Étape 3 sur 4</div><h3>Connecte-toi au compte</h3>${hint("connexion")}${stockBox}
@@ -590,7 +590,7 @@ const VIEWS = {
       }
       // e-mail par defaut : les numeros virtuels recoivent rarement le code (1 sur 13 en France le 30 oct.)
       const mode = cur ? "phone" : ecur ? "email" : w.mode || "email";
-      const tabs = `<div class="row" style="margin:6px 0 10px">${[["email", "✉️ Avec un e-mail (conseillé)"], ["phone", "📱 Avec un numéro"]].map(([k, l]) => `<button class="btn ${mode === k ? "" : "light"}" data-act="wizMode" data-v="${k}" ${(cur && k === "email") || (ecur && k === "phone") ? "disabled" : ""}>${mode === k ? "✓ " : ""}${l}</button>`).join("")}</div>`;
+      const tabs = `<div class="row" style="margin:6px 0 10px">${[["email", "Avec un e-mail (conseillé)"], ["phone", "Avec un numéro"]].map(([k, l]) => `<button class="btn ${mode === k ? "" : "light"}" data-act="wizMode" data-v="${k}" ${(cur && k === "email") || (ecur && k === "phone") ? "disabled" : ""}>${mode === k ? "✓ " : ""}${l}</button>`).join("")}</div>`;
       const body = mode === "email"
         ? (ecur ? emailCard(ecur) : emailBuyBlock()) + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un e-mail (à la main)</summary><label class="f">E-mail utilisé</label><input data-f="email" value="${esc(w.f.email || "")}" placeholder="ex : prenom@gmail.com" autocapitalize="off" /></details>`
         : cur ? smsCard(cur) : smsBuyBlock() + `<details style="margin-top:10px"><summary class="muted">J'ai déjà un numéro (à la main)</summary><label class="f">Numéro utilisé</label><input data-f="phone" inputmode="tel" value="${esc(w.f.phone || "")}" placeholder="+33 ..." /></details>`;
@@ -696,7 +696,7 @@ const VIEWS = {
         <span class="muted">Créé ${ago(a.createdAt)} par ${esc(a.createdBy)} · IP ${esc(a.ip || "?")}</span>
         ${a.notes ? `<div class="accnote">${esc(a.notes)}</div>` : ""}
         ${a.replaces ? `<span class="muted">Remplace @${esc(acc(a.replaces)?.pseudo || "?")}</span>` : ""}${a.replacedBy ? `<span class="muted">Remplacé par @${esc(acc(a.replacedBy)?.pseudo || "?")}</span>` : ""}
-        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button>${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
+        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button>${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a></div><div class="row foot"><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
   },
 
   planning() {
@@ -907,7 +907,7 @@ const VIEWS = {
     const scams = (sk.list || []).filter((x) => x.status === "scam");
     const scamTxt = scams.map((x) => [x.order ? "#" + x.order : "", x.user, x.reason].filter(Boolean).join(" · ")).join("\n");
     return `<h2>Réglages</h2>
-      <div class="card"><h3 style="margin-top:0">📦 Comptes achetés (stock)</h3>
+      <div class="card"><h3 style="margin-top:0">Comptes achetés (stock)</h3>
         <p class="muted">Glisse le fichier .txt de la commande (ou colle la liste) : identifiant, mot de passe, clé 2FA par ligne. Les lignes de pub sont ignorées, les doublons aussi. Sandra clique « Prendre un compte acheté » et tout se remplit.</p>
         <div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag ok">${sk.dispo || 0} en stock</span><span class="tag">${sk.pris || 0} en cours</span><span class="tag">${sk.utilise || 0} utilisés</span><span class="tag ${sk.rate ? "miss" : ""}">${sk.rate || 0} ratés</span><span class="tag ${sk.scam ? "miss" : ""}">${sk.scam || 0} scam</span></div>
         ${scams.length ? `<div style="margin-top:10px"><b>Comptes scam (à réclamer au vendeur)</b><pre class="scamlist" style="white-space:pre-wrap;font-size:12px;background:#f6f6f6;padding:8px;border-radius:8px">${esc(scamTxt)}</pre><button class="btn sm light" data-act="copy" data-v="${esc(scamTxt)}">Copier la liste pour le vendeur</button></div>` : ""}
@@ -1064,7 +1064,8 @@ function addDaysLocal(day, n) {
   return d.toISOString().slice(0, 10);
 }
 function stat(color, n, label) {
-  return `<div class="stat"><b>${esc(n)}</b><span><i class="dot ${color}"></i>${esc(label)}</span></div>`;
+  const meaning = ["c-green", "c-red", "c-yellow"].includes(color);
+  return `<div class="stat"><b>${esc(n)}</b><span>${meaning ? `<i class="dot ${color}"></i>` : ""}${esc(label)}</span></div>`;
 }
 function parseProxy(p) {
   if (!p) return null;

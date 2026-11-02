@@ -132,6 +132,7 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Français simple, phrases courtes, verbes à l'action. Un bouton dit ce qu'il fait ("Relier", "Enregistrer", "Setup fini").
 - La VA doit comprendre sans formation. Une action par ligne dans les procédures.
 - Design professionnel d'agence : sobre, net, pas enfantin.
+- Polissage du 2 nov. : police Geist Mono (`--mono`) pour IP, numéros de compte et code. Numéros de tâches neutres (anneau de couleur fin, n° 1 en noir). Points de couleur des chiffres seulement s'ils veulent dire quelque chose (vert, rouge, orange). Pop-up warm-up noire avec un liseré violet, sous la barre du haut. Aucun emoji dans les boutons (drapeaux compris).
 
 ## Données importantes
 - La VA n'a pas accès aux réglages, aux logs ni aux secrets. Ne les expose jamais à la VA.
