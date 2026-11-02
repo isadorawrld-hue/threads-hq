@@ -246,3 +246,9 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Police : Geist partout, une seule (Bilot a refusé les polices à empattement et à chasse fixe le 2 nov.). Chiffres en `tabular-nums`.
 - Un seul bouton plein par zone : la tâche n° 1 en indigo, les autres boutons de tâches en clair. Barre de gauche claire, ligne active = carte avec un filet.
 - Couleurs d'état inchangées dans leur sens (vert publié, rouge erreur, orange retard, violet warm-up quotidien), tons adoucis pour le papier.
+
+## Menu simplifié (2 nov., choisi par Bilot)
+- Le menu passe de 15 à 10 entrées (7 pour la VA). Aucune page supprimée, tous les ids d'onglet (`data-tab`) marchent toujours.
+- Regroupements : Créer un compte + Numéro SMS ; « Comptes en cours » = Warm-up, Setup, Metricool ; Comptes = Liste + Stats ; Réglages = Réglages + Alertes et journal (ancien Dashboard) + Contenu.
+- Une entrée à plusieurs pages affiche un sous-menu (`.subnav`) en haut de la page. Le badge du menu = somme des badges des pages.
+- Dans `render()`, chaque entrée est `[id, libellé, membres]`. Le bouton porte `data-members` ; les tests ouvrent d'abord l'entrée parente si la sous-page n'est pas visible.

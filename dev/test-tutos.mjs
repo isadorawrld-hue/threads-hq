@@ -43,7 +43,7 @@ for (const [k, r] of Object.entries(loaded)) assert.ok(r.ok && r.dur > 3, `video
 const helps = {};
 const tabs = await p.evaluate(() => [...document.querySelectorAll("nav [data-tab], [data-tab]")].map((e) => e.dataset.tab).filter((v, i, a) => a.indexOf(v) === i));
 for (const t of tabs) {
-  await p.evaluate((t) => document.querySelector(`[data-tab="${t}"]`)?.click(), t);
+  await p.evaluate((t) => (document.querySelector(`[data-tab="${t}"]`) || (document.querySelector(`[data-members~="${t}"]`).click(), document.querySelector(`[data-tab="${t}"]`)))?.click(), t);
   await p.waitForTimeout(400);
   const ks = await p.evaluate(() => [...document.querySelectorAll('.qbtn[data-k]')].map((b) => b.dataset.k));
   for (const k of ks) {
