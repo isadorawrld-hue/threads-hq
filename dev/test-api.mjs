@@ -788,6 +788,14 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
     console.log("   marque vide attribuée à la main :", empty.blogId);
   }
   await fetch(B + "/__dev/mcfull?v=0");
+  // abonnés Threads : total lu sur Metricool pour chaque compte relié
+  const fw = ok(await call("metricool/followers", {}), "followers Metricool");
+  const okF = fw.results.filter((x) => x.followers !== undefined);
+  assert.ok(okF.length >= 1, "au moins un compte mis à jour");
+  const st3 = ok(await call("state"), "state");
+  const one = st3.accounts.find((a) => a.pseudo === okF[0].pseudo);
+  assert.equal(one.followers, okF[0].followers, "followers enregistrés dans le CRM");
+  step("abonnés Threads lus sur Metricool (followers_count) et enregistrés");
   step("Metricool plein : reprise d'une marque de compte mort du CRM, sinon message clair");
 }
 

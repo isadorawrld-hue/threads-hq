@@ -738,6 +738,7 @@ const VIEWS = {
     const sum = (k) => rows.reduce((n, r) => n + (r.l?.[k] || 0), 0);
     const totalFollowers = rows.reduce((n, r) => n + (Number(r.a.followers) || 0), 0);
     return `<h2>Stats</h2><p class="lead">Clics des liens, followers et posts, compte par compte.</p>
+      <div class="row" style="margin-bottom:10px"><button class="btn" data-act="followersSync" data-wait="Lecture Metricool...">Mettre à jour les followers (Metricool)</button></div>
       ${!S.data.configured.tiny ? '<div class="alert c-yellow">TinyURL pas encore branché : les clics restent vides. Colle le token TinyURL dans Réglages, puis clique « Mettre à jour les clics ».</div>' : ""}
       <div class="stats">${stat("c-blue", sum("clicks7"), "clics (7 j)")}${stat("c-blue", sum("clicks30"), "clics (30 j)")}${stat("c-green", totalFollowers, "followers")}${stat("c-violet", rows.reduce((n, r) => n + r.up, 0), "posts à venir")}</div>
       <div class="row" style="margin-bottom:12px"><span class="muted">${ls ? "Clics relevés " + ago(ls.at) : "Clics jamais relevés"}</span><div class="spacer"></div>${isAdmin() ? '<button class="btn sm" data-act="linkStats" data-wait="Relevé...">Mettre à jour les clics</button>' : ""}</div>
@@ -1282,6 +1283,15 @@ function tick(el, end) {
 // ------------------------------------------------------------ actions
 const ACT = {
   copy: (b) => copy(b.dataset.v),
+  async followersSync(b) {
+    await run(b, async () => {
+      const r = await api("metricool/followers", {});
+      const ok = r.results.filter((x) => x.followers !== undefined);
+      const ko = r.results.filter((x) => x.error);
+      toast(`${ok.length} compte(s) mis à jour` + (ko.length ? ` · ${ko.length} erreur(s) : ${ko[0].error || ko[0].sample}` : ""), !!ko.length);
+      await refresh();
+    });
+  },
   async copyTotp(b) {
     const sec = totpSecret(b.dataset.id);
     if (!sec) return toast("Colle d'abord la clé 2FA du compte.", true);

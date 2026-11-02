@@ -183,6 +183,10 @@ async function fakeFetch(url, opts = {}) {
   if (u.hostname === "app.metricool.com" || u.hostname === "mc.test") {
     if (opts.headers?.["X-Mc-Auth"] !== "TOKEN_TEST") return new Response(JSON.stringify({ error: "denied" }), { status: 401 });
     mcCalls.push({ method: opts.method || "GET", path: u.pathname, query: u.search, body: opts.body ? JSON.parse(opts.body) : null });
+    if (u.pathname.endsWith("/v2/analytics/timelines") && u.searchParams.get("metric") === "followers_count") {
+      const bid = Number(u.searchParams.get("blogId")); const n = 3 + (bid % 40);
+      return Response.json({ data: [{ values: [{ dateTime: "2026-10-03T00:00:00", value: n - 2 }, { dateTime: "2026-11-02T00:00:00", value: n }] }] });
+    }
     if (u.pathname.endsWith("/v2/settings/brands") && opts.method === "POST" && mcFull) return new Response(JSON.stringify({ status: "FORBIDDEN", code: "403", title: "User has reached the maximum number of brands allowed" }), { status: 403 });
     if (u.pathname.endsWith("/v2/settings/brands") && opts.method === "POST") {
       const b = JSON.parse(opts.body); const nb = { id: 1000 + brands.length, label: b.brandLabel, networksData: {}, timezone: "Asia/Taipei" };
