@@ -502,6 +502,16 @@ const VIEWS = {
     const lowBios = Object.entries(stt.bioBank || {}).filter(([, v]) => (v || []).length < 20).map(([k, v]) => `${(S.data.strategyLabels || {})[k] || k} : ${(v || []).length}`);
     if (isAdmin() && (stt.pseudoBank || []).length < 20) cards.push(task("", "c-red", "Pseudos bientôt épuisés", `${(stt.pseudoBank || []).length} restant(s) dans la banque (chaque pseudo ne sert qu'une fois)`, "content", "Ajouter"));
     if (isAdmin() && lowBios.length) cards.push(task("", "c-red", "Bios bientôt épuisées", lowBios.join(" · ") + " (chaque bio ne sert qu'une fois)", "content", "Ajouter"));
+    // textes : un compte ne reprend jamais un texte, donc chaque groupe s'epuise ; on previent 7 jours avant
+    const perDayT = stt.postsPerDay || 3;
+    const lowTexts = (stt.groups || []).map((g) => {
+      const live = S.data.accounts.filter((a) => a.group === g.id && ["warmup", "attente_setup", "setup_ok", "actif", "shadowban", "restreint"].includes(a.status));
+      if (!live.length) return null;
+      const pool = S.data.texts.filter((x) => x.group === g.id && !x.off);
+      const days = Math.min(...live.map((a) => Math.floor(pool.filter((x) => !S.data.posts.some((p) => p.accountId === a.id && p.textId === x.id && p.status !== "annule")).length / perDayT)));
+      return days < 7 ? `${g.name} : ${days} j` : null;
+    }).filter(Boolean);
+    if (isAdmin() && lowTexts.length) cards.push(task("", "c-red", "Textes bientôt épuisés", lowTexts.join(" · ") + " de posts possibles (un compte ne reprend jamais un texte)", "content", "Ajouter"));
     if (isAdmin() && miss.length) cards.push(task("", "c-red", "Réglages à finir", miss.join(" · "), "settings", "Ouvrir"));
     // ordre de priorite : d'abord que chaque compte poste (remplacer, reconnecter), puis le reste
     // regle : 1) ce qui empeche un compte de poster, 2) finir ce qui est commence (le plus proche de poster d'abord), 3) preparer la suite
