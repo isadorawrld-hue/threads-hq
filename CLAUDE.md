@@ -104,6 +104,8 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Le rafraîchissement auto (60 s) ne tourne pas pendant qu'une vidéo joue ; les guides ouverts restent ouverts (`S.sopOpen`).
 - Un lien mis dans Réglages > Vidéos des SOP passe avant le fichier.
 - La VA crée le compte directement dans Threads (« Utiliser un numéro de mobile »), pas via Instagram : les textes du CRM le disent.
+- Refonte du 4 nov. (comptes achetés, demandée par Awen : « on lui donne les comptes ») : nouveau Loom d'Awen « J'ai déjà un compte » de A à Z. geelark, compte, warmup, setup, metricool et creation (tout enchaîné) refaits dessus ; planning gardé (tourné le 27/10), renuméroté 6/6. numero.mp4 garde l'ancien tuto (création de compte, plus utilisée) et sa section est cachée de la page SOP. Même voix ElevenLabs « Giselle » (preset Higgsfield text2speech_v2, variant elevenlabs, voice_id 9d3128b8-dd25-5158-9bdb-2e69ac8998b9).
+- Floutage auto : mot de passe, clé 2FA et proxy du CRM repérés par template matching sur la vidéo source, puis vérifiés à 0 sur les vidéos montées. Dans GeeLark, hôte et utilisateur du proxy restent visibles (le mot de passe y est masqué).
 
 ## Pseudos violets (warm-up quotidien, 5 comptes)
 - `acc.engage` = pseudo en violet partout (`psTag`) : la VA warm-up ce compte 10 min par jour sur son GeeLark (3-4 likes, 3-4 commentaires en chinois, 2 abonnements max, rien publier). Aucun bouton à cliquer pour elle.

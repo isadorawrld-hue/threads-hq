@@ -227,39 +227,39 @@ const threadsUrl = (p) => `https://www.threads.com/@${encodeURIComponent(p)}`;
 // ------------------------------------------------------------ SOP (textes par defaut)
 const SOP = {
   complet: {
-    t: "Tuto complet : créer un compte de A à Z (7 min)",
-    steps: ["Les 7 tutos ci-dessous, à la suite.", "Regarde-le une fois en entier.", "Ensuite, utilise les tutos courts (ou le bouton ? de chaque étape) quand tu bloques."],
+    t: "Tuto complet : un compte acheté de A à Z",
+    steps: ["Les 6 tutos ci-dessous, à la suite.", "Regarde-le une fois en entier.", "Ensuite, utilise les tutos courts (ou le bouton ? de chaque étape) quand tu bloques."],
   },
   rotation: {
     t: "1. Changer l'IP + nouveau téléphone GeeLark",
-    steps: ["Clique « Changer l'IP ».", "Attends la nouvelle IP en vert, puis « Étape suivante ».", "GeeLark : nouveau profil (1 profil = 1 compte).", "Copie hôte, port, utilisateur, mot de passe depuis le CRM.", "Type Socks5, puis « Check proxy » : IP en France.", "Advanced settings : Location et Cloud phone language sur « Based on IP ».", "Clique « Create », puis « Start ».", "Note le nom du profil dans le CRM, puis « Étape suivante »."],
+    steps: ["« Créer un compte », puis « J'ai déjà un compte ». On te donne les comptes : tu n'en crées jamais.", "Laisse France, clique « Changer l'IP ».", "Attends la nouvelle IP en vert, puis « Étape suivante ».", "GeeLark : nouveau profil (1 profil = 1 compte), nommé « Threads » + le nom Chloé.", "Proxy : Custom, type Socks5. Copie hôte, port, utilisateur, mot de passe depuis le CRM.", "Advanced settings : Location et Cloud phone language sur « Based on IP ».", "Clique « Create ».", "Écris le nom du téléphone dans le CRM, puis « Étape suivante »."],
   },
   numero: {
-    t: "2. Prendre un numéro",
+    t: "Prendre un numéro (création de compte, plus utilisé)",
     steps: ["Clique le gros bouton « Numéro France ».", "Ouvre l'appli Threads, touche « Utiliser un numéro de mobile ».", "Copie le numéro complet dans le CRM.", "Colle-le AVEC le +33 : Threads ne le rajoute pas tout seul.", "Le code SMS arrive tout seul dans le CRM. Copie-le dans Threads.", "Pas de code après 3 min : bouton rouge « Pas de code : rembourser », puis reprends un numéro (USA si la France bloque).", "Jamais 2 comptes sur le même numéro."],
   },
   creation: {
-    t: "3. Créer le compte",
-    steps: ["Mot de passe du compte (retiens-le).", "Date de naissance : plus de 21 ans. Puis le nom.", "Profil public, accepte les conditions, autorise les notifications.", "CRM étape 4 : écris le pseudo (le lien se crée tout seul) et le mot de passe.", "Tu vois le fil Threads sans blocage : « Oui, il marche ». Sinon : « Non », et on recommence avec une nouvelle IP."],
+    t: "2. Se connecter au compte acheté",
+    steps: ["Clique « Prendre un compte acheté » : identifiant, mot de passe et clé 2FA se remplissent tout seuls.", "Dans GeeLark, « Start » sur ton profil. Le téléphone s'allume : ouvre l'appli Threads.", "Colle l'identifiant, puis le mot de passe (boutons Copier). « Se connecter ».", "Threads demande un code à 6 chiffres : copie le Code 2FA du CRM et colle-le tout de suite (il change toutes les 30 s).", "Le fil Threads s'affiche : « Étape suivante », puis « Oui, je suis connectée ».", "Mot de passe ou 2FA refusés, compte banni : « Passer au compte suivant ». Même téléphone, même IP."],
   },
   warmup: {
-    t: "4. Warm-up (10 min)",
-    steps: ["Juste après la création, dans le même téléphone.", "Clique « Lancer le chrono 10 min » dès le début.", "Scrolle Threads, like 5 à 10 posts, abonne-toi à 3 à 5 comptes de la niche.", "Un commentaire ? Écris-le dans Google Traduction en chinois traditionnel.", "Pendant ces 10 min : zéro post, zéro lien, zéro changement de profil.", "Chrono fini : coche les cases, « Warm-up fini »."],
+    t: "3. Warm-up (10 min)",
+    steps: ["Juste après la connexion, dans le même téléphone.", "Clique « Lancer le chrono 10 min » dès le début.", "Abonne-toi aux 5 comptes du CRM : copie le pseudo, cherche-le dans Threads, abonne-toi, like 2 posts.", "Scrolle Threads, like 5 à 10 posts de la niche.", "Un commentaire ? Écris-le dans Google Traduction en chinois traditionnel.", "Pendant ces 10 min : zéro post, zéro lien.", "Chrono fini : coche les cases, « Warm-up fini »."],
   },
   strategies: {
     t: "Les 3 stratégies de setup",
     steps: ["Chaque compte a une stratégie, écrite sur sa carte. Suis celle-là, pas une autre.", "Post épinglé : pas de lien dans la bio. Le lien est dans la réponse au post épinglé.", "Lien dans la bio : le lien va dans le champ Lien du profil.", "Relais : aucun lien. Tu cites le post épinglé du compte pivot et tu épingles ta citation.", "Pourquoi : si un compte saute, on ne perd jamais le lien. Et Threads voit 3 profils différents, pas 15 clones."],
   },
   setup: {
-    t: "5. Setup du profil",
-    steps: ["Même téléphone, même IP : ne change pas l'IP.", "Photo : « Télécharger » dans le CRM, puis « Upload » dans GeeLark, puis Modifier le profil.", "Bio : « Copier la bio », colle-la, Terminé.", "Post épinglé : publie la partie 1, puis colle la partie 2 (le lien) en réponse juste en dessous.", "Coche les cases, « Setup fini »."],
+    t: "4. Setup du profil",
+    steps: ["Même téléphone, même IP : ne change pas l'IP.", "Pseudo : Threads, Profil, Modifier le profil, Nom de profil. Colle le nouveau pseudo du CRM. Déjà pris ? « Un autre ».", "Photo : « Télécharger » dans le CRM, puis « Upload » dans GeeLark, puis Modifier le profil.", "Bio : « Copier la bio », colle-la, Terminé.", "Post épinglé : publie la partie 1, puis réponds à ton post avec la partie 2 (le lien). Trois points, « Épingler ».", "Coche les cases, « Setup fini »."],
   },
   metricool: {
-    t: "6. Connecter Metricool",
-    steps: ["Copie le lien Metricool dans le CRM.", "Ouvre-le dans Chrome du téléphone GeeLark du compte. Jamais sur ton PC.", "Touche « Connect a Threads account », autorise les cookies.", "« Connexion », puis pseudo et mot de passe du CRM (boutons Copier).", "Accepte tout. Reviens dans le CRM : « J'ai connecté Threads ». Le CRM programme 3 jours de posts tout seul."],
+    t: "5. Connecter Metricool",
+    steps: ["Dans « Comptes en cours », copie le lien Metricool du compte.", "Ouvre-le dans Chrome du téléphone GeeLark du compte. Jamais sur ton PC.", "Touche « Connect a Threads account », autorise les cookies.", "Connecte-toi avec le pseudo et le mot de passe du CRM, puis le code 2FA (boutons Copier).", "Accepte tout. Reviens dans le CRM : « J'ai connecté Threads ». Le CRM programme 3 jours de posts tout seul."],
   },
   planning: {
-    t: "7. Le planning",
+    t: "6. Le planning",
     steps: ["Onglet Planning : un point = un post. Bleu prévu, vert publié, rouge erreur, orange en retard.", "Case rose = jour vide : clique « Remplir 14 jours pour tous ».", "« +3 jours » / « +7 jours » : ajoutent des posts après le dernier jour prévu.", "Clique un jour pour voir ses textes et leur traduction.", "Colonne Textes en rouge : il manque des textes, préviens ton manager."],
   },
   engage: {
@@ -781,7 +781,7 @@ const VIEWS = {
   },
 
   sop() {
-    return `<h2>SOP</h2><p class="lead">Tout ce qu'il faut savoir. Regarde la vidéo, suis les étapes.</p>${Object.keys(SOP).map((k, i) => sopBlock(k, i === 0)).join("")}
+    return `<h2>SOP</h2><p class="lead">Tout ce qu'il faut savoir. Regarde la vidéo, suis les étapes.</p>${Object.keys(SOP).filter((k) => k !== "numero").map((k, i) => sopBlock(k, i === 0)).join("")}
       ${S.data.settings.sopExtra ? `<div class="card sop"><b>Règles en plus</b><div style="white-space:pre-wrap;margin-top:8px">${esc(S.data.settings.sopExtra)}</div></div>` : ""}`;
   },
 
