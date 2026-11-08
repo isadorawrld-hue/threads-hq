@@ -344,3 +344,11 @@ body { font-variant-numeric: tabular-nums; }
 .subnav button.on { background: var(--card); color: var(--ink); border-color: var(--line); box-shadow: 0 1px 2px rgba(31, 27, 22, 0.05); }
 .subnav em { font: 500 12px var(--mono); font-style: normal; min-width: 20px; height: 18px; padding: 0 5px; border-radius: 5px; background: var(--card); display: grid; place-items: center; }
 .subnav button.on em { background: var(--accent); color: #fff; }
+
+/* scan anti-nudité (8 nov.) : petites étiquettes sur les vignettes */
+.thumbs .nsb { position: absolute; left: 6px; bottom: 6px; font-size: 11px; line-height: 1; padding: 4px 6px; border-radius: 5px; background: var(--card); border: 1px solid var(--line); }
+.thumbs .nsb.bloquee { color: #b42318; border-color: #f3c3bd; background: #fdf1ef; }
+.thumbs .nsb.osee { color: #9a5b00; border-color: #f1d9a8; background: #fdf6e7; }
+.thumbs figure.blocked img { opacity: 0.4; filter: grayscale(1); }
+.thumbs .nsallow { top: auto; bottom: 30px; right: 6px; }
+.nscard .row { gap: 10px; }

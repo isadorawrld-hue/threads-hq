@@ -564,6 +564,9 @@ const VIEWS = {
     // l'IP doit etre dans le pays choisi (proxy UK => GB, proxy France => FR), sinon le numero et l'IP ne collent pas
     const wantCc = prof() === "uk" ? "GB" : "FR";
     const ipWrongCc = !!(ip && ip.country && ip.country !== wantCc);
+    // IP de datacenter : Threads la repère, le serveur refuse le compte ; proxy/VPN : on prévient
+    const ipDc = !!(ip && ip.q && ip.q.v === "grillee");
+    const ipSus = !!(ip && ip.q && ip.q.v === "suspecte");
     const stk = S.data.stock || {};
     // comptes achetes en stock : « J'ai déjà un compte » par defaut
     if (!w.kind) w.kind = stk.dispo || stk.mine ? "have" : "new";
@@ -581,8 +584,8 @@ const VIEWS = {
         <p class="muted">${prof() === "uk" ? "Proxy UK + numéro UK. L'IP UK ne peut changer que toutes les 5 min." : "Proxy France + numéro français."} Le numéro suit tout seul le pays choisi.</p>` : ""}
         <p>Clique sur le bouton, puis attends que la nouvelle IP s'affiche.</p>
         <button class="btn big rot" data-act="rotate" data-wait="Changement de l'IP...">Changer l'IP</button>
-        ${ip ? `<div class="alert ${ipUsed || ipWrongCc ? "c-red" : "c-green"}">${ipUsed ? "Cette IP a déjà servi. Rechange-la." : ipWrongCc ? `Cette IP est en ${esc(ip.country)}, pas en ${wantCc === "GB" ? "Royaume-Uni" : "France"}. Rechange-la (ou préviens Awen si ça recommence).` : `Nouvelle IP : <b>${esc(ip.ip)}</b> ${esc(ip.country)} (${ago(ip.at)})`}</div>` : '<div class="alert c-yellow">Pas encore d\'IP fraîche.</div>'}
-        ${nav(ip && !ipUsed && !ipWrongCc)}</div>${sopBlock("rotation")}`;
+        ${ip ? `<div class="alert ${ipUsed || ipWrongCc || ipDc ? "c-red" : ipSus ? "c-yellow" : "c-green"}">${ipUsed ? "Cette IP a déjà servi. Rechange-la." : ipWrongCc ? `Cette IP est en ${esc(ip.country)}, pas en ${wantCc === "GB" ? "Royaume-Uni" : "France"}. Rechange-la (ou préviens Awen si ça recommence).` : ipDc ? "IP de datacenter : Threads la repère. Rechange-la." : `Nouvelle IP : <b>${esc(ip.ip)}</b> ${esc(ip.country)} (${ago(ip.at)})${ip.q ? ` · ${esc(ip.q.why.toLowerCase())}${ip.q.isp ? ", " + esc(ip.q.isp) : ""}` : ""}${ipSus ? "<br>Marquée proxy / VPN : ça peut passer, mais rechange-la si tu peux." : ""}`}</div>` : '<div class="alert c-yellow">Pas encore d\'IP fraîche.</div>'}
+        ${nav(ip && !ipUsed && !ipWrongCc && !ipDc)}</div>${sopBlock("rotation")}`;
     if (w.step === 2)
       return `${head}<div class="card"><div class="stepnum">Étape 2 sur ${N}</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
         <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous : type <b>${S.data.settings.socksPort ? "Socks5" : "HTTP"}</b>, puis « Check proxy ».</li><li>Advanced settings : <b>Location</b> et <b>Cloud phone language</b> sur <b>Based on IP</b>.</li><li>Create, puis Start pour allumer le téléphone.</li></ol>
@@ -732,7 +735,7 @@ const VIEWS = {
     const weekOld = (a) => Date.now() - new Date(a.offMc).getTime() >= 7 * 864e5;
     const photoFor = (a) => {
       if (!group(a.group).withPhoto || !weekOld(a)) return null;
-      const ph = S.data.media.filter((m) => m.group === a.group && m.kind !== "pfp");
+      const ph = S.data.media.filter((m) => m.group === a.group && m.kind !== "pfp" && usable(m));
       return ph.length ? ph[(a.num || 0) % ph.length] : null;
     };
     const card = (a) => {
@@ -955,7 +958,7 @@ const VIEWS = {
     const list = E.filter((e) => !filt || e.date.startsWith(filt));
     const opt = (v, cur, l) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l ?? v)}</option>`;
     const balTxt = Math.abs(b1) < 0.01 ? "Vous êtes à égalité." : b1 > 0 ? `${esc(P2)} doit ${eu(b1)} à ${esc(P1)}.` : `${esc(P1)} doit ${eu(-b1)} à ${esc(P2)}.`;
-    return `<h2>Compta</h2><p class="lead">Dépenses et gains de ${esc(P1)} et ${esc(P2)}, partagés 50/50. Montants en euros (1 $ = ${String(C.usdRate).replace(".", ",")} €).</p>
+    return `<h2>Compta</h2><p class="lead">Dépenses et gains de ${esc(P1)} et ${esc(P2)}, partagés 50/50. Montants en euros (1 $ = ${String(C.usdRate).replace(".", ",")} €${C.rateAuto ? `, taux du jour${C.rateDate ? " du " + esc(C.rateDate.split("-").reverse().join("/")) : ""}` : C.rateDown ? ", taux par défaut : sources en panne" : ", fixé à la main"}).</p>
       <div class="stats">${stat("c-red", eu(totDep), "investi")}${stat("c-green", eu(totGain), "gagné")}${stat(net >= 0 ? "c-green" : "c-red", eu(net), "résultat")}${stat("c-blue", roi, "rentabilité")}</div>
       <div class="stats">${stat("c-yellow", eu(totDep / nbM), "coût moyen par mois")}${stat("c-violet", eu(prevoir), "à prévoir par mois")}${stat("c-pink", eu(vaMonth), "paies VA ce mois")}${stat("c-pink", eu(sum(vaAll)), "paies VA en tout")}</div>
       <div class="card"><b>Partage 50/50</b><p style="margin:8px 0 8px;font:600 20px/1.3 var(--font)">${balTxt}</p>
@@ -977,27 +980,31 @@ const VIEWS = {
         ${fixed.size ? `<p class="muted" style="margin-top:14px">Charges qui reviennent tous les mois : ${[...fixed.values()].map((e) => `${esc(e.label)} ${eu(eur(e))}`).join(", ")} (${eu(fixedTot)}).</p>` : ""}</div>
       <div class="card"><div class="row"><b>Toutes les lignes</b><div class="spacer"></div><select data-cmonth style="max-width:220px"><option value="">Tous les mois</option>${months.slice().reverse().map((m) => opt(m, filt, mLabel(m))).join("")}</select></div>
         <div style="overflow:auto"><table class="tbl"><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Montant</th><th>Qui</th><th></th></tr>${list.map((e) => `<tr><td>${esc(e.date.split("-").reverse().join("/"))}</td><td>${esc(e.label)}${e.monthly ? ' <span class="pill">mensuel</span>' : ""}</td><td class="muted">${esc(e.cat)}</td><td style="white-space:nowrap;color:var(${e.kind === "gain" ? "--green" : "--ink"})">${e.kind === "gain" ? "+" : "−"}${(e.amountCents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${e.currency === "USD" ? "$" : "€"}</td><td class="muted">${esc(e.paidBy === "Caisse" ? "Caisse" : e.paidBy)}${e.kind === "depense" && e.forWho !== "50/50" ? ` (pour ${esc(e.forWho)})` : ""}</td><td style="white-space:nowrap"><button class="btn sm ghost" data-act="cEdit" data-id="${esc(e.id)}">Modifier</button> <button class="btn sm ghost" data-act="cDel" data-id="${esc(e.id)}">Supprimer</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">Rien encore.</td></tr>'}</table></div></div>
-      <div class="card"><div class="row"><span>1 $ =</span><input data-cusd style="max-width:100px" value="${esc(String(C.usdRate).replace(".", ","))}" /><span>€</span><button class="btn sm light" data-act="cRate" data-wait="...">Changer le taux</button></div></div>`;
+      <div class="card"><div class="row"><span>1 $ =</span><input data-cusd style="max-width:100px" value="${esc(String(C.usdRate).replace(".", ","))}" /><span>€</span><button class="btn sm light" data-act="cRate" data-wait="...">Fixer à la main</button>${C.rateAuto ? `<span class="muted">Taux du jour, mis à jour tout seul${C.rateSrc ? " (" + esc(C.rateSrc) + ")" : ""}.</span>` : `<button class="btn sm ghost" data-act="cRateAuto" data-wait="...">Revenir au taux du jour</button>`}</div></div>`;
   },
 
   content() {
     const st = S.data.settings;
     const usedLinks = new Map(S.data.accounts.filter((a) => a.status !== "saute" && a.link).map((a) => [a.link, a.pseudo]));
     const pfps = S.data.media.filter((m) => m.kind === "pfp");
+    const allMedia = S.data.media;
+    const ns = { todo: allMedia.filter((m) => !m.nsfwV).length, bad: allMedia.filter((m) => m.nsfwV === "bloquee" && !m.nsfwOk).length, osee: allMedia.filter((m) => m.nsfwV === "osee").length };
     return `<h2>Contenu</h2><p class="lead">Textes, photos, bios, liens. Le CRM pioche dedans tout seul.</p>
+      <div class="card nscard"><h3 style="margin-top:0">Scan anti-nudité</h3><p class="muted">Chaque photo est scannée à l'envoi. Nudité = bloquée : jamais postée, jamais donnée à la VA. Osée = postée, mais à surveiller.</p>
+        <div class="row"><span><b>${allMedia.length - ns.todo}</b> scannée(s)</span><span class="dot c-red"></span><span><b>${ns.bad}</b> bloquée(s)</span><span class="dot c-yellow"></span><span><b>${ns.osee}</b> osée(s)</span>${ns.todo ? `<div class="spacer"></div><button class="btn sm" data-act="nsfwScanAll" data-wait="Scan...">Scanner ${ns.todo} photo(s)</button>` : ""}</div></div>
       <div class="card"><b>Les 42 textes de Bilot</b> <span class="muted">(déjà postés et validés)</span><div class="row" style="margin-top:10px"><select data-seedgroup style="max-width:220px">${st.groups.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join("")}</select><button class="btn" data-act="seed" data-wait="Import...">Importer dans ce groupe</button></div></div>
       ${st.groups.map((g) => {
         const texts = S.data.texts.filter((t) => t.group === g.id);
         const photos = S.data.media.filter((m) => m.group === g.id && m.kind !== "pfp");
         return `<div class="card"><h3 style="margin-top:0"><span class="pill" style="background:${esc(g.color)}">${esc(g.name)}</span> ${texts.filter((t) => !t.off).length} textes${g.withPhoto ? ` · ${photos.length} photos` : ""}</h3>
           <details><summary>Ajouter des textes</summary><p class="muted">Un texte par ligne. Option : <code>texte || traduction</code></p><textarea data-bulk="${g.id}"></textarea><button class="btn" data-act="bulk" data-g="${g.id}">Ajouter</button></details>
-          ${g.withPhoto ? `<details><summary>Photos (${photos.length})</summary><input type="file" accept="image/*" multiple data-upload="${g.id}" /><div class="thumbs" style="margin-top:10px">${photos.map((m) => `<figure><img loading="lazy" src="/api/media/${m.id}" /><button class="btn sm bad" data-act="delMedia" data-id="${m.id}"></button></figure>`).join("")}</div></details>` : ""}
+          ${g.withPhoto ? `<details><summary>Photos (${photos.length})</summary><input type="file" accept="image/*" multiple data-upload="${g.id}" /><div class="thumbs" style="margin-top:10px">${photos.map(thumb).join("")}</div></details>` : ""}
           <details><summary>Voir les textes</summary>${texts.map((t) => `<div class="textline ${t.off ? "off" : ""}"><div class="x">${esc(t.text)}${t.fr ? `<div class="muted">${esc(t.fr)}</div>` : ""}</div><button class="btn sm light" data-act="toggleText" data-id="${t.id}">${t.off ? "Activer" : "Pause"}</button><button class="btn sm ghost" data-act="delText" data-id="${t.id}"></button></div>`).join("") || '<p class="muted">Aucun texte.</p>'}</details></div>`;
       }).join("")}
       <div class="card"><h3 style="margin-top:0">Importer depuis Google Drive</h3><p class="muted">Colle le lien d'un dossier partagé (« Tous ceux qui ont le lien »). Les photos déjà importées sont sautées.</p>
         <input data-drivelink placeholder="https://drive.google.com/drive/folders/..." />
         <div class="row" style="margin-top:8px"><select data-drivedest style="max-width:240px"><option value="__pfp">Photos de profil</option>${st.groups.filter((g) => g.withPhoto).map((g) => `<option value="${g.id}">Photos du groupe ${esc(g.name)}</option>`).join("")}</select><button class="btn" data-act="driveImport" data-wait="Import...">Importer</button></div></div>
-      <div class="card"><h3 style="margin-top:0">Photos de profil (${pfps.length})</h3><input type="file" accept="image/*" multiple data-upload="__pfp" /><div class="thumbs" style="margin-top:10px">${pfps.map((m) => `<figure><img loading="lazy" src="/api/media/${m.id}" /><button class="btn sm bad" data-act="delMedia" data-id="${m.id}"></button></figure>`).join("")}</div></div>
+      <div class="card"><h3 style="margin-top:0">Photos de profil (${pfps.length})</h3><input type="file" accept="image/*" multiple data-upload="__pfp" /><div class="thumbs" style="margin-top:10px">${pfps.map(thumb).join("")}</div></div>
       <div class="card"><h3 style="margin-top:0">Les 3 stratégies de setup</h3>
         <p class="muted">Chaque nouveau compte reçoit une stratégie, en équilibrant selon les cibles ci-dessous. Un compte qui remplace un compte sauté garde sa stratégie.</p>
         <table class="tbl"><tr><th>Stratégie</th><th>Comment ça marche</th><th>Cible</th></tr>
@@ -1105,13 +1112,15 @@ const LOGS = {
   premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Connexion ratée", mdp_change: "Mot de passe changé", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
   metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
-  compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
+  compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", photo_autorisee: "Photo : autorisation anti-nudité", reglages_modifies: "Réglages modifiés",
   transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar", coffre_ajout: "Coffre : accès ajouté", coffre_modif: "Coffre : accès modifié", coffre_suppr: "Coffre : accès supprimé", coffre_vu: "Coffre : secret affiché",
 };
 function logDetails(l) {
   const out = [];
   if (l.pseudo) out.push("@" + l.pseudo);
   if (l.ip) out.push((l.before ? `${l.before} > ` : "IP ") + l.ip + (l.country ? ` (${l.country})` : ""));
+  if (l.ipq) out.push(l.ipq);
+  if (l.ok != null) out.push(l.ok ? "autorisée" : "bloquée");
   if (l.status) out.push(S.data.statusLabels[l.status] || l.status);
   if (l.followers != null) out.push(`${l.followers} followers`);
   if (l.posts != null) out.push(`${l.posts} post(s)` + (l.jusquau ? ` jusqu'au ${l.jusquau}` : ""));
@@ -1310,7 +1319,7 @@ function setupWizard(a) {
   const strat = a.strategy || "epingle";
   const bank = (st.bioBank && st.bioBank[strat]) || [];
   if (!s.bio && bank.length) s.bio = s.bioPick = bank[Math.floor(Math.random() * bank.length)];
-  const pfps = S.data.media.filter((m) => m.kind === "pfp");
+  const pfps = S.data.media.filter((m) => m.kind === "pfp" && usable(m));
   if (!s.pfp && pfps.length) s.pfp = pfps[Math.floor(Math.random() * pfps.length)].id;
   const fill = (t) => String(t || "").replaceAll("{pseudo}", a.newPseudo || a.pseudo).replaceAll("{lien}", a.link || "LIEN MANQUANT").replaceAll("{pivot}", st.hub?.pseudo || "PIVOT MANQUANT");
   const box = (t) => `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t)}">Copier</button></div>${frSlot(t)}`;
@@ -1372,6 +1381,42 @@ async function compress(file) {
   c.height = Math.round(img.height * r);
   c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
   return c.toDataURL("image/jpeg", 0.88);
+}
+
+// ------------------------------------------------------------ scan anti-nudite (8 nov.)
+// NSFWJS (MobileNetV2) tourne dans le navigateur de l'admin : aucune cle, aucune photo envoyee ailleurs.
+// Fichiers dans /vendor/nsfw (paquet npm nsfwjs 4.4.0, licence MIT), charges seulement au premier scan.
+let nsfwP = null;
+const loadScript = (src) => new Promise((ok, ko) => { const el = document.createElement("script"); el.src = src; el.onload = ok; el.onerror = () => ko(new Error("chargement " + src)); document.head.appendChild(el); });
+function nsfwModel() {
+  if (!nsfwP) nsfwP = (async () => {
+    for (const f of ["model.min.js", "group1-shard1of1.min.js", "nsfwjs.min.js"]) await loadScript("/vendor/nsfw/" + f);
+    return window.nsfwjs.load("MobileNetV2");
+  })().catch((e) => { nsfwP = null; throw e; });
+  return nsfwP;
+}
+// scores 0..1 (porn, hentai, sexy) ; null si le scan rate (la photo part quand même, marquée « pas scannée »)
+async function nsfwScan(src) {
+  try {
+    if (window.__nsfwFake) return window.__nsfwFake(src);
+    const model = await nsfwModel();
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const p = await model.classify(img, 5);
+    const g = (k) => (p.find((x) => x.className === k) || {}).probability || 0;
+    return { porn: g("Porn"), hentai: g("Hentai"), sexy: g("Sexy") };
+  } catch {
+    return null;
+  }
+}
+// une photo « bloquée » (nudité) n'est jamais donnée à la VA ni postée, sauf si un admin l'autorise
+const usable = (m) => m.nsfwV !== "bloquee" || !!m.nsfwOk;
+function thumb(m) {
+  const blocked = m.nsfwV === "bloquee" && !m.nsfwOk;
+  const badge = m.nsfwV === "bloquee" ? `<span class="nsb ${m.nsfwOk ? "osee" : "bloquee"}">${m.nsfwOk ? "autorisée" : "nudité : bloquée"}</span>` : m.nsfwV === "osee" ? '<span class="nsb osee">osée</span>' : "";
+  const allow = m.nsfwV === "bloquee" ? `<button class="btn sm light nsallow" data-act="nsfwAllow" data-id="${m.id}" data-v="${m.nsfwOk ? 0 : 1}" data-wait="...">${m.nsfwOk ? "Bloquer" : "Autoriser"}</button>` : "";
+  return `<figure class="${blocked ? "blocked" : ""}"><img loading="lazy" src="/api/media/${m.id}" />${badge}<button class="btn sm bad" data-act="delMedia" data-id="${m.id}"></button>${allow}</figure>`;
 }
 
 // ------------------------------------------------------------ apres rendu
@@ -1612,7 +1657,36 @@ const ACT = {
     await run(b, async () => {
       S.data.compta = await api("compta/settings", { usdRate: $("[data-cusd]").value });
       render();
-      toast("Taux changé");
+      toast("Taux fixé à la main");
+    });
+  },
+  async cRateAuto(b) {
+    await run(b, async () => {
+      S.data.compta = await api("compta/settings", { auto: true });
+      render();
+      toast("Taux du jour remis");
+    });
+  },
+  async nsfwScanAll(b) {
+    await run(b, async () => {
+      const todo = S.data.media.filter((m) => !m.nsfwV);
+      let n = 0, blocked = 0, fails = 0;
+      for (const m of todo) {
+        b.innerHTML = `<span class="spin"></span> ${++n}/${todo.length}`;
+        const nsfw = await nsfwScan(`/api/media/${m.id}`);
+        if (!nsfw) { fails++; continue; }
+        const r = await api(`media/${m.id}/nsfw`, { nsfw });
+        if (r.nsfwV === "bloquee") blocked++;
+      }
+      await refresh();
+      toast(`${n - fails} photo(s) scannée(s)` + (blocked ? ` · ${blocked} bloquée(s) pour nudité` : "") + (fails ? ` · ${fails} pas lue(s)` : ""), !!(blocked || fails));
+    });
+  },
+  async nsfwAllow(b) {
+    await run(b, async () => {
+      await api(`media/${b.dataset.id}/nsfw`, { allow: b.dataset.v === "1" });
+      await refresh();
+      toast(b.dataset.v === "1" ? "Photo autorisée" : "Photo bloquée");
     });
   },
   copy: (b) => copy(b.dataset.v),
@@ -1653,12 +1727,20 @@ const ACT = {
     closeModal();
     await ACT.rotate(b);
   },
+  // IP grillée (datacenter, proxy/VPN, déjà utilisée) : on rechange tout seul, 2 fois max (8 nov.)
   async rotate(b) {
     await run(b, async () => {
-      const r = await api("rotate", {});
-      S.data.lastIp = r;
-      toast(`Nouvelle IP ${r.ip} ${r.country || ""}`);
-      if (r.usedBy) toast(`IP déjà vue sur @${r.usedBy}, rechange-la`, true);
+      let r, tries = 0;
+      for (;;) {
+        r = await api("rotate", {});
+        S.data.lastIp = r;
+        if (!r.bad || !r.retryOk || tries >= 2) break;
+        tries++;
+        b.innerHTML = `<span class="spin"></span> ${esc(r.bad)} : je rechange (${tries}/2)`;
+      }
+      if (!r.bad) toast(`Nouvelle IP ${r.ip} ${r.country || ""}${r.q ? " · " + r.q.why.toLowerCase() : ""}${tries ? ` (${tries} IP grillée(s) sautée(s))` : ""}`);
+      else if (!r.retryOk) toast(`${r.bad}. Rechange-la dans 5 min.`, true);
+      else toast(`${r.bad}, 3 fois de suite. Réessaie dans 1 min, et préviens Awen si ça recommence.`, true);
       await refresh();
     });
   },
@@ -1809,7 +1891,7 @@ const ACT = {
     render();
   },
   otherPfp() {
-    const pfps = S.data.media.filter((m) => m.kind === "pfp");
+    const pfps = S.data.media.filter((m) => m.kind === "pfp" && usable(m));
     S.setup.pfp = pfps[Math.floor(Math.random() * pfps.length)]?.id;
     render();
   },
@@ -1987,7 +2069,7 @@ const ACT = {
     await run(b, async () => {
       const list = (await api("drive/list?folder=" + encodeURIComponent(link))).filter((f) => !f.already);
       if (!list.length) return toast("Rien de nouveau dans ce dossier.");
-      let ok = 0;
+      let ok = 0, blocked = 0;
       const fails = [];
       for (const f of list) {
         b.innerHTML = `<span class="spin"></span> ${ok + fails.length + 1}/${list.length}`;
@@ -1995,14 +2077,16 @@ const ACT = {
           const r = await fetch("/api/drive/file?id=" + f.id, { headers: { authorization: "Bearer " + S.token } });
           if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "erreur " + r.status);
           const dataUrl = await compress(await r.blob());
-          await api("media/upload", dest === "__pfp" ? { kind: "pfp", dataUrl, filename: f.name, driveId: f.id } : { group: dest, dataUrl, filename: f.name, driveId: f.id });
+          const nsfw = await nsfwScan(dataUrl);
+          const meta = await api("media/upload", dest === "__pfp" ? { kind: "pfp", dataUrl, filename: f.name, driveId: f.id, nsfw } : { group: dest, dataUrl, filename: f.name, driveId: f.id, nsfw });
+          if (meta.nsfwV === "bloquee") blocked++;
           ok++;
         } catch (e) {
           fails.push(`${f.name} : ${e.message}`);
         }
       }
       await refresh();
-      toast(`${ok} photo(s) importée(s)` + (fails.length ? ` · ${fails.length} échec(s) : ${fails[0]}` : ""), !!fails.length);
+      toast(`${ok} photo(s) importée(s)` + (blocked ? ` · ${blocked} bloquée(s) pour nudité` : "") + (fails.length ? ` · ${fails.length} échec(s) : ${fails[0]}` : ""), !!fails.length || !!blocked);
     });
   },
   async tinyModel(b) {
@@ -2136,7 +2220,7 @@ const ACT = {
     const texts = S.data.texts.filter((t) => t.group === a.group && !t.off);
     const used = new Set(S.data.posts.filter((p) => p.accountId === a.id).map((p) => p.textId));
     const t = texts.find((x) => !used.has(x.id)) || texts[0];
-    const photos = S.data.media.filter((m) => m.group === a.group && m.kind !== "pfp");
+    const photos = S.data.media.filter((m) => m.group === a.group && m.kind !== "pfp" && usable(m));
     const m = group(a.group).withPhoto ? photos[Math.floor(Math.random() * photos.length)] : null;
     modal(`<h3>Post à la main pour @${esc(a.pseudo)}</h3><p class="muted">Si Metricool bloque : copie, colle dans Metricool, programme.</p>
       ${t ? `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(t.text)}</span><button class="btn sm light" data-act="copy" data-v="${esc(t.text)}">Copier</button></div>${t.fr ? `<p class="muted">${esc(t.fr)}</p>` : ""}` : '<p class="muted">Plus de texte libre.</p>'}
@@ -2525,18 +2609,20 @@ document.addEventListener("change", async (e) => {
     const g = e.target.dataset.upload;
     const files = [...e.target.files];
     toast(`Envoi de ${files.length} photo(s)...`);
-    let ok = 0;
+    let ok = 0, blocked = 0;
     for (const f of files) {
       try {
         const dataUrl = await compress(f);
-        await api("media/upload", g === "__pfp" ? { kind: "pfp", dataUrl, filename: f.name } : { group: g, dataUrl, filename: f.name });
+        const nsfw = await nsfwScan(dataUrl);
+        const meta = await api("media/upload", g === "__pfp" ? { kind: "pfp", dataUrl, filename: f.name, nsfw } : { group: g, dataUrl, filename: f.name, nsfw });
+        if (meta.nsfwV === "bloquee") blocked++;
         ok++;
       } catch (err) {
         toast(`${f.name} : ${err.message}`, true);
       }
     }
     await refresh();
-    toast(`${ok} photo(s) ajoutée(s)`);
+    toast(`${ok} photo(s) ajoutée(s)` + (blocked ? ` · ${blocked} bloquée(s) pour nudité` : ""), !!blocked);
   }
 });
 document.addEventListener("keydown", (e) => {

@@ -56,8 +56,25 @@ const brands = [
   { id: 222, label: "compte B", networksData: { threads: { username: "acc_b" } }, timezone: "Asia/Taipei" },
   { id: 333, label: "vide", networksData: {}, timezone: "Asia/Taipei" },
 ];
+// qualite d'IP (ip-api.com) : /__dev/ipq?v=hosting|proxy|ok&n=2 rend les N prochaines IP mauvaises
+let ipqBad = { v: "ok", n: 0 };
+const ipqCalls = [];
+// taux de change : /__dev/fx?down=1 coupe toutes les sources
+let fxDown = false;
+let fxCalls = 0;
 async function fakeFetch(url, opts = {}) {
   const u = new URL(url);
+  if (u.hostname === "ip-api.com") {
+    ipqCalls.push(u.pathname);
+    const bad = ipqBad.n > 0 ? (ipqBad.n--, ipqBad.v) : "ok";
+    return Response.json({ status: "success", countryCode: "FR", isp: bad === "hosting" ? "OVH SAS" : "SFR", org: "", as: "AS15557 SFR SA", mobile: false, proxy: bad === "proxy", hosting: bad === "hosting" });
+  }
+  if (["cdn.jsdelivr.net", "latest.currency-api.pages.dev", "api.frankfurter.dev"].includes(u.hostname)) {
+    fxCalls++;
+    if (fxDown) return new Response("down", { status: 503 });
+    if (u.hostname === "api.frankfurter.dev") return Response.json({ amount: 1, base: "USD", date: "2026-11-07", rates: { EUR: 0.897 } });
+    return Response.json({ date: "2026-11-08", usd: { eur: 0.89690055, thb: 33.507 } });
+  }
   if (u.hostname === "rotate.test") {
     ipN++;
     return new Response("ok", { status: 200 });
@@ -237,6 +254,10 @@ http
       if (b) b.networksData = url.searchParams.get("username") ? { threads: { username: url.searchParams.get("username") } } : {};
       res.writeHead(200); return res.end("ok");
     }
+    if (url.pathname === "/__dev/ipq") { ipqBad = { v: url.searchParams.get("v") || "ok", n: Number(url.searchParams.get("n") || 1) }; res.writeHead(200); return res.end("ok"); }
+    if (url.pathname === "/__ipq") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ calls: ipqCalls.length, left: ipqBad.n })); }
+    if (url.pathname === "/__dev/fx") { fxDown = url.searchParams.get("down") === "1"; if (url.searchParams.has("clear")) mem.delete("fx/usdeur"); res.writeHead(200); return res.end("ok"); }
+    if (url.pathname === "/__fx") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ calls: fxCalls })); }
     if (url.pathname === "/__dev/build") { devBuild = url.searchParams.get("v") || "b1"; res.writeHead(200); return res.end("ok"); }
     if (url.pathname === "/__dev/mcbrand") { brands.push({ id: 9000 + brands.length, label: "Marque vide", networksData: {}, timezone: "Asia/Taipei" }); res.writeHead(200); return res.end("ok"); }
     // ancien compte a code (avant le passage au mot de passe, 2 nov.) : pour tester la migration
