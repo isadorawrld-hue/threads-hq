@@ -119,6 +119,8 @@ const group = (id) => S.data.settings.groups.find((g) => g.id === id) || { name:
 const statusColor = { warmup: "c-yellow", attente_setup: "c-blue", setup_ok: "c-violet", actif: "c-green", shadowban: "c-pink", restreint: "c-pink", saute: "c-red" };
 const statusEmoji = {};
 const pill = (st) => `<span class="status st-${esc(st)}"><i></i>${esc(S.data.statusLabels[st] || st)}</span>`;
+// compte vivant mais sans place Metricool : la VA le fait tourner a la main
+const apill = (a) => (a.offMc && a.status === "actif" ? `<span class="status st-offmc"><i></i>Hors Metricool</span>` : pill(a.status));
 const spill = (k) => k ? `<span class="pill">${esc((S.data.strategyLabels || {})[k] || k)}</span>` : "";
 const gpill = (g) => `<span class="grp"><i style="background:${esc(group(g).color)}"></i>${esc(group(g).name)}</span>`;
 function ago(iso) {
@@ -410,7 +412,7 @@ function render() {
     ["Travail du jour", [
       ["today", "Aujourd'hui", [["today", "Aujourd'hui", 0]]],
       ["create", "Créer un compte", [["create", "Créer un compte", n(t.toReplace) + t.reserveMissing], ["numero", "Numéro SMS", S.data.sms && S.data.sms.status === "attente" ? 1 : 0]]],
-      ["warmup", "Comptes en cours", [["warmup", "1. Warm-up", n(t.warmup)], ["setup", "2. Setup", n(t.setupReady)], ["metricool", "3. Metricool", n(t.toConnect) + n(t.toPlan)]]],
+      ["warmup", "Comptes en cours", [["warmup", "1. Warm-up", n(t.warmup)], ["setup", "2. Setup", n(t.setupReady)], ["metricool", "3. Metricool", n(t.toConnect) + n(t.toPlan)], ["manuel", "4. À la main", n(t.toManual)]]],
       ["check", "Check du matin", [["check", "Check du matin", n(t.toCheck)]]],
     ]],
     ["Suivi", [
@@ -517,7 +519,7 @@ const VIEWS = {
     // regle : 1) ce qui empeche un compte de poster, 2) finir ce qui est commence (le plus proche de poster d'abord), 3) preparer la suite
     const pri = [];
     const inPipe = (ids) => ids.map(acc).filter(Boolean);
-    const stepOf = { setup_ok: ["metricool", "Connecter à Metricool"], attente_setup: ["setup", "Faire le setup"], warmup: ["warmup", "Finir le warm-up"] };
+    const stepOf = { setup_ok: ["metricool", "Connecter à Metricool"], actif: ["metricool", "Connecter à Metricool"], attente_setup: ["setup", "Faire le setup"], warmup: ["warmup", "Finir le warm-up"] };
     const subs = [...inPipe(t.toConnect), ...inPipe(t.setupReady), ...inPipe(t.warmup)].filter((a) => a.replaces);
     const notSub = (ids) => inPipe(ids).filter((a) => !a.replaces).length;
     if (subs.length) {
@@ -529,6 +531,7 @@ const VIEWS = {
     if (notOut) pri.push(["c-red", `${notOut} post(s) pas sorti(s)`, "Erreur Metricool ou post en retard. Regarde le planning : souvent un compte à reconnecter.", "planning", "Voir"]);
     if ((t.toReconnect || []).length) pri.push(["c-red", `Reconnecter ${t.toReconnect.length} compte(s) à Metricool`, "Threads s'est déconnecté : ses posts ne sortent plus. 2 min pour le reconnecter.", "metricool", "Reconnecter"]);
     if (t.toPlan.length) pri.push(["c-green", `Planifier ${t.toPlan.length} compte(s)`, "Moins de 2 jours de posts devant lui. 1 clic.", "metricool", "Planifier"]);
+    if ((t.toManual || []).length) pri.push(["c-blue", `À la main : ${t.toManual.length} compte(s) hors Metricool`, "Pas de place sur Metricool : warm-up + 1 post par jour, à la main.", "manuel", "Ouvrir"]);
     if (t.toCheck.length) pri.push(["c-yellow", `Check du matin : ${t.toCheck.length} compte(s)`, "Repère vite les comptes qui ont sauté.", "check", "Commencer"]);
     if (notSub(t.toConnect)) pri.push(["c-violet", `Connecter ${notSub(t.toConnect)} compte(s) à Metricool`, "Setup fini mais pas encore branché : il ne poste pas encore.", "metricool", "Connecter"]);
     if (notSub(t.setupReady)) pri.push(["c-blue", `Setup de ${notSub(t.setupReady)} compte(s)`, "Photo, bio, puis lien ou post épinglé selon la stratégie.", "setup", "Faire le setup"]);
@@ -683,7 +686,8 @@ const VIEWS = {
 
   metricool() {
     const toConnect = S.data.tasks.toConnect.map(acc).filter(Boolean);
-    const active = S.data.accounts.filter((a) => ["actif", "shadowban", "restreint"].includes(a.status));
+    const active = S.data.accounts.filter((a) => ["actif", "shadowban", "restreint"].includes(a.status) && !a.offMc);
+    const pl = S.data.tasks.mcPlaces || { used: 0, slots: 0 };
     const now = Date.now();
     const upcoming = (id) => S.data.posts.filter((p) => p.accountId === id && p.status === "programme" && new Date(p.at).getTime() > now);
     const brandOpts = (S.brands || []).filter((b) => !b.linkedTo);
@@ -695,6 +699,7 @@ const VIEWS = {
         <div class="row"><button class="btn big" data-act="mcConnect" data-id="${a.id}" data-wait="...">Reconnecter</button><button class="btn bad" data-act="dead" data-id="${a.id}">Il a sauté</button></div></div>`).join("")}</div>` : ""}
       ${hint("metricool")}
       ${!S.data.configured.metricool ? '<div class="alert c-red">Metricool pas encore branché (Réglages, admin).</div>' : ""}
+      <div class="card"><b>Places Metricool : ${pl.used} / ${pl.slots}</b><span class="muted"> · ${(S.data.tasks.offMc || []).length} compte(s) hors Metricool en attente d'une place (onglet « À la main »).</span></div>
       <h3>À connecter (${toConnect.length})</h3>
       ${toConnect.length ? `<div class="grid">${toConnect.map((a) => mcConnectCard(a)).join("")}</div>
         ${isAdmin() ? `<details class="card" style="margin-top:12px"><summary class="muted">Relier à une marque Metricool existante (admin)</summary>
@@ -704,17 +709,57 @@ const VIEWS = {
       ${active.length ? `<div class="card"><button class="btn big ok" data-act="planAll" data-wait="Planification de tous les comptes...">Planifier TOUS les comptes (3 jours)</button></div>` : ""}
       <div class="grid">${active.map((a) => {
         const up = upcoming(a.id);
-        return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}</div><div class="row">${gpill(a.group)}${pill(a.status)}</div>
+        return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}</div><div class="row">${gpill(a.group)}${apill(a)}</div>
           <span class="muted">${up.length} post(s) programmé(s)${a.plannedUntil ? ` · jusqu'au ${esc(a.plannedUntil)}` : ""}</span>
           ${up.slice(0, 3).map((p) => `<span class="muted">${esc(p.local.replace("T", " ").slice(0, 16))}</span>`).join("")}
           <div class="row"><button class="btn sm" data-act="plan" data-id="${a.id}" data-days="3" data-mode="add" data-wait="...">+3 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="7" data-mode="add" data-wait="...">+7 jours</button><button class="btn sm light" data-act="plan" data-id="${a.id}" data-days="14" data-wait="...">14 jours</button><button class="btn sm ghost" data-act="manual" data-id="${a.id}">Post à la main</button></div></div>`;
       }).join("")}</div>${sopBlock("metricool")}`;
   },
 
+  manuel() {
+    const t = S.data.tasks;
+    const all = (t.offMc || []).map(acc).filter(Boolean);
+    const todo = new Set(t.toManual || []);
+    const pl = t.mcPlaces || { used: 0, slots: 0 };
+    const posts = S.data.posts.filter((p) => p.status !== "annule");
+    const textFor = (a) => {
+      const pool = S.data.texts.filter((x) => x.group === a.group && !x.off && !posts.some((p) => p.accountId === a.id && p.textId === x.id));
+      if (!pool.length) return null;
+      let h = 0;
+      for (const ch of a.id + S.data.today) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      return pool[h % pool.length];
+    };
+    const weekOld = (a) => Date.now() - new Date(a.offMc).getTime() >= 7 * 864e5;
+    const photoFor = (a) => {
+      if (!group(a.group).withPhoto || !weekOld(a)) return null;
+      const ph = S.data.media.filter((m) => m.group === a.group && m.kind !== "pfp");
+      return ph.length ? ph[(a.num || 0) % ph.length] : null;
+    };
+    const card = (a) => {
+      const done = !todo.has(a.id);
+      const tx = done ? null : textFor(a);
+      const ph = done ? null : photoFor(a);
+      return `<div class="card acc ${done ? "" : "urgent"}"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}<div class="spacer"></div>${apill(a)}</div>
+        ${done ? '<div class="alert c-green">Fait aujourd\'hui.</div>' : `<ol>
+          <li>Ouvre le téléphone GeeLark du compte.</li>
+          <li>Scrolle environ 5 minutes.</li>
+          <li>Like quelques posts de la niche chinoise.</li>
+          <li>Écris 2 à 3 commentaires en chinois.</li>
+          <li>Poste ce texte${ph ? " avec cette photo" : ""} (bouton +) :</li>
+        </ol>
+        ${tx ? `<div class="copyline"><span class="v" style="white-space:pre-wrap">${esc(tx.text)}</span><button class="btn sm light" data-act="copy" data-v="${esc(tx.text)}">Copier</button></div>${frSlot(tx.text)}` : '<div class="alert c-red">Plus de texte libre pour ce compte. Préviens Awen.</div>'}
+        ${ph ? `<div class="thumbs" style="max-width:160px"><figure><img src="/api/media/${ph.id}" /></figure></div><a class="btn sm light" href="/api/media/${ph.id}" download>Télécharger la photo</a>` : ""}
+        <div class="row"><button class="btn ok" data-act="manualDone" data-id="${a.id}" data-text="${tx ? tx.id : ""}" data-media="${ph ? ph.id : ""}" data-wait="...">Fait aujourd'hui</button><a class="btn light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a><button class="btn bad" data-act="dead" data-id="${a.id}">Il a sauté</button></div>`}
+        <div class="row">${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button></div></div>`;
+    };
+    return `<h2>À la main</h2><p class="lead">Metricool est plein (${pl.used} / ${pl.slots} places). Ces comptes ne postent pas tout seuls : chaque jour, warm-up + 1 post, à la main. Quand un compte Metricool saute, le plus ancien d'ici passe sur Metricool (il apparaît dans « 3. Metricool »).</p>
+      ${all.length ? `<div class="grid">${[...all.filter((a) => todo.has(a.id)), ...all.filter((a) => !todo.has(a.id))].map(card).join("")}</div>` : '<div class="card done-all"><b>Aucun compte hors Metricool.</b><span>Tous les comptes finis sont sur Metricool.</span></div>'}`;
+  },
+
   check() {
     const list = S.data.tasks.toCheck.map(acc).filter(Boolean);
     return `<h2>Check du matin</h2><p class="lead">Ouvre chaque profil. Choisis le bon bouton.</p>${hint("check")}
-      ${list.length ? list.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}<div class="spacer"></div>${pill(a.status)}</div>
+      ${list.length ? list.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}<div class="spacer"></div>${apill(a)}</div>
         <div class="row"><a class="btn light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Ouvrir le profil</a><input type="number" min="0" placeholder="Followers (facultatif)" data-followers="${a.id}" style="max-width:220px" /></div>
         <div class="row"><button class="btn ok" data-act="check" data-st="actif" data-id="${a.id}">OK</button><button class="btn warn" data-act="check" data-st="shadowban" data-id="${a.id}">Shadowban</button><button class="btn warn" data-act="check" data-st="restreint" data-id="${a.id}">Restreint</button><button class="btn bad" data-act="dead" data-id="${a.id}">Sauté</button></div></div>`).join("") : '<div class="card done-all"><b>Check du jour terminé. Bravo.</b></div>'}
       ${sopBlock("check")}${sopBlock("remplacement")}`;
@@ -733,11 +778,11 @@ const VIEWS = {
       <div class="chips">${chips.map(([k, l]) => `<button class="chip ${f === k ? "on" : ""}" data-filter="${k}">${esc(l)} <b>${k === "vivants" ? S.data.accounts.filter((a) => a.status !== "saute").length : k === "tous" ? S.data.accounts.length : S.data.accounts.filter((a) => a.status === k).length}</b></button>`).join("")}</div>
       <input placeholder="Chercher (nom, pseudo, numéro, IP...)" data-search value="${esc(S.search)}" style="margin-bottom:14px" />
       <div class="grid">${list.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}</div>
-        <div class="row">${pill(a.status)}${gpill(a.group)}${spill(a.strategy)}${a.engage && a.status !== "saute" ? '<span class="pill warmpill">Warm-up tous les jours</span>' : ""}</div>
+        <div class="row">${apill(a)}${gpill(a.group)}${spill(a.strategy)}${a.engage && a.status !== "saute" ? '<span class="pill warmpill">Warm-up tous les jours</span>' : ""}</div>
         <span class="muted">Créé ${ago(a.createdAt)} par ${esc(a.createdBy)} · IP ${esc(a.ip || "?")}</span>
         ${a.notes ? `<div class="accnote">${esc(a.notes)}</div>` : ""}
         ${a.replaces ? `<span class="muted">Remplace @${esc(acc(a.replaces)?.pseudo || "?")}</span>` : ""}${a.replacedBy ? `<span class="muted">Remplacé par @${esc(acc(a.replacedBy)?.pseudo || "?")}</span>` : ""}
-        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button>${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a></div><div class="row foot"><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${a.status !== "saute" ? `<button class="btn sm ghost" data-act="dead" data-id="${a.id}">Sauter</button>` : ""}${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
+        <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button>${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a></div><div class="row foot"><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${a.status !== "saute" ? `<button class="btn sm ghost" data-act="dead" data-id="${a.id}">Sauter</button>` : ""}${isAdmin() && a.status !== "saute" && a.blogId && !a.offMc ? `<button class="btn sm ghost" data-act="offMc" data-id="${a.id}" data-wait="...">Sortir de Metricool</button>` : ""}${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
   },
 
   planning() {
@@ -765,7 +810,7 @@ const VIEWS = {
       <div class="stats">${stat("c-green", `${pub24}/${last24.length}`, "publiés (24 h)")}${stat("c-red", bad, "pas sortis (3 j)")}${stat("c-blue", `${full}/${live.length}`, "comptes prévus 14 j")}</div>
       <div class="row" style="margin-bottom:12px"><button class="btn" data-act="planAll" data-days="14" data-wait="Planification...">Remplir 14 jours pour tous</button><button class="btn light" data-act="postsSync" data-wait="Vérification...">Vérifier sur Metricool</button><span class="muted">${S.data.postsSyncAt ? "Vérifié " + ago(S.data.postsSyncAt) + " (tout seul toutes les 20 min)" : "Jamais vérifié"}</span></div>
       ${live.length ? `<div class="card" style="padding:0;overflow-x:auto"><table class="plan"><thead><tr><th class="pa">Compte</th>${days.map((d) => `<th class="${d === today ? "td" : d < today ? "past" : ""}">${fmt(d)}</th>`).join("")}<th>Textes</th></tr></thead>
-        <tbody>${live.map((a) => { const td = textDays(a); return `<tr><td class="pa">${psTag(a, "b")}<span>${pill(a.status)}</span></td>${days.map((d) => cell(a, d)).join("")}<td class="tx ${td < 3 ? "low" : ""}">${td} j</td></tr>`; }).join("")}</tbody></table></div>
+        <tbody>${live.map((a) => { const td = textDays(a); return `<tr><td class="pa">${psTag(a, "b")}<span>${apill(a)}</span></td>${days.map((d) => cell(a, d)).join("")}<td class="tx ${td < 3 ? "low" : ""}">${td} j</td></tr>`; }).join("")}</tbody></table></div>
         <p class="muted">« Textes » : jours de posts encore possibles sans répéter un texte sur ce compte. Sous 3 jours, ajoute des textes (Contenu).</p>`
       : '<div class="card done-all"><b>Aucun compte branché à Metricool pour l\'instant.</b></div>'}`;
   },
@@ -787,7 +832,7 @@ const VIEWS = {
       <div class="row" style="margin-bottom:12px"><span class="muted">${ls ? "Clics relevés " + ago(ls.at) : "Clics jamais relevés"}</span><div class="spacer"></div>${isAdmin() ? '<button class="btn sm" data-act="linkStats" data-wait="Relevé...">Mettre à jour les clics</button>' : ""}</div>
       ${ls?.errors?.length ? `<div class="alert c-red">${esc(ls.errors[0])}${ls.errors.length > 1 ? ` (+${ls.errors.length - 1})` : ""}</div>` : ""}
       <div class="card" style="overflow:auto"><table class="tbl"><tr><th>Compte</th><th>Groupe</th><th>Stratégie</th><th>Statut</th><th>Lien</th><th>Clics 7 j</th><th>Clics 30 j</th><th>Followers</th><th>Posts publiés</th><th>À venir</th></tr>
-      ${rows.map(({ a, l, up, done }) => `<tr><td>${psTag(a, "span")}</td><td>${gpill(a.group)}</td><td class="muted">${esc((S.data.strategyLabels || {})[a.strategy] || "")}</td><td>${pill(a.status)}</td><td class="muted">${esc(a.link || "")}</td><td>${l ? l.clicks7 : ""}</td><td>${l ? l.clicks30 : ""}</td><td>${a.followers ?? ""}</td><td>${done}</td><td>${up}</td></tr>`).join("") || '<tr><td colspan="10" class="muted">Aucun compte.</td></tr>'}</table></div>`;
+      ${rows.map(({ a, l, up, done }) => `<tr><td>${psTag(a, "span")}</td><td>${gpill(a.group)}</td><td class="muted">${esc((S.data.strategyLabels || {})[a.strategy] || "")}</td><td>${apill(a)}</td><td class="muted">${esc(a.link || "")}</td><td>${l ? l.clicks7 : ""}</td><td>${l ? l.clicks30 : ""}</td><td>${a.followers ?? ""}</td><td>${done}</td><td>${up}</td></tr>`).join("") || '<tr><td colspan="10" class="muted">Aucun compte.</td></tr>'}</table></div>`;
   },
 
   sop() {
@@ -1040,6 +1085,7 @@ const VIEWS = {
         <label class="f">Posts par jour et par compte</label><input type="number" min="1" max="10" data-st="postsPerDay" value="${esc(st.postsPerDay)}" />
         <label class="f">Créneaux <small>(HH:MM séparés par des virgules)</small></label><input data-st="slots" value="${esc((st.slots || []).join(", "))}" />
         <label class="f">Décalage aléatoire (± minutes)</label><input type="number" min="0" max="120" data-st="jitterMin" value="${esc(st.jitterMin)}" />
+        <label class="f">Places Metricool pour le CRM <small>(marques de ton plan ; au-delà, les comptes passent « À la main »)</small></label><input type="number" min="0" max="500" data-st="mcSlots" value="${esc(st.mcSlots ?? 15)}" />
         <label class="f">Comptes de réserve visés</label><input type="number" min="0" max="50" data-st="reserveTarget" value="${esc(st.reserveTarget)}" />
         <label class="f">Minutes de warm-up avant le setup</label><input type="number" min="0" max="120" data-st="warmupMinutes" value="${esc(st.warmupMinutes ?? 10)}" /></div>
       <div class="card"><h3 style="margin-top:0">Groupes</h3><p class="muted">Un groupe par ligne : <code>id | Nom | photo(oui/non) | couleur</code></p>
@@ -1240,6 +1286,7 @@ function smsCard(cur) {
 function mcConnectCard(a) {
   if (!a.mcLink) {
     return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}</div><div class="row">${gpill(a.group)}${spill(a.strategy)}</div>
+      ${a.offMc ? '<div class="alert c-green">Une place Metricool s\'est libérée : ce compte hors Metricool passe sur Metricool. Ensuite il poste tout seul.</div>' : ""}
       <p class="muted">1 clic : le CRM crée la marque Metricool et te donne le lien de connexion.</p>
       <button class="btn big" data-act="mcConnect" data-id="${a.id}" data-wait="Création de la marque...">Connecter à Metricool</button></div>`;
   }
@@ -2099,6 +2146,22 @@ const ACT = {
     const a = acc(b.dataset.id);
     warmPop(`<b>@${esc(a?.pseudo || "")}</b> : à warm-up aujourd'hui<br><span>10 min · 3-4 likes · 3-4 commentaires en chinois · 2 abonnements max</span>`);
   },
+  async manualDone(b) {
+    await run(b, async () => {
+      await api(`accounts/${b.dataset.id}/manualdone`, { textId: b.dataset.text || "", mediaId: b.dataset.media || "" });
+      await refresh();
+      toast("Noté pour aujourd'hui");
+    });
+  },
+  async offMc(b) {
+    const a = acc(b.dataset.id);
+    if (!confirm(`Sortir @${a.pseudo} de Metricool ? Ses posts à venir sont annulés, il passe « À la main ».`)) return;
+    await run(b, async () => {
+      const r = await api(`accounts/${b.dataset.id}/offmc`, {});
+      await refresh();
+      toast(`Hors Metricool · ${r.removed} post(s) annulé(s)`);
+    });
+  },
   async engaged(b) {
     const followers = $(`[data-efollowers="${b.dataset.id}"]`)?.value;
     await run(b, async () => {
@@ -2342,6 +2405,7 @@ const ACT = {
       slots: v("slots").split(",").map((x) => x.trim().padStart(5, "0")).filter(Boolean),
       jitterMin: Number(v("jitterMin")) || 0,
       reserveTarget: Number(v("reserveTarget")) || 0,
+      mcSlots: v("mcSlots").trim() === "" ? 15 : Math.max(0, Number(v("mcSlots")) || 0),
       warmupMinutes: Number(v("warmupMinutes")),
       groups,
       videos,

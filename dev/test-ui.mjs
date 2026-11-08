@@ -32,7 +32,7 @@ const tab = async (p, id) => {
   if (!(await p.locator(`[data-tab="${id}"]:visible`).count())) await p.click(`.nav[data-members~="${id}"] >> visible=true`);
   await p.click(`[data-tab="${id}"]:visible >> nth=0`);
 };
-const waitToast = (p, re) => p.waitForFunction((r) => new RegExp(r).test(document.querySelector("#toast").textContent), re.source, { timeout: 15000 });
+const waitToast = (p, re) => p.waitForFunction((r) => new RegExp(r).test(document.querySelector("#toast").textContent), re.source, { timeout: 15000 }).catch(async (e) => { console.log("TOAST =", await p.$eval("#toast", (x) => x.textContent)); throw e; });
 
 // ---- admin : premier acces + reglages
 const a = await page();

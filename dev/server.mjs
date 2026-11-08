@@ -255,6 +255,11 @@ http
       const found = [...mem.entries()].find(([k, v]) => k.startsWith("accounts/") && v && String(v.pseudo || "").toLowerCase() === want);
       res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(found ? found[1] : null));
     }
+    if (url.pathname === "/__dev/setblog") {
+      const a = mem.get("accounts/" + url.searchParams.get("id"));
+      if (a) a.blogId = url.searchParams.get("blogId");
+      res.writeHead(200); return res.end("ok");
+    }
     if (url.pathname === "/__dev/ipage") {
       const ip = mem.get("lastip");
       if (ip) ip.at = new Date(Date.now() - Number(url.searchParams.get("min") || 0) * 60e3).toISOString();

@@ -128,6 +128,7 @@ code { background: var(--raised); padding: 1px 6px; border-radius: 4px; font: 12
 .st-attente_setup i { background: var(--blue); }
 .st-setup_ok i { background: var(--violet); }
 .st-actif i { background: var(--green); }
+.st-offmc i { background: var(--blue, #3b6fd8); }
 .st-shadowban i, .st-restreint i { background: var(--pink); }
 .st-saute i { background: var(--red); }
 .st-saute { color: var(--red); }

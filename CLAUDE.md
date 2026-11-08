@@ -254,3 +254,13 @@ Avant de dire qu'un changement marche : lance les deux tests et vérifie qu'ils 
 - Regroupements : Créer un compte + Numéro SMS ; « Comptes en cours » = Warm-up, Setup, Metricool ; Comptes = Liste + Stats ; Réglages = Réglages + Alertes et journal (ancien Dashboard) + Contenu.
 - Une entrée à plusieurs pages affiche un sous-menu (`.subnav`) en haut de la page. Le badge du menu = somme des badges des pages.
 - Dans `render()`, chaque entrée est `[id, libellé, membres]`. Le bouton porte `data-members` ; les tests ouvrent d'abord l'entrée parente si la sous-page n'est pas visible.
+
+## Metricool plein : comptes « hors Metricool » (7 nov., demandé par Awen)
+- Le plan Metricool a 15 places (Réglage `mcSlots`, 15 par défaut). Objectif : 50 comptes Threads. Les comptes en trop tournent à la main.
+- « Setup fini » sans place libre : le compte passe actif avec `offMc` (pastille « Hors Metricool »), pas de lien Metricool.
+- Menu « 4. À la main » (`toManual`) : chaque compte hors Metricool, une fois par jour : 5 min de scroll, likes, 2-3 commentaires en chinois, puis le post du jour (texte jamais réutilisé, photo après 7 jours si le groupe en a). Bouton « Fait » = action `manualdone` (post noté `manual: true`, publié).
+- Une place se libère (compte sauté, sorti de Metricool) : le plus ancien compte hors Metricool remonte dans l'onglet Metricool (`promote`), un nouveau compte ne lui passe jamais devant. Une fois vérifié (`mcverify`), il quitte `offMc`.
+- Admin : bouton « Sortir de Metricool » (action `offmc`) : annule ses posts futurs, déconnecte Threads de la marque si personne d'autre ne la tient, libère la place.
+- Bug corrigé à la racine (4 nov., keke/maomi) : un remplaçant ne reprend jamais la marque d'un ancien compte si un compte vivant la tient déjà (`holderOld`). Avant, deux comptes partageaient une marque et les posts de l'un partaient sur l'autre.
+- Les liens Metricool ne se gardent pas d'avance (valables 3 jours, il faut une marque libre) : le CRM crée le lien au moment où la place se libère. Les liens TinyURL restent sur chaque compte.
+- Tests : `node dev/test-offmc.mjs` juste après `dev/test-api.mjs` (même serveur).
