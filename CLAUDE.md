@@ -271,3 +271,11 @@ Tri des 1 400 APIs de github.com/public-apis/public-apis : seules 3 servent le C
 - **Scan anti-nudité** (NSFWJS 4.4.0, MobileNetV2, MIT, fichiers dans `public/vendor/nsfw`, chargés au premier scan) : tourne dans le navigateur de l'admin, à l'envoi (fichier ou Google Drive) et via « Scanner N photo(s) » (Contenu, carte « Scan anti-nudité »). Scores `porn`, `hentai`, `sexy` gardés dans `mediameta` (`nsfw`, `nsfwV`). `bloquee` si porn + hentai ≥ 0,5 : jamais postée (`pickMedia`), jamais montrée à la VA (photos du jour, post à la main, photo de profil). `osee` si porn + hentai ≥ 0,25 ou sexy ≥ 0,85 : postée, étiquette orange. « Autoriser » = `nsfwOk` (route `media/:id/nsfw` avec `allow`). Test : `window.__nsfwFake`.
 - **Taux du dollar** (`fxUsdEur`) : currency-api (jsDelivr, puis son miroir), puis Frankfurter (BCE), cache 12 h dans `fx/usdeur`. La compta l'utilise tout seul ; « Fixer à la main » (`comptaSettings.manual`) passe devant jusqu'à « Revenir au taux du jour » (`compta/settings {auto:true}`). Toutes les sources en panne et pas de cache : 0,92.
 - Tests : `node dev/test-public-apis.mjs` puis `node dev/test-public-apis-ui.mjs`, après `dev/test-api.mjs` (même serveur). Faux réseau : `/__dev/ipq?v=hosting|proxy&n=`, `/__dev/fx?down=1&clear=1`.
+
+## Compte acheté banni à la connexion (8 nov.)
+- Bug réel : kara65848 affichait « Nous avons suspendu votre compte » (« associé à un autre compte qui a enfreint nos règles », suspendu le jour même). La VA n'a pas trouvé l'option « banni » (liste déroulante avec « Mot de passe refusé » par défaut) : le compte est parti en scam avec le mauvais motif, et elle gardait le même téléphone.
+- Maintenant une seule fenêtre (`boughtFail`), à l'étape 3 (en haut ET en bas, à côté de « Étape suivante ») et à l'étape 4 (« Non, ça n'a pas marché ») : 5 gros boutons avec les mots que Threads affiche.
+  - Suspendu / banni : scam + compte suivant réservé + téléphone GeeLark grillé (`stock/next` avec `burn`) + retour étape 1 (nouvelle IP, nouveau téléphone). Meta a lié ce téléphone au compte banni.
+  - Mot de passe ou 2FA refusés : scam + suivant, même téléphone (aucune connexion n'a eu lieu).
+  - Vérification : raté, téléphone grillé, retour étape 1.
+  - Autre souci : fin de stock, même téléphone.

@@ -352,3 +352,4 @@ body { font-variant-numeric: tabular-nums; }
 .thumbs figure.blocked img { opacity: 0.4; filter: grayscale(1); }
 .thumbs .nsallow { top: auto; bottom: 30px; right: 6px; }
 .nscard .row { gap: 10px; }
+.btn.failopt, .btn.wrap { white-space: normal; height: auto; line-height: 1.35; padding-top: 9px; padding-bottom: 9px; }

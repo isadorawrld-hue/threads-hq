@@ -744,8 +744,10 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   assert.equal(n1.next.user, "stk_three");
   assert.equal(ok(await call("state"), "state").stock.mine.id, n1.next.id, "le suivant est déjà réservé pour la VA");
   // faute du vendeur = scam, suivant direct
-  const n2 = ok(await call("stock/next", { id: n1.next.id, reason: "Code 2FA refusé", scam: true }), "compte suivant (scam)");
+  // banni a la connexion (8 nov.) : scam + telephone GeeLark grille
+  const n2 = ok(await call("stock/next", { id: n1.next.id, reason: "Compte suspendu / banni", scam: true, burn: true, geelarkProfile: "Stk Ban" }), "compte suivant (banni)");
   assert.equal(n2.next.user, "stk_one");
+  assert.ok(ok(await call("state"), "state").geelarkBurned.includes("stk ban"), "téléphone du compte banni grillé");
   assert.equal((await call("stock/next", { id: n1.next.id, scam: true })).s, 400, "un compte déjà rangé ne repasse pas");
   ok(await call("accounts/failed", { bought: true, stockId: n2.next.id, geelarkProfile: "stk a", reason: "Mot de passe refusé" }), "connexion ratée");
   const t3 = ok(await call("stock/take", {}), "compte suivant");
@@ -757,7 +759,7 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   st = ok(await call("state"), "state admin");
   assert.deepEqual([st.stock.dispo, st.stock.pris, st.stock.utilise, st.stock.rate, st.stock.scam], [0, 0, 1, 1, 1]);
   assert.equal(st.stock.list.find((x) => x.user === "stk_three").status, "scam");
-  assert.equal(st.stock.list.find((x) => x.user === "stk_three").reason, "Code 2FA refusé");
+  assert.equal(st.stock.list.find((x) => x.user === "stk_three").reason, "Compte suspendu / banni");
   assert.equal(st.stock.list.find((x) => x.user === "stk_one").reason, "Mot de passe refusé");
   assert.equal(st.stock.list.find((x) => x.user === "stk.two").accountId, sa.id);
   tok = va;

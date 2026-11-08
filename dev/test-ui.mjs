@@ -288,15 +288,31 @@ if (wizCode !== expCode) throw new Error(`code 2FA ${wizCode} attendu ${expCode}
 await shot(v, "18-achat-connexion");
 // « Passer au compte suivant » : un AUTRE compte arrive tout de suite, même téléphone (on reste à l'étape 3)
 const nextAcc = async (want) => {
-  await v.click('[data-act="stockNextAsk"]');
-  await v.waitForSelector('[data-act="stockNext"]');
+  await v.click('[data-act="boughtFail"]');
+  await v.waitForSelector('[data-act="boughtFailPick"][data-k="ban"]');
   await shot(v, "18b-compte-suivant");
-  await v.click('[data-act="stockNext"][data-scam="0"]');
+  await v.click('[data-act="boughtFailPick"][data-k="autre"]');
   await v.waitForFunction((u) => document.querySelector('[data-f="pseudo"]')?.value === u && /Étape 3 sur 4/.test(document.querySelector("main").textContent), want, { timeout: 10000 });
 };
 await nextAcc("bought_rose");
 if ((await v.inputValue('[data-f="password"]')) !== "Rose456!") throw new Error("compte suivant mal rempli");
 await nextAcc("bought_lily");
+await nextAcc("bought_rose");
+// compte banni a la connexion (bug du 8 nov., kara65848) : scam, telephone grille, nouvelle IP, le suivant est deja reserve
+await v.click('[data-act="boughtFail"]');
+await v.click('[data-act="boughtFailPick"][data-k="ban"]');
+await waitToast(v, /Supprime ce téléphone GeeLark.*@bought_lily/);
+await v.waitForFunction(() => /Étape 1 sur 4/.test(document.querySelector("main").textContent));
+await v.click('main [data-act="rotate"]');
+await waitToast(v, /Nouvelle IP/);
+await v.waitForSelector(".alert.c-green");
+await v.click('[data-act="wizNext"]');
+await v.fill('[data-f="geelarkProfile"]', "profil achat 1");
+await v.click('[data-act="wizNext"]');
+await waitToast(v, /déjà servi/);
+await v.fill('[data-f="geelarkProfile"]', "profil achat 2");
+await v.click('[data-act="wizNext"]');
+await v.waitForFunction(() => document.querySelector('[data-f="pseudo"]')?.value === "bought_lily", null, { timeout: 10000 });
 await v.waitForFunction(() => /^\d{6}$/.test(document.querySelector('[data-totp="__wiz"]').textContent), null, { timeout: 5000 });
 // cle abimee a la main : refusee
 await v.fill('[data-f="totp"]', "pas une clé !!");
@@ -320,14 +336,14 @@ await v.click('[data-act="warmupDone"]');
 await v.waitForFunction(() => /Change le pseudo/.test(document.querySelector("main").textContent) && /chloe\.lily88/.test(document.querySelector("main").textContent) && /Pseudo changé en @chloe\.lily88/.test(document.querySelector("main").textContent));
 await shot(v, "19c-setup-changer-pseudo");
 const bought = await (await fetch(`${B}/__dev/acc?pseudo=bought_lily`)).json();
-if (!bought || !bought.bought || bought.totp !== "JBSWY3DPEHPK3PXP" || bought.password !== "Achat123!" || bought.phone || bought.geelarkProfile !== "profil achat 1") throw new Error("compte acheté mal enregistré : " + JSON.stringify(bought));
+if (!bought || !bought.bought || bought.totp !== "JBSWY3DPEHPK3PXP" || bought.password !== "Achat123!" || bought.phone || bought.geelarkProfile !== "profil achat 2") throw new Error("compte acheté mal enregistré : " + JSON.stringify(bought));
 await a.reload();
 await a.waitForSelector(".bar");
 await tab(a, "settings");
-await a.waitForFunction(() => /1 en stock/.test(document.querySelector("main").textContent) && /1 utilisés/.test(document.querySelector("main").textContent));
+await a.waitForFunction(() => /0 en stock/.test(document.querySelector("main").textContent) && /1 utilisés/.test(document.querySelector("main").textContent) && /1 scam/.test(document.querySelector("main").textContent));
 // compte acheté : la carte montre le nom Chloé (téléphone GeeLark) + le pseudo de connexion, et la recherche marche sur le nom
 await tab(a, "accounts");
-await a.fill("[data-search]", "achat 1");
+await a.fill("[data-search]", "achat 2");
 await a.waitForFunction(() => [...document.querySelectorAll(".acc .ps")].some((e) => /chloe\.lily88/.test(e.textContent) && /@bought_lily/.test(e.textContent)));
 await shot(a, "20-nom-compte-achete");
 
