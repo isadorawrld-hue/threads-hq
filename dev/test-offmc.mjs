@@ -113,6 +113,20 @@ step("admin : « Sortir de Metricool » annule les posts et rend la place");
     step("remplaçant : jamais la marque d'un compte encore vivant (bug keke / maomi)");
   } else console.log("  (pas de compte mort libre : test du remplaçant sauté)");
 }
+// bug du 11 nov. : sauter un compte qui partage la marque d'un compte vivant ne doit pas couper le Threads du vivant
+{
+  const s0 = ok(await call("state", null, awen), "state");
+  const holder = s0.accounts.find((a) => a.status === "actif" && a.blogId && !a.offMc);
+  const brandOf = async () => ok(await call("metricool/brands", null, awen), "marques").find((b) => String(b.blogId) === String(holder.blogId));
+  assert.ok((await brandOf()).threads, "le vivant est connecté avant");
+  const tw = await newBought("twin");
+  await fetch(B + `/__dev/setblog?id=${tw.id}&blogId=${holder.blogId}`);
+  ok(await call(`accounts/${tw.id}/check`, { status: "saute" }, va), "jumeau sauté");
+  assert.ok((await brandOf()).threads, "le Threads du compte vivant reste connecté");
+  const twa = ok(await call("state", null, awen), "state").accounts.find((a) => a.id === tw.id);
+  assert.equal(twa.blogId, null, "le sauté lâche la marque partagée");
+  step("sauter un compte à marque partagée ne déconnecte pas le compte vivant (meimei / xiaoyu)");
+}
 const actions = new Set(ok(await call("state", null, awen), "state").logs.map((l) => l.action));
 for (const a of ["manuel_fait", "hors_metricool", "hors_metricool_fini"]) assert.ok(actions.has(a), "log " + a);
 console.log("\nTOUT EST VERT ✅");
