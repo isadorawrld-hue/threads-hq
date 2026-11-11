@@ -279,3 +279,9 @@ Tri des 1 400 APIs de github.com/public-apis/public-apis : seules 3 servent le C
   - Mot de passe ou 2FA refusés : scam + suivant, même téléphone (aucune connexion n'a eu lieu).
   - Vérification : raté, téléphone grillé, retour étape 1.
   - Autre souci : fin de stock, même téléphone.
+
+## Pseudo jamais changé (11 nov.)
+- Bug réel : Volana n'arrivait pas à relier Metricool (« mot de passe incorrect »). Vérifié sur instagram.com le 11 nov. : ses 37 comptes achetés ont toujours l'ANCIEN pseudo du vendeur ; le CRM affichait le nouveau, donc la connexion échouait.
+- Cause : le guide du setup disait « Threads, Modifier le profil, Nom de profil ». Dans Threads, ce champ est le nom affiché ; le nom d'utilisateur ne se change que dans Instagram.
+- Corrigé : setup « 1 bis » et guide = Instagram, Nom d'utilisateur, vérifier @nouveau en haut du profil. Carte Metricool d'un compte acheté : encadré « Mot de passe incorrect ? » (changer le pseudo dans Instagram, ancien pseudo rappelé). Étape 3 / 4 de « J'ai déjà un compte » : rejoindre Threads jusqu'au bout et ouvrir le profil Threads.
+- Le tuto vidéo setup.mp4 montre peut-être l'ancienne manip : à revoir.

@@ -254,7 +254,7 @@ const SOP = {
   },
   setup: {
     t: "4. Setup du profil",
-    steps: ["Même téléphone, même IP : ne change pas l'IP.", "Pseudo : Threads, Profil, Modifier le profil, Nom de profil. Colle le nouveau pseudo du CRM. Déjà pris ? « Un autre ».", "Photo : « Télécharger » dans le CRM, puis « Upload » dans GeeLark, puis Modifier le profil.", "Bio : « Copier la bio », colle-la, Terminé.", "Post épinglé : publie la partie 1, puis réponds à ton post avec la partie 2 (le lien). Trois points, « Épingler ».", "Coche les cases, « Setup fini »."],
+    steps: ["Même téléphone, même IP : ne change pas l'IP.", "Pseudo : dans l'appli Instagram (pas Threads), Profil, Modifier le profil, Nom d'utilisateur. Colle le nouveau pseudo du CRM, valide. Vérifie qu'il s'affiche en haut du profil. Déjà pris ? « Un autre ».", "Photo : « Télécharger » dans le CRM, puis « Upload » dans GeeLark, puis Modifier le profil.", "Bio : « Copier la bio », colle-la, Terminé.", "Post épinglé : publie la partie 1, puis réponds à ton post avec la partie 2 (le lien). Trois points, « Épingler ».", "Coche les cases, « Setup fini »."],
   },
   metricool: {
     t: "5. Connecter Metricool",
@@ -601,7 +601,7 @@ const VIEWS = {
       : `<div class="alert c-yellow">Plus de compte acheté en stock : colle les infos du compte à la main, ou préviens Awen.</div>`;
     if (have && w.step === 3)
       return `${head}<div class="card"><div class="stepnum">Étape 3 sur 4</div><h3>Connecte-toi au compte</h3>${hint("connexion")}${stockBox}
-        <ol><li>Dans le téléphone GeeLark, ouvre l'appli <b>Instagram</b>.</li><li>« Se connecter » : colle l'identifiant, puis le mot de passe.</li><li>Instagram demande un code (« authentification », « code à 6 chiffres ») : copie le <b>Code 2FA</b> ci-dessous et colle-le tout de suite.</li><li>Une fois dans Instagram, ouvre Threads et connecte-toi avec ce compte.</li></ol>
+        <ol><li>Dans le téléphone GeeLark, ouvre l'appli <b>Instagram</b>.</li><li>« Se connecter » : colle l'identifiant, puis le mot de passe.</li><li>Instagram demande un code (« authentification », « code à 6 chiffres ») : copie le <b>Code 2FA</b> ci-dessous et colle-le tout de suite.</li><li>Ouvre l'appli <b>Threads</b> : « Se connecter avec Instagram », puis crée le profil Threads jusqu'au bout (« Rejoindre Threads »).</li><li>Tu dois voir le fil Threads. « Nous avons suspendu votre compte » : bouton « Ce compte ne marche pas », puis « Compte suspendu / banni ».</li></ol>
         <label class="f">Identifiant (pseudo) <button class="btn sm light" data-act="copyField" data-v="pseudo">Copier</button></label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Mot de passe <button class="btn sm light" data-act="copyField" data-v="password">Copier</button></label><input data-f="password" value="${esc(w.f.password || "")}" autocapitalize="off" />
         <label class="f">Clé 2FA <small>(donnée avec le compte : lettres et chiffres, ou lien otpauth://)</small></label><input data-f="totp" value="${esc(w.f.totp || "")}" placeholder="ex : JBSW Y3DP EHPK 3PXP" autocapitalize="off" autocomplete="off" />
@@ -614,7 +614,7 @@ const VIEWS = {
         ${nav(true)}</div>`;
     if (have && w.step === 4)
       return `${head}<div class="card"><div class="stepnum">Étape 4 sur 4</div><h3>Tu es connectée ?</h3>${hint("marche")}
-        <p>Tu vois le fil Threads, sans blocage ni demande de vérif ? Alors c'est bon.</p>
+        <p>Dans l'appli <b>Threads</b> (pas seulement Instagram), tu vois le fil, et ton profil Threads s'ouvre, sans blocage ni demande de vérif ? Alors c'est bon.</p>
         ${copyLine("Identifiant", w.f.pseudo)}${copyLine("Mot de passe", w.f.password)}
         ${w.f.totp ? `<div class="copyline"><span class="k">Code 2FA</span><span class="v"><b data-totp="__wiz" style="letter-spacing:2px;font-size:16px">······</b> <small class="muted" data-totpleft></small></span><button class="btn sm light" data-act="copyTotp" data-id="__wiz">Copier</button></div><input type="hidden" data-f="totp" value="${esc(w.f.totp)}" />` : ""}
         <div class="row" style="margin-top:14px"><button class="btn big ok" data-act="wizCreate" data-wait="Enregistrement...">Oui, je suis connectée</button></div>
@@ -1305,7 +1305,7 @@ function mcConnectCard(a) {
       <li>Copie ce lien : ${copyLine("Lien", a.mcLink)}</li>
       <li>Ouvre-le dans le <b>navigateur du téléphone GeeLark du compte</b> (même téléphone, même IP). Jamais sur ton PC.</li>
       <li>Touche <b>Connect a Threads account</b>, accepte les cookies.</li>
-      <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}</li>
+      <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}${a.oldPseudo ? `<div class="alert c-yellow" style="margin-top:6px"><b>« Mot de passe incorrect » ?</b> Le pseudo n'a pas été changé dans Instagram. Dans l'appli Instagram : Profil, Modifier le profil, <b>Nom d'utilisateur</b>, colle @${esc(a.pseudo)}, valide. Puis réessaie ici. (Ancien pseudo : @${esc(a.oldPseudo)})</div>` : ""}</li>
       <li>Accepte <b>toutes</b> les permissions. Si ça te renvoie sur Threads, ferme et refais l'étape 3.</li>
       <li>Reviens ici et clique le bouton vert.</li>
     </ol>
@@ -1350,7 +1350,7 @@ function setupWizard(a) {
     <div class="alert">${spill(strat)}<div style="margin-top:6px">${explain}</div></div>
     <div class="card"><div class="stepnum">1. Même profil, même IP</div>
       <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine(a.newPseudo ? "Identifiant actuel" : "Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}</div>
-    ${a.newPseudo ? `<div class="card"><div class="stepnum">1 bis. Change le pseudo</div><ol><li>Threads : Profil, puis Modifier le profil.</li><li>Touche Nom d'utilisateur.</li><li>Colle le nouveau pseudo et enregistre.</li><li>Pas de champ Nom d'utilisateur dans Threads ? Fais pareil dans Instagram (Profil, Modifier le profil, Nom d'utilisateur).</li></ol>${copyLine("Nouveau pseudo", a.newPseudo)}<div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="npTaken" data-id="${a.id}" data-wait="...">Déjà pris ? Un autre</button></div></div>` : ""}
+    ${a.newPseudo ? `<div class="card"><div class="stepnum">1 bis. Change le pseudo</div><p class="muted" style="margin:0 0 6px">Le pseudo se change <b>dans Instagram</b>, pas dans Threads (Threads ne change que le « Nom »).</p><ol><li>Ouvre l'appli <b>Instagram</b> du téléphone GeeLark.</li><li>Profil, puis Modifier le profil.</li><li>Touche <b>Nom d'utilisateur</b> (pas « Nom »).</li><li>Colle le nouveau pseudo, puis valide en haut à droite.</li><li>Vérifie : en haut du profil Instagram, tu lis bien @${esc(a.newPseudo)}.</li><li>Ouvre Threads : ton profil affiche aussi @${esc(a.newPseudo)}.</li></ol>${copyLine("Nouveau pseudo", a.newPseudo)}<div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="npTaken" data-id="${a.id}" data-wait="...">Déjà pris ? Un autre</button></div></div>` : ""}
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
     <div class="card"><div class="stepnum">3. Bio</div>${bank.length ? `<p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} » (${bank.length} restantes). Copie-la telle quelle : une fois le setup fini, elle sort de la banque.</p>` : '<div class="alert c-red">Plus aucune bio dans cette banque. Préviens Awen ou Bilot (Contenu, Bios).</div>'}<textarea data-setupbio>${esc(s.bio)}</textarea>${frSlot(s.bio)}<div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
