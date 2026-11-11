@@ -285,3 +285,4 @@ Tri des 1 400 APIs de github.com/public-apis/public-apis : seules 3 servent le C
 - Cause : le guide du setup disait « Threads, Modifier le profil, Nom de profil ». Dans Threads, ce champ est le nom affiché ; le nom d'utilisateur ne se change que dans Instagram.
 - Corrigé : setup « 1 bis » et guide = Instagram, Nom d'utilisateur, vérifier @nouveau en haut du profil. Carte Metricool d'un compte acheté : encadré « Mot de passe incorrect ? » (changer le pseudo dans Instagram, ancien pseudo rappelé). Étape 3 / 4 de « J'ai déjà un compte » : rejoindre Threads jusqu'au bout et ouvrir le profil Threads.
 - Le tuto vidéo setup.mp4 montre peut-être l'ancienne manip : à revoir.
+- Carte Metricool : nom du bon téléphone GeeLark affiché, et « Continuer en tant que @autre » = Annuler (11 nov., Volana a ouvert le lien de chloe.douhua_2003 sur le téléphone connecté à chloe_xiaoyu.86). `mcverify` déconnecte déjà un mauvais compte, le message nomme maintenant le bon téléphone.

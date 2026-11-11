@@ -1303,10 +1303,10 @@ function mcConnectCard(a) {
   return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}</div><div class="row">${gpill(a.group)}${spill(a.strategy)}</div>
     <ol>
       <li>Copie ce lien : ${copyLine("Lien", a.mcLink)}</li>
-      <li>Ouvre-le dans le <b>navigateur du téléphone GeeLark du compte</b> (même téléphone, même IP). Jamais sur ton PC.</li>
+      <li>Ouvre-le dans le navigateur du téléphone GeeLark ${a.geelarkProfile ? `<b>« ${esc(a.geelarkProfile)} »</b>` : "<b>de ce compte</b>"}, et aucun autre. Jamais sur ton PC.</li>
       <li>Touche <b>Connect a Threads account</b>, accepte les cookies.</li>
       <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}${a.oldPseudo ? `<div class="alert c-yellow" style="margin-top:6px"><b>« Mot de passe incorrect » ?</b> Le pseudo n'a pas été changé dans Instagram. Dans l'appli Instagram : Profil, Modifier le profil, <b>Nom d'utilisateur</b>, colle @${esc(a.pseudo)}, valide. Puis réessaie ici. (Ancien pseudo : @${esc(a.oldPseudo)})</div>` : ""}</li>
-      <li>Accepte <b>toutes</b> les permissions. Si ça te renvoie sur Threads, ferme et refais l'étape 3.</li>
+      <li>La page dit « Continuer en tant que @… » avec un autre pseudo que @${esc(a.pseudo)} ? <b>Annuler</b> : tu es sur le mauvais téléphone.</li><li>Accepte <b>toutes</b> les permissions. Si ça te renvoie sur Threads, ferme et refais l'étape 3.</li>
       <li>Reviens ici et clique le bouton vert.</li>
     </ol>
     <div class="row"><button class="btn big ok" data-act="mcVerify" data-id="${a.id}" data-wait="Vérification...">J'ai connecté Threads</button><button class="btn ghost" data-act="mcConnect" data-id="${a.id}" data-wait="...">Nouveau lien</button></div></div>`;
