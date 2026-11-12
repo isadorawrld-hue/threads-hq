@@ -798,6 +798,24 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   assert.equal((await call("lots/save", { key: nl.key, supplier: "x" })).s, 403);
   tok = admin;
   step("lots achetés : fournisseur, liens, prix, total, vivants / sautés / scam, coût par compte vivant, réservé à l'admin");
+
+  // bug du 12 nov. : fichier « login:mdp:CLE AVEC ESPACES » mal coupé (donnees factices)
+  const KEY = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+  imp = ok(await call("stock/import", { text: "Заказ: 9000002\ncolon_user:FakePw34:GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ\n" }), "import format deux-points");
+  assert.equal(imp.added, 1);
+  // la VA prend les comptes jusqu'a tomber sur les deux qu'on veut verifier
+  await fetch(B + "/__dev/badbought");
+  ok(await call("state"), "state (réparation)");
+  assert.equal(ok(await call("state"), "state").stock.list.find((x) => x.user === "fake_broken").status, "dispo", "le faux scam revient en stock");
+  tok = va;
+  const seen = {};
+  for (let i = 0; i < 8 && Object.keys(seen).length < 2; i++) { const t = ok(await call("stock/take", {}), "prendre"); if (["colon_user", "fake_broken"].includes(t.user)) seen[t.user] = t; await call("stock/release", { id: t.id }); }
+  tok = admin;
+  assert.equal(seen.colon_user?.pass, "FakePw34", "mot de passe sans le début de la clé");
+  assert.equal(seen.colon_user?.totp, KEY, "clé 2FA entière");
+  assert.equal(seen.fake_broken?.pass, "FakePw12", "ancien compte abîmé : mot de passe réparé");
+  assert.equal(seen.fake_broken?.totp, KEY, "ancien compte abîmé : clé réparée");
+  step("comptes achetés « login:mdp:clé 2FA à espaces » bien lus, et anciens comptes abîmés réparés (bug du 12 nov.)");
 }
 
 // --- Metricool plein (bug du 1er nov.) : on reprend la marque d'un compte mort du CRM, sinon message clair

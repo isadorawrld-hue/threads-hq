@@ -281,6 +281,14 @@ http
       if (a) a.blogId = url.searchParams.get("blogId");
       res.writeHead(200); return res.end("ok");
     }
+    // compte achete abime par l'ancien lecteur (bug du 12 nov.) : mdp « mdp:GEZD » + cle amputee, marque scam (donnees factices)
+    if (url.pathname === "/__dev/badbought") {
+      const st = mem.get("stock/bought") || [];
+      st.push({ id: "badb1", user: "fake_broken", pass: "FakePw12:GEZD", totp: "GNBVGY3TQOJQGEZDGNBVGY3TQOJQ", order: "9000001", status: "scam", reason: "Mot de passe refusé", addedAt: new Date().toISOString() });
+      mem.set("stock/bought", st);
+      mem.delete("migr/creds1");
+      res.writeHead(200); return res.end("ok");
+    }
     if (url.pathname === "/__dev/ipage") {
       const ip = mem.get("lastip");
       if (ip) ip.at = new Date(Date.now() - Number(url.searchParams.get("min") || 0) * 60e3).toISOString();
