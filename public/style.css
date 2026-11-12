@@ -353,3 +353,4 @@ body { font-variant-numeric: tabular-nums; }
 .thumbs .nsallow { top: auto; bottom: 30px; right: 6px; }
 .nscard .row { gap: 10px; }
 .btn.failopt, .btn.wrap { white-space: normal; height: auto; line-height: 1.35; padding-top: 9px; padding-bottom: 9px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; } @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }

@@ -1,6 +1,8 @@
 // Threads HQ : interface du CRM (VA + admin). Aucune dependance.
 
 const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const fmtDate = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const app = $("#app");
 
@@ -1043,8 +1045,20 @@ const VIEWS = {
         ${scams.length ? `<div style="margin-top:10px"><b>Comptes scam (à réclamer au vendeur)</b><pre class="scamlist" style="white-space:pre-wrap;font-size:12px;background:var(--wash);padding:8px;border-radius:8px">${esc(scamTxt)}</pre><button class="btn sm light" data-act="copy" data-v="${esc(scamTxt)}">Copier la liste pour le vendeur</button></div>` : ""}
         <label class="f">Fichiers de commande <small>(.txt, plusieurs d'un coup)</small></label><input type="file" id="stockFiles" accept=".txt,text/plain" multiple />
         <label class="f">ou colle la liste</label><textarea data-set="stockText" placeholder="identifiant&#9;motdepasse&#9;CLE 2FA" style="min-height:90px"></textarea>
+        <details class="lotform" open style="margin-top:8px"><summary><b>Le lot</b> <span class="muted">(pour savoir quel fournisseur est bon)</span></summary>
+          <div class="grid2">
+            <div><label class="f">Fournisseur</label><input data-lot="supplier" placeholder="StoneBarracuda" /></div>
+            <div><label class="f">Lien du fournisseur</label><input data-lot="supplierUrl" placeholder="https://..." /></div>
+            <div><label class="f">Lien de l'annonce</label><input data-lot="productUrl" placeholder="https://..." /></div>
+            <div><label class="f">Annonce</label><input data-lot="product" placeholder="Threads 1-2 mois, 2FA" /></div>
+            <div><label class="f">Prix par compte</label><input data-lot="unitPrice" inputmode="decimal" placeholder="80,33" /></div>
+            <div><label class="f">Devise</label><select data-lot="currency"><option value="RUB">Roubles</option><option value="EUR">Euros</option><option value="USD">Dollars</option></select></div>
+          </div>
+          <label class="f">Note</label><input data-lot="note" placeholder="Garantie 30 min, payé avec le solde" />
+        </details>
         <button class="btn" data-act="stockImport" data-wait="Import...">Ajouter au stock</button>
         ${(sk.list || []).length ? `<details style="margin-top:10px"><summary class="muted">Voir les ${sk.list.length} comptes</summary>${sk.list.map((x) => { const [c, l] = skLab[x.status] || ["", x.status]; return `<div class="row" style="justify-content:space-between;padding:4px 0"><span><b>${esc(x.user)}</b> <span class="muted">${x.order ? "cmd " + esc(x.order) : ""}${x.takenBy ? " · " + esc(x.takenBy) : ""}${x.reason ? " · " + esc(x.reason) : ""}</span></span><span class="pill ${c}">${l}</span></div>`; }).join("")}</details>` : ""}</div>
+${lotsCard()}
       <div class="card"><h3 style="margin-top:0">Transférer vers Threads Emmy</h3>
         <p class="muted">Copie le proxy, le lien de rotation et les clés SMS dans le CRM d'Emmy, de serveur à serveur. Personne ne voit les clés. Le code marche une seule fois, pendant 15 min.</p>
         ${S.transferCode ? `<div class="copyline"><span class="k">Code</span><span class="v">${esc(S.transferCode)}</span><button class="btn sm light" data-act="copy" data-v="${esc(S.transferCode)}">Copier</button></div><p class="muted">Colle-le dans Threads Emmy, Réglages, « Récupérer de Threads HQ ».</p>` : ""}
@@ -1112,7 +1126,7 @@ const VIEWS = {
 const LOGS = {
   premier_acces: "Premier accès", aide_ouverte: "Aide ouverte", connexion: "Connexion", code_faux: "Connexion ratée", mdp_change: "Mot de passe changé", ip_changee: "IP changée", ip_pas_changee: "IP pas changée",
   compte_cree: "Compte créé", creation_ratee: "Création ratée", warmup_fait: "Warm-up fait", setup_fait: "Setup fait", metricool_relie: "Relié à Metricool",
-  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié",
+  metricool_delie: "Délié de Metricool", marque_creee: "Marque Metricool créée", numero_achete: "Numéro SMS pris", tiny_menage: "Ménage TinyURL", code_recu: "Code SMS reçu", numero_annule: "Numéro SMS annulé", lien_metricool: "Lien de connexion Metricool", planif: "Posts planifiés", check: "Check", compte_saute: "Compte sauté", stock_scam: "Compte acheté scam (suivant donné)", stock_saute_file: "Compte acheté remis en fin de stock (suivant donné)", compte_modifie: "Compte modifié", lot_modifie: "Lot acheté modifié",
   compte_supprime: "Compte supprimé", textes_ajoutes: "Textes ajoutés", photo_ajoutee: "Photo ajoutée", photo_autorisee: "Photo : autorisation anti-nudité", reglages_modifies: "Réglages modifiés",
   transfert_code: "Code de transfert créé", transfert_envoye: "Connexions envoyées vers Threads Emmy", transfert_refuse: "Code de transfert refusé", secrets_modifies: "Connexions modifiées", lien_cree: "Lien créé", lien_non_cree: "Lien non créé", stats_liens: "Clics relevés", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", compta_ajout: "Compta : ligne ajoutée", compta_modif: "Compta : ligne modifiée", compta_suppr: "Compta : ligne supprimée", compta_taux: "Compta : taux du dollar", coffre_ajout: "Coffre : accès ajouté", coffre_modif: "Coffre : accès modifié", coffre_suppr: "Coffre : accès supprimé", coffre_vu: "Coffre : secret affiché",
 };
@@ -1166,6 +1180,30 @@ async function planFull(accountId, days, btn, label, mode) {
 const POSTING = ["actif", "shadowban", "restreint"];
 // pseudo violet = compte a warm-up 10 min tous les jours (5 comptes choisis par l'admin). Clic dessus : petit rappel 2 s.
 const WARM_TIP = "À warm-up tous les jours sur GeeLark : 10 min, 3-4 likes, 3-4 commentaires en chinois, 2 abonnements max, rien à publier.";
+// Suivi des lots achetés (admin) : chaque lot = un fournisseur, un prix, et ce que deviennent ses comptes
+const CUR_SYM = { RUB: "₽", EUR: "€", USD: "$" };
+const money = (v, c) => (v || v === 0 ? `${String(Math.round(v * 100) / 100).replace(".", ",")} ${CUR_SYM[c] || c}` : "");
+function lotsCard() {
+  const lots = S.data.lots || [];
+  if (!lots.length) return "";
+  const vLab = { bon: ["c-green", "Bon fournisseur"], moyen: ["c-yellow", "Moyen"], mauvais: ["c-red", "Mauvais"], "trop tot": ["", "Trop tôt pour juger"] };
+  const accLab = { vivant: "vivant", saute: "sauté", "": "pas encore monté" };
+  return `<div class="card"><h3 style="margin-top:0">Lots achetés : qui est un bon fournisseur ?</h3>
+    <p class="muted">Un lot = un achat. On compte ce que deviennent ses comptes une fois montés. Verdict après 7 jours et au moins 5 comptes montés : 70 % de vivants ou plus = bon, moins de 40 % = mauvais.</p>
+    ${lots.map((l) => { const [vc, vl] = vLab[l.verdict] || ["", l.verdict]; return `<div class="lot" style="border-top:1px solid var(--line);padding:10px 0">
+      <div class="row" style="justify-content:space-between;align-items:flex-start"><div><b>${esc(l.name)}</b> <span class="muted">${l.boughtAt ? fmtDate(l.boughtAt) : ""}${l.order ? " · cmd " + esc(l.order) : ""}</span><br>
+        <span class="muted">${l.supplier ? (l.supplierUrl ? `<a href="${esc(l.supplierUrl)}" target="_blank" rel="noopener">${esc(l.supplier)}</a>` : esc(l.supplier)) : "Fournisseur non noté"}${l.product ? " · " + (l.productUrl ? `<a href="${esc(l.productUrl)}" target="_blank" rel="noopener">${esc(l.product)}</a>` : esc(l.product)) : l.productUrl ? ` · <a href="${esc(l.productUrl)}" target="_blank" rel="noopener">annonce</a>` : ""}</span></div>
+        <span class="pill ${vc}">${vl}</span></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
+        <span class="tag">${l.qty} achetés</span>${l.unitPrice ? `<span class="tag">${money(l.unitPrice, l.currency)} / compte</span>` : ""}${l.total ? `<span class="tag">${money(l.total, l.currency)} payés</span>` : ""}
+        <span class="tag">${l.used} montés</span><span class="tag ok">${l.alive} vivants</span><span class="tag ${l.dead ? "miss" : ""}">${l.dead} sautés</span><span class="tag ${l.scam ? "miss" : ""}">${l.scam} scam</span>${l.rate ? `<span class="tag miss">${l.rate} ratés</span>` : ""}${l.dispo ? `<span class="tag">${l.dispo} en stock</span>` : ""}
+        ${l.survie !== null ? `<span class="tag"><b>${l.survie} %</b> en vie</span>` : ""}${l.medianDeadDays !== null ? `<span class="tag">mort en ${l.medianDeadDays} j en moyenne</span>` : ""}${l.costPerAlive ? `<span class="tag">${money(l.costPerAlive, l.currency)} par compte vivant</span>` : ""}
+      </div>
+      ${l.note ? `<p class="muted" style="margin:6px 0 0">${esc(l.note)}</p>` : ""}
+      <div class="row" style="gap:6px;margin-top:6px"><button class="btn sm light" data-act="lotEdit" data-k="${esc(l.key)}">Modifier le lot</button>
+      <details style="flex:1"><summary class="muted">Voir les ${l.qty} comptes</summary>${l.accounts.map((a) => `<div class="row" style="justify-content:space-between;padding:2px 0"><span>${esc(a.user)}${a.pseudo && a.pseudo !== a.user ? ` <span class="muted">@${esc(a.pseudo)}</span>` : ""}</span><span class="muted">${a.status === "utilise" ? `${accLab[a.acc] ?? a.acc}${a.days !== null ? ", " + a.days + " j" : ""}` : a.status === "dispo" ? "en stock" : a.status === "pris" ? "en cours" : a.status + (a.reason ? " · " + esc(a.reason) : "")}</span></div>`).join("")}</details></div>
+    </div>`; }).join("")}</div>`;
+}
 // Nom Chloé du compte (ce que la VA voit dans GeeLark / sur le profil). Comptes achetés : le pseudo de connexion
 // reste celui du vendeur, donc on affiche le nom donné (displayName), sinon le nom du téléphone GeeLark.
 function nameOf(a) {
@@ -2017,9 +2055,33 @@ const ACT = {
     for (const f of files) text += "\n" + (await f.text());
     if (!text.trim()) return toast("Colle la liste ou choisis les fichiers .txt.", true);
     await run(b, async () => {
-      const r = await api("stock/import", { text });
-      toast(`${r.added} compte(s) ajouté(s)${r.skipped ? `, ${r.skipped} déjà connu(s)` : ""} · ${r.dispo} en stock`);
+      const lot = {};
+      $$("[data-lot]").forEach((i) => (lot[i.dataset.lot] = i.value));
+      const r = await api("stock/import", { text, lot });
+      toast(`${r.added} compte(s) ajouté(s)${r.lot ? ` dans « ${r.lot} »` : ""}${r.skipped ? `, ${r.skipped} déjà connu(s)` : ""} · ${r.dispo} en stock`);
       ta.value = "";
+      $$("[data-lot]").forEach((i) => { if (i.tagName !== "SELECT") i.value = ""; });
+      await refresh();
+    });
+  },
+  lotEdit(b) {
+    const l = (S.data.lots || []).find((x) => x.key === b.dataset.k);
+    if (!l) return;
+    const f = (k, lab, v, ph = "") => `<label class="f">${lab}</label><input data-lote="${k}" value="${esc(v ?? "")}" placeholder="${ph}" />`;
+    modal(`<h3>${esc(l.name)}</h3>
+      ${f("name", "Nom du lot", l.name)}${f("supplier", "Fournisseur", l.supplier, "StoneBarracuda")}${f("supplierUrl", "Lien du fournisseur", l.supplierUrl, "https://...")}
+      ${f("productUrl", "Lien de l'annonce", l.productUrl, "https://...")}${f("product", "Annonce", l.product)}
+      <div class="grid2"><div>${f("unitPrice", "Prix par compte", l.unitPrice || "")}</div><div><label class="f">Devise</label><select data-lote="currency">${["RUB", "EUR", "USD"].map((c) => `<option value="${c}" ${l.currency === c ? "selected" : ""}>${{ RUB: "Roubles", EUR: "Euros", USD: "Dollars" }[c]}</option>`).join("")}</select></div></div>
+      ${f("total", "Total payé (vide = prix × nombre)", l.total || "")}${f("note", "Note", l.note)}
+      <div class="row" style="margin-top:12px;gap:8px"><button class="btn" data-act="lotSave" data-k="${esc(l.key)}" data-wait="...">Enregistrer</button><button class="btn light" data-act="closeModal">Annuler</button></div>`);
+  },
+  async lotSave(b) {
+    const body = { key: b.dataset.k };
+    $$("[data-lote]").forEach((i) => (body[i.dataset.lote] = i.value));
+    await run(b, async () => {
+      await api("lots/save", body);
+      closeModal();
+      toast("Lot enregistré");
       await refresh();
     });
   },

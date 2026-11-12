@@ -261,9 +261,19 @@ await a.reload();
 await a.waitForSelector(".bar");
 await tab(a, "settings");
 await a.setInputFiles("#stockFiles", { name: "1000002.txt", mimeType: "text/plain", buffer: Buffer.from("Заказ: 1000002\nhttps://darkstore.contact\n\nbought_lily\tAchat123!\tJBSW Y3DP EHPK 3PXP\nbought_rose\tRose456!\tGEZD GNBV GY3T QOJQ\n") });
+await a.fill('[data-lot="supplier"]', "StoneBarracuda");
+await a.fill('[data-lot="supplierUrl"]', "https://darkstore.bz/catalog?supplier=StoneBarracuda");
+await a.fill('[data-lot="unitPrice"]', "80,33");
 await a.click('[data-act="stockImport"]');
-await waitToast(a, /2 compte\(s\) ajouté/);
+await waitToast(a, /2 compte\(s\) ajouté\(s\) dans « Lot 1 · StoneBarracuda »/);
 await a.waitForFunction(() => /2 en stock/.test(document.querySelector("main").textContent));
+await a.waitForFunction(() => /Lot 1 · StoneBarracuda/.test(document.querySelector("main").textContent) && /160,66 ₽ payés/.test(document.querySelector("main").textContent));
+// modifier le lot : la note s'affiche
+await a.click('[data-act="lotEdit"]');
+await a.fill('[data-lote="note"]', "Garantie 30 min");
+await a.click('[data-act="lotSave"]');
+await waitToast(a, /Lot enregistré/);
+await a.waitForFunction(() => /Garantie 30 min/.test(document.querySelector("main").textContent));
 await shot(a, "18a-stock-import");
 
 await v.reload();

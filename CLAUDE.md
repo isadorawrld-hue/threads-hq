@@ -287,3 +287,9 @@ Tri des 1 400 APIs de github.com/public-apis/public-apis : seules 3 servent le C
 - Le tuto vidéo setup.mp4 montre peut-être l'ancienne manip : à revoir.
 - Carte Metricool : nom du bon téléphone GeeLark affiché, et « Continuer en tant que @autre » = Annuler (11 nov., Volana a ouvert le lien de chloe.douhua_2003 sur le téléphone connecté à chloe_xiaoyu.86). `mcverify` déconnecte déjà un mauvais compte, le message nomme maintenant le bon téléphone.
 - Sauter un compte dont la marque est aussi tenue par un compte vivant (11 nov., meimei / xiaoyu) : on annule ses posts mais on ne déconnecte PAS Threads de la marque, et le sauté lâche la marque (`oldBlogId`). Avant, sauter meimei aurait coupé xiaoyu. Test dans `dev/test-offmc.mjs`.
+
+## Lots achetés (12 nov., demandé par Awen)
+- But : savoir quel fournisseur vend des comptes qui vivent. Un lot = un achat (`lots/<id>` : fournisseur, lien du fournisseur, lien et nom de l'annonce, prix par compte, devise RUB/EUR/USD, total, note).
+- Import (Réglages > Comptes achetés) : bloc « Le lot » rempli = lot créé (`stock/import` avec `lot`), chaque compte du stock garde `lot`. Sans infos : le lot reste repéré par son n° de commande (« Commande 8656790 »).
+- Carte « Lots achetés : qui est un bon fournisseur ? » (admin seulement, `state.lots` = `lotStats`) : achetés, montés, vivants, sautés, scam, ratés, % en vie, jours de vie moyens des sautés, coût par compte vivant. Verdict après 7 jours et 5 comptes montés : 70 % vivants = bon, moins de 40 % = mauvais.
+- « Modifier le lot » (`lots/save`) : un ancien lot (n° de commande) devient un vrai lot à la 1re modif. Liens non http refusés. Log `lot_modifie`.

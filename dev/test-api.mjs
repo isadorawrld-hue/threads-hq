@@ -768,6 +768,36 @@ step("compte acheté : enregistré sans numéro, clé 2FA nettoyée, clé invali
   assert.match(r.j.error, /Plus de compte/);
   tok = admin;
   step("stock de comptes achetés : import du fichier (pub ignorée, doublons), prise auto, rendu, raté, utilisé, stock vide");
+
+  // suivi des lots (12 nov.) : l'ancien lot (n° de commande) se lit, se complète, et un nouvel import porte son fournisseur
+  let lots = ok(await call("state"), "state").lots;
+  const old = lots.find((l) => l.order === "1000001");
+  assert.ok(old && !old.real, "ancien lot retrouvé par son numéro de commande");
+  assert.deepEqual([old.qty, old.used, old.alive, old.scam, old.rate], [3, 1, 1, 1, 1], "chiffres de l'ancien lot");
+  assert.equal(old.verdict, "trop tot", "pas de verdict avant 5 comptes montés et 7 jours");
+  ok(await call("lots/save", { key: old.key, supplier: "Vendeur A", supplierUrl: "https://darkstore.bz/catalog?supplier=A", unitPrice: "24,65", currency: "RUB" }), "fiche de l'ancien lot");
+  lots = ok(await call("state"), "state").lots;
+  const oldR = lots.find((l) => l.order === "1000001");
+  assert.ok(oldR.real && oldR.key.startsWith("lot"), "l'ancien lot devient un vrai lot");
+  assert.equal(oldR.supplier, "Vendeur A");
+  assert.equal(oldR.total, 73.95, "total = prix × nombre");
+  assert.equal(oldR.costPerAlive, 73.95, "coût par compte vivant");
+  assert.equal((await call("lots/save", { key: oldR.key, supplierUrl: "javascript:alert(1)" })).s, 200);
+  assert.equal(ok(await call("state"), "state").lots.find((l) => l.key === oldR.key).supplierUrl, "", "lien non http refusé");
+  imp = ok(await call("stock/import", { text: "Order: 2000002\nlot_aa\tPw1\tJBSW Y3DP EHPK 3PXP\nlot_bb\tPw2\tGEZD GNBV GY3T QOJQ\n", lot: { supplier: "StoneBarracuda", supplierUrl: "https://darkstore.bz/catalog?supplier=StoneBarracuda", productUrl: "https://darkstore.bz/product/x", product: "Threads 1-2 mois", unitPrice: "80,33", currency: "RUB", note: "garantie 30 min" } }), "import avec lot");
+  assert.equal(imp.added, 2);
+  assert.match(imp.lot, /StoneBarracuda/);
+  lots = ok(await call("state"), "state").lots;
+  const nl = lots.find((l) => l.supplier === "StoneBarracuda");
+  assert.equal(nl.qty, 2);
+  assert.equal(nl.total, 160.66);
+  assert.equal(nl.dispo, 2);
+  assert.equal(nl.note, "garantie 30 min");
+  tok = va;
+  assert.equal(ok(await call("state"), "state VA").lots, undefined, "la VA ne voit pas les lots");
+  assert.equal((await call("lots/save", { key: nl.key, supplier: "x" })).s, 403);
+  tok = admin;
+  step("lots achetés : fournisseur, liens, prix, total, vivants / sautés / scam, coût par compte vivant, réservé à l'admin");
 }
 
 // --- Metricool plein (bug du 1er nov.) : on reprend la marque d'un compte mort du CRM, sinon message clair
