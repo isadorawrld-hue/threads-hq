@@ -234,9 +234,13 @@ const SOP = {
     t: "Tuto complet : un compte acheté de A à Z",
     steps: ["Les 6 tutos ci-dessous, à la suite.", "Regarde-le une fois en entier.", "Ensuite, utilise les tutos courts (ou le bouton ? de chaque étape) quand tu bloques."],
   },
+  zero: {
+    t: "Créer un compte de zéro (sans compte acheté)",
+    steps: ["« Créer un compte », puis « Créer un nouveau compte ».", "Laisse France, « Changer l'IP », attends le vert, « Étape suivante ».", "Nouveau téléphone GeeLark, comme au tuto 1. Écris son nom dans le CRM.", "Étape 3 : onglet « Avec un e-mail (conseillé) ». Le CRM te donne une adresse e-mail.", "Dans le téléphone, ouvre l'appli Instagram (pas Threads), puis « Créer un compte » avec cet e-mail.", "Le code à 6 chiffres arrive tout seul dans le CRM : copie-le dans Instagram.", "Pseudo : « Utiliser » le pseudo proposé par le CRM. Mot de passe : « Générer », puis copie-le dans Instagram.", "Instagram demande aussi un numéro ? Encadré « Instagram demande aussi un numéro ? » à l'étape 4.", "Ouvre l'appli Threads : « Se connecter avec Instagram », crée le profil Threads jusqu'au bout.", "Le fil Threads s'affiche : « Étape suivante », puis « Oui, il marche ». Ensuite warm-up, setup et Metricool comme d'habitude (tutos 3 à 5).", "« Try again later » ou blocage : « Ça n'a pas marché ». Supprime ce téléphone dans GeeLark, crée-en un neuf, et passe sur l'autre proxy (France / UK)."],
+  },
   rotation: {
     t: "1. Changer l'IP + nouveau téléphone GeeLark",
-    steps: ["« Créer un compte », puis « J'ai déjà un compte ». On te donne les comptes : tu n'en crées jamais.", "Laisse France, clique « Changer l'IP ».", "Attends la nouvelle IP en vert, puis « Étape suivante ».", "GeeLark : nouveau profil (1 profil = 1 compte), nommé « Threads » + le nom Chloé.", "Proxy : Custom, type Socks5. Copie hôte, port, utilisateur, mot de passe depuis le CRM.", "Advanced settings : Location et Cloud phone language sur « Based on IP ».", "Clique « Create ».", "Écris le nom du téléphone dans le CRM, puis « Étape suivante »."],
+    steps: ["« Créer un compte », puis « J'ai déjà un compte » (compte acheté) ou « Créer un nouveau compte » (de zéro).", "Laisse France, clique « Changer l'IP ».", "Attends la nouvelle IP en vert, puis « Étape suivante ».", "GeeLark : nouveau profil (1 profil = 1 compte), nommé « Threads » + le nom Chloé.", "Proxy : Custom, type Socks5. Copie hôte, port, utilisateur, mot de passe depuis le CRM.", "Advanced settings : Location et Cloud phone language sur « Based on IP ».", "Clique « Create ».", "Écris le nom du téléphone dans le CRM, puis « Étape suivante »."],
   },
   numero: {
     t: "Prendre un numéro (création de compte, plus utilisé)",
