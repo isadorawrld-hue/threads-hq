@@ -14,7 +14,7 @@ await p.waitForTimeout(2000);
 await p.evaluate(() => [...document.querySelectorAll("a,button")].find((e) => /^\s*Guides \(SOP\)\s*$/.test(e.textContent)).click());
 await p.waitForTimeout(800);
 const want = {
-  complet: "creation.mp4", rotation: "geelark.mp4", numero: "numero.mp4", creation: "compte.mp4", warmup: "warmup.mp4",
+  complet: "creation.mp4", rotation: null, numero: "numero.mp4", creation: "compte.mp4", warmup: "warmup.mp4",
   strategies: null, setup: "setup.mp4", metricool: "metricool.mp4", planning: "planning.mp4", engage: null, check: "check.webm", remplacement: "remplacement.webm",
 };
 const sops = await p.evaluate(() => [...document.querySelectorAll("details.sop")].map((d) => ({ k: d.dataset.sop, t: d.querySelector("summary").textContent.trim(), v: d.querySelector("video")?.getAttribute("src") || null })));
