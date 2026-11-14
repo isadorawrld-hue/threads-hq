@@ -603,8 +603,8 @@ st = ok(await call("state"), "state");
 assert.ok(st.geelarkBurned.includes("chloe 99"), "téléphone GeeLark noté grillé");
 await call("rotate", {});
 r = await call("accounts/create", { pseudo: "reuse_phone", email: "a@b.c", password: "pw", geelarkProfile: "chloe 99" });
-assert.equal(r.s, 400, "téléphone GeeLark grillé refusé");
-assert.match(r.j.error, /NOUVEAU téléphone GeeLark/);
+assert.equal(r.s, 400, "profil AdsPower grillé refusé");
+assert.match(r.j.error, /NOUVEAU profil AdsPower/);
 tok = admin;
 step("e-mail Hero : moins cher en stock, code reçu tout seul, compte sans numéro, remboursement et échec remboursé");
 

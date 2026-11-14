@@ -311,7 +311,7 @@ await nextAcc("bought_rose");
 // compte banni a la connexion (bug du 8 nov., kara65848) : scam, telephone grille, nouvelle IP, le suivant est deja reserve
 await v.click('[data-act="boughtFail"]');
 await v.click('[data-act="boughtFailPick"][data-k="ban"]');
-await waitToast(v, /Supprime ce téléphone GeeLark.*@bought_lily/);
+await waitToast(v, /Supprime ce profil AdsPower.*@bought_lily/);
 await v.waitForFunction(() => /Étape 1 sur 4/.test(document.querySelector("main").textContent));
 await v.click('main [data-act="rotate"]');
 await waitToast(v, /Nouvelle IP/);
