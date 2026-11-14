@@ -107,8 +107,8 @@ await v.click('main [data-act="rotate"]');
 await v.waitForSelector(".alert.c-green");
 await shot(v, "05-create-ip");
 await v.click('[data-act="wizNext"]');
-await v.waitForFunction(() => /Socks5/.test(document.querySelector("main").textContent) && /17157/.test(document.querySelector("main").textContent));
-await shot(v, "06-create-geelark");
+await v.waitForFunction(() => /Nouveau profil AdsPower/.test(document.querySelector("main").textContent) && /Proxys enregistrés/.test(document.querySelector("main").textContent) && /:8000/.test(document.querySelector("main").textContent));
+await shot(v, "06-create-adspower");
 // en pleine creation, le bouton IP du haut previent au lieu de changer l'IP
 const ipBefore = await v.textContent(".ipnow b");
 await v.click('header [data-act="rotateGuard"]');
@@ -311,7 +311,7 @@ await nextAcc("bought_rose");
 // compte banni a la connexion (bug du 8 nov., kara65848) : scam, telephone grille, nouvelle IP, le suivant est deja reserve
 await v.click('[data-act="boughtFail"]');
 await v.click('[data-act="boughtFailPick"][data-k="ban"]');
-await waitToast(v, /Supprime ce téléphone GeeLark.*@bought_lily/);
+await waitToast(v, /Supprime ce profil AdsPower.*@bought_lily/);
 await v.waitForFunction(() => /Étape 1 sur 4/.test(document.querySelector("main").textContent));
 await v.click('main [data-act="rotate"]');
 await waitToast(v, /Nouvelle IP/);

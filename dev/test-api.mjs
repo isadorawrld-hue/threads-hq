@@ -106,6 +106,7 @@ st = ok(await call("state"), "state");
 assert.equal(st.sms.code, "654321");
 step("Hero SMS : prix, solde, achat, code reçu");
 const a1 = ok(await call("accounts/create", { pseudo: "@tw_girl1", phone: act.phone, smsId: act.id, password: "pw1" }), "création 1");
+assert.equal((await call("state")).j.accounts.find((x) => x.pseudo === "tw_girl1").tool, "adspower", "nouveau compte = AdsPower");
 assert.equal((await (await fetch(B + "/__sms")).json()).finished, true, "activation terminée chez Hero");
 st = ok(await call("state"), "state");
 assert.equal(st.sms, null, "plus de numéro en cours");
@@ -604,7 +605,7 @@ assert.ok(st.geelarkBurned.includes("chloe 99"), "téléphone GeeLark noté gril
 await call("rotate", {});
 r = await call("accounts/create", { pseudo: "reuse_phone", email: "a@b.c", password: "pw", geelarkProfile: "chloe 99" });
 assert.equal(r.s, 400, "téléphone GeeLark grillé refusé");
-assert.match(r.j.error, /NOUVEAU téléphone GeeLark/);
+assert.match(r.j.error, /NOUVEAU profil AdsPower/, "outil par défaut = AdsPower");
 tok = admin;
 step("e-mail Hero : moins cher en stock, code reçu tout seul, compte sans numéro, remboursement et échec remboursé");
 

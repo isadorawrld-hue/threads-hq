@@ -370,15 +370,192 @@ const HELP = {
     more: ["Le CRM a déjà annulé les posts du compte mort et libéré sa marque Metricool.", "Crée le nouveau compte comme d'habitude : IP, téléphone, numéro, compte, warm-up, setup.", "À l'étape Metricool, il reprend la marque du mort : tu connectes juste Threads.", "Il garde le même groupe, la même stratégie, le même lien. Les posts repartent dès la connexion."],
   },
 };
+// ------------------------------------------------------------ AdsPower (depuis le 14 nov. : profils navigateur au lieu des téléphones GeeLark)
+// Les comptes créés avant gardent tool vide = GeeLark (ils vivent encore dans leurs téléphones).
+const toolNow = () => (S.data?.settings?.tool === "geelark" ? "geelark" : "adspower");
+const isAds = (a) => (a ? a.tool === "adspower" : toolNow() === "adspower");
+const devW = (a) => (isAds(a) ? "profil AdsPower" : "téléphone GeeLark");
+const igW = (a) => (isAds(a) ? "instagram.com" : "l'appli Instagram");
+const thW = (a) => (isAds(a) ? "threads.com" : "l'appli Threads");
+const SOP_ADS = {
+  complet: {
+    t: "Tuto complet AdsPower : un compte de A à Z",
+    steps: [
+      "Le CRM reste dans ton Chrome normal. Le compte, lui, vit dans sa fenêtre AdsPower. Tu copies dans l'un, tu colles dans l'autre.",
+      "1 compte = 1 profil AdsPower = 1 IP. Jamais 2 comptes dans le même profil.",
+      "Une seule fenêtre AdsPower ouverte à la fois. Ferme-la avant de changer l'IP.",
+      "CRM : « Créer un compte ». Laisse France, « Changer l'IP », attends le vert, « Étape suivante ».",
+      "AdsPower : « Nouveau profil ». Nom : celui que tu écris dans le CRM. Groupe : Chloé.",
+      "Procuration : onglet « Proxys enregistrés », « Sélectionner mandataire » : celui du CRM (il finit par le port écrit dans le CRM). « D'ACCORD ».",
+      "Sur la ligne du profil : « Ouvrir ». Une fenêtre de navigateur s'ouvre : c'est le téléphone du compte.",
+      "Compte acheté : dans cette fenêtre, va sur instagram.com, connecte-toi (identifiant, mot de passe, code 2FA du CRM). Puis threads.com, « Continuer avec Instagram ».",
+      "Compte de zéro : dans cette fenêtre, va sur instagram.com, « S'inscrire » avec l'e-mail du CRM. Puis threads.com, « Continuer avec Instagram ».",
+      "Tu vois le fil Threads : « Oui, il marche » dans le CRM.",
+      "Warm-up 10 min dans la même fenêtre (tuto 3), puis setup (tuto 4), puis Metricool (tuto 5).",
+      "Fini : ferme la fenêtre AdsPower. Rien d'autre dans ce profil : pas de Gmail, pas d'autre site.",
+    ],
+  },
+  rotation: {
+    t: "1. Changer l'IP + nouveau profil AdsPower",
+    steps: [
+      "Ferme toutes les fenêtres AdsPower ouvertes.",
+      "CRM : « Créer un compte », puis « J'ai déjà un compte » (compte acheté) ou « Créer un nouveau compte » (de zéro).",
+      "Laisse France, clique « Changer l'IP ». Attends la nouvelle IP en vert, puis « Étape suivante ».",
+      "AdsPower : bouton bleu « Nouveau profil » en haut à gauche.",
+      "Nom : un nom neuf (ex : chloe 23). Écris le même dans le CRM.",
+      "Groupe : Chloé. Sinon le profil est rangé ailleurs.",
+      "Procuration : onglet « Proxys enregistrés », puis « Sélectionner mandataire » : prends celui du CRM.",
+      "Ne touche pas au reste (navigateur, OS, empreinte) : AdsPower règle tout tout seul.",
+      "« D'ACCORD ». Le profil apparaît dans la liste.",
+      "Sur sa ligne : « Ouvrir ». Puis « Étape suivante » dans le CRM.",
+    ],
+  },
+  creation: {
+    t: "2. Se connecter au compte acheté",
+    steps: [
+      "Clique « Prendre un compte acheté » : identifiant, mot de passe et clé 2FA se remplissent tout seuls.",
+      "Dans la fenêtre AdsPower du compte, tape instagram.com dans la barre d'adresse.",
+      "Colle l'identifiant, puis le mot de passe (boutons Copier du CRM). « Se connecter ».",
+      "Instagram demande un code à 6 chiffres : copie le Code 2FA du CRM et colle-le tout de suite (il change toutes les 30 s).",
+      "Ensuite va sur threads.com : « Continuer avec Instagram ». Threads te demande de créer ton profil ? Va jusqu'au bout.",
+      "Tu vois le fil Threads et ton profil s'ouvre : « Étape suivante », puis « Oui, je suis connectée ».",
+      "Compte banni, mot de passe ou 2FA refusés : « Ce compte ne marche pas ». Le CRM te dit si tu gardes le profil.",
+    ],
+  },
+  zero: {
+    t: "Créer un compte de zéro (sans compte acheté)",
+    steps: [
+      "« Créer un compte », puis « Créer un nouveau compte ».",
+      "Laisse France, « Changer l'IP », attends le vert, « Étape suivante ».",
+      "Nouveau profil AdsPower, comme au tuto 1. Écris son nom dans le CRM, puis « Ouvrir ».",
+      "Étape 3 : onglet « Avec un e-mail (conseillé) ». Le CRM te donne une adresse e-mail.",
+      "Dans la fenêtre AdsPower : instagram.com, « S'inscrire » avec cet e-mail.",
+      "Le code à 6 chiffres arrive tout seul dans le CRM : copie-le dans Instagram.",
+      "Pseudo : « Utiliser » le pseudo proposé par le CRM. Mot de passe : « Générer », puis copie-le dans Instagram.",
+      "Instagram demande aussi un numéro ? Encadré « Instagram demande aussi un numéro ? » à l'étape 4.",
+      "Va sur threads.com : « Continuer avec Instagram », crée le profil Threads jusqu'au bout.",
+      "Le fil Threads s'affiche : « Étape suivante », puis « Oui, il marche ». Ensuite warm-up, setup et Metricool (tutos 3 à 5).",
+      "« Try again later » ou blocage : « Ça n'a pas marché ». Supprime ce profil dans AdsPower, crée-en un neuf (autre nom), et passe sur l'autre proxy (France / UK).",
+    ],
+  },
+  warmup: {
+    t: "3. Warm-up (10 min)",
+    steps: [
+      "Juste après la connexion, dans la même fenêtre AdsPower.",
+      "Clique « Lancer le chrono 10 min » dès le début.",
+      "Abonne-toi aux 5 comptes du CRM : copie le pseudo, cherche-le sur threads.com, abonne-toi, like 2 posts.",
+      "Scrolle le fil, like 5 à 10 posts de la niche.",
+      "Un commentaire ? Écris-le dans Google Traduction en chinois traditionnel.",
+      "Pendant ces 10 min : zéro post, zéro lien.",
+      "Chrono fini : coche les cases, « Warm-up fini ».",
+    ],
+  },
+  setup: {
+    t: "4. Setup du profil",
+    steps: [
+      "Même fenêtre AdsPower, même IP : ne change pas l'IP.",
+      "Pseudo (compte acheté) : instagram.com, ta photo en haut à droite, « Modifier le profil », « Voir plus dans l'Espace Comptes », ton profil, « Nom d'utilisateur ». Colle le nouveau pseudo du CRM, « Terminé ». Déjà pris ? « Un autre » dans le CRM.",
+      "Photo : « Télécharger » dans le CRM (elle va dans Téléchargements). Sur threads.com : Profil, « Modifier le profil », clique la photo, choisis le fichier.",
+      "Bio : « Copier la bio » dans le CRM, colle-la dans « Bio », « Terminé ».",
+      "Lien (stratégie lien) : dans « Modifier le profil », champ « Liens ».",
+      "Post épinglé : publie la partie 1, puis réponds à ton post avec la partie 2 (le lien). Les 3 points du post, « Épingler au profil ».",
+      "Coche les cases, « Setup fini ».",
+    ],
+  },
+  metricool: {
+    t: "5. Connecter Metricool",
+    steps: [
+      "Dans « Comptes en cours », copie le lien Metricool du compte.",
+      "Ouvre la fenêtre AdsPower de CE compte (« Ouvrir » sur sa ligne). Colle le lien dans sa barre d'adresse. Jamais dans ton Chrome normal.",
+      "Clique « Connect a Threads account », autorise les cookies.",
+      "Le compte est déjà connecté dans cette fenêtre : accepte. Sinon, pseudo, mot de passe et code 2FA du CRM (boutons Copier).",
+      "La page dit « Continuer en tant que » un autre pseudo ? « Annuler » : mauvaise fenêtre.",
+      "Accepte tout. Reviens dans le CRM : « J'ai connecté Threads ». Le CRM programme 3 jours de posts tout seul.",
+    ],
+  },
+  engage: {
+    t: "Pseudos violets : warm-up tous les jours",
+    steps: [
+      "5 comptes ont leur pseudo en violet dans le CRM. Seulement ceux-là.",
+      "Tous les jours, ouvre le compte là où il vit : son profil AdsPower, ou son téléphone GeeLark pour les anciens comptes. Le CRM l'écrit sur la carte.",
+      "10 minutes sur Threads.",
+      "Like 3 à 4 posts d'autres modèles. Maximum 4.",
+      "Commente 3 à 4 posts d'autres modèles, en chinois traditionnel (Google Traduction), court et gentil. Maximum 4.",
+      "Suis 2 personnes maximum.",
+      "Ne publie rien : Metricool publie tout seul. Pas de spam.",
+      "Ferme la fenêtre (ou éteins le téléphone). Rien à cliquer dans le CRM.",
+    ],
+  },
+};
+// Ordre de la page SOP en mode AdsPower : le tuto complet AdsPower d'abord.
+const SOP_ORDER_ADS = ["complet", "rotation", "creation", "zero", "warmup", "strategies", "setup", "metricool", "planning", "engage", "check", "remplacement"];
+const HELP_ADS = {
+  rotation: {
+    t: "Changer l'IP",
+    hint: "Ferme les fenêtres AdsPower, clique « Changer l'IP » et attends l'IP en vert.",
+    more: ["1 compte = 1 IP. Toujours une nouvelle IP avant de créer un compte.", "Ferme d'abord toutes les fenêtres AdsPower : tous les profils passent par le même proxy.", "Clique « Changer l'IP » en haut de l'écran.", "Vert : IP neuve, tu peux continuer.", "Rouge : cette IP a déjà servi, reclique.", "L'IP doit dater de moins de 15 min pour passer à l'étape 2. Ensuite tu as 4 h pour finir le compte."],
+    trap: "Changer l'IP avec une fenêtre AdsPower ouverte, ou au milieu d'une création. Une seule fois, à l'étape 1, fenêtres fermées.",
+  },
+  geelark: {
+    t: "Nouveau profil AdsPower",
+    hint: "« Nouveau profil », groupe Chloé, proxy enregistré du CRM, puis « Ouvrir ».",
+    more: ["Ouvre AdsPower sur le PC.", "Bouton bleu « Nouveau profil » en haut à gauche (jamais un ancien profil).", "Nom : un nom neuf, le même que dans le CRM.", "Groupe : Chloé.", "Procuration : onglet « Proxys enregistrés », « Sélectionner mandataire » : celui du CRM (même port).", "Ne touche pas au reste : navigateur, OS et empreinte se règlent tout seuls.", "« D'ACCORD », puis « Ouvrir » sur la ligne du profil."],
+    trap: "Réutiliser un ancien profil, ou oublier le proxy. 1 profil = 1 compte, toujours avec le proxy du CRM.",
+  },
+  email: {
+    t: "Prendre un e-mail",
+    hint: "Prends un e-mail, inscris-toi avec sur instagram.com. Le code arrive ici tout seul.",
+    more: ["Clique « Prendre un e-mail ».", "Dans la fenêtre AdsPower du compte : instagram.com, « S'inscrire ».", "Copie l'e-mail du CRM et colle-le.", "Le code arrive ici tout seul (en général en moins de 2 min). Copie-le dans Instagram.", "Pas de code après 5 min : bouton rouge « Pas de code : annuler l'e-mail », puis reprends-en un.", "Si Instagram refuse l'e-mail, passe sur « Avec un numéro »."],
+    trap: "Utiliser 2 fois le même e-mail.",
+  },
+  compte: {
+    t: "Créer le compte",
+    hint: "Crée d'abord le compte sur instagram.com, puis threads.com avec. Note pseudo et mot de passe ici.",
+    more: ["Dans la fenêtre AdsPower : instagram.com, « S'inscrire » (e-mail du CRM de préférence).", "Colle l'e-mail (ou le numéro), puis le code qui arrive dans le CRM.", "Mot de passe : clique « Générer » dans le CRM et copie-le.", "Date de naissance : plus de 21 ans.", "Compte Instagram créé : va sur threads.com, « Continuer avec Instagram », crée le profil Threads.", "Note le pseudo et le mot de passe dans le CRM."],
+    trap: "Taper un autre mot de passe que celui du CRM. On perd le compte.",
+  },
+  connexion: {
+    t: "Se connecter à un compte acheté",
+    hint: "instagram.com d'abord : identifiant, mot de passe, puis le code 2FA du CRM.",
+    more: ["Étapes 1 et 2 comme d'habitude : nouvelle IP, nouveau profil AdsPower avec le proxy.", "Dans la fenêtre AdsPower : instagram.com, « Se connecter ».", "Colle l'identifiant, puis le mot de passe (boutons Copier du CRM).", "Instagram demande un code à 6 chiffres : copie le « Code 2FA » du CRM et colle-le tout de suite (il change toutes les 30 s).", "Puis threads.com : « Continuer avec Instagram », crée le profil Threads s'il le demande.", "Ne change ni le mot de passe ni la 2FA du compte."],
+    trap: "Coller un code 2FA qui a expiré. S'il reste moins de 5 s, attends le code suivant.",
+  },
+  warmup: {
+    t: "Warm-up",
+    hint: "Scrolle et like dans la niche jusqu'à ce que le fil montre la niche.",
+    more: ["Même fenêtre AdsPower, même IP, juste après la création.", "Sur threads.com, abonne-toi à 3 à 5 comptes de la niche, like leurs posts.", "Scrolle le fil « Pour toi » comme une vraie personne.", "Fini quand le fil montre surtout des posts de la niche.", "Pendant le warm-up : zéro post, zéro lien, zéro changement de profil."],
+  },
+  setup: {
+    t: "Setup du profil",
+    hint: "Photo, bio, puis fais ce que dit la stratégie du compte.",
+    more: ["Même fenêtre AdsPower, même IP que le warm-up.", "threads.com : Profil, « Modifier le profil ».", "Photo : télécharge celle du CRM, puis choisis-la dans Téléchargements.", "Bio : bouton « Copier la bio », colle-la telle quelle.", "Lien, post épinglé ou relais : suis la carte de la stratégie, pas une autre.", "Coche les cases, clique « Setup fini »."],
+  },
+  metricool: {
+    t: "Connecter à Metricool",
+    hint: "Ouvre le lien dans la fenêtre AdsPower du compte, connecte Threads, reviens cliquer.",
+    more: ["Clique « Connecter à Metricool » : le CRM donne un lien.", "Ouvre la fenêtre AdsPower de ce compte (« Ouvrir »), colle le lien dans sa barre d'adresse. Jamais dans ton Chrome normal.", "Clique « Connect a Threads account », accepte les cookies.", "Le compte est déjà connecté dans la fenêtre : accepte. Sinon pseudo, mot de passe, code 2FA du CRM.", "Reviens, clique « J'ai connecté Threads » : le CRM programme 3 jours de posts tout seul."],
+    trap: "Ouvrir le lien dans ton Chrome normal : mauvaise IP, mauvais compte, le compte peut sauter.",
+  },
+  reconnect: {
+    t: "Reconnecter à Metricool",
+    hint: "Threads s'est déconnecté : regarde si le compte vit encore, puis reconnecte.",
+    more: ["Ouvre le profil Threads du compte.", "Le compte a sauté (suspendu, introuvable) : clique « Il a sauté ». Le CRM le remplacera.", "Le compte marche : clique « Reconnecter », puis fais comme une connexion Metricool normale, là où vit le compte (sa fenêtre AdsPower, ou son téléphone GeeLark pour un ancien compte).", "À la fin, « J'ai connecté Threads » : les posts repartent tout seuls."],
+  },
+};
+// Tutos filmés sur GeeLark : en mode AdsPower, seuls ceux qui ne montrent pas le téléphone restent (planning).
+const ADS_VIDEO_OK = ["planning"];
+const sopData = () => (toolNow() === "adspower" ? { ...SOP, ...SOP_ADS } : SOP);
+const helpData = () => (toolNow() === "adspower" ? { ...HELP, ...HELP_ADS } : HELP);
 // Tutos filmes (vraie creation d'un compte, voix FR) : /help/<fichier>.mp4. Les autres cles gardent leur mini video .webm.
 const HELP_TUTOS = { complet: "creation", rotation: "geelark", geelark: "geelark", numero: "numero", creation: "compte", compte: "compte", marche: "compte", warmup: "warmup", setup: "setup", metricool: "metricool", planning: "planning" };
 const HELP_VIDEOS = ["today", "reconnect", "check", "remplacement"];
-const tutoVideo = (k) => S.data.settings.videos?.[k] || (HELP_TUTOS[k] ? `/help/${HELP_TUTOS[k]}.mp4` : "");
-const hint = (k) => (HELP[k] ? `<div class="hint"><span class="hint-k">Indice</span><span class="hint-t">${esc(HELP[k].hint)}</span><button class="qbtn" data-act="help" data-k="${k}" aria-label="Plus d'aide">?</button></div>` : "");
+const tutoVideo = (k) => S.data.settings.videos?.[k] || (HELP_TUTOS[k] && (toolNow() !== "adspower" || ADS_VIDEO_OK.includes(k)) ? `/help/${HELP_TUTOS[k]}.mp4` : "");
+const hint = (k) => (helpData()[k] ? `<div class="hint"><span class="hint-k">Indice</span><span class="hint-t">${esc(helpData()[k].hint)}</span><button class="qbtn" data-act="help" data-k="${k}" aria-label="Plus d'aide">?</button></div>` : "");
 const helpVideo = (k) => tutoVideo(k) || (HELP_VIDEOS.includes(k) ? `/help/${k}.webm` : "");
 
 const sopBlock = (key, open) => {
-  const s = SOP[key];
+  const s = sopData()[key];
+  if (!s) return "";
   const v = helpVideo(key);
   const isOpen = S.sopOpen ? S.sopOpen.has(key) : open;
   return `<details class="card sop" data-sop="${key}" ${isOpen ? "open" : ""}><summary><b>${s.t}</b> ${v ? "" : ""}</summary>${v ? videoEmbed(v) : ""}<ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
@@ -579,7 +756,7 @@ const VIEWS = {
     const have = w.kind === "have";
     const N = have ? 4 : 5;
     const bar = `<div class="steps">${(have ? [1, 2, 3, 4] : [1, 2, 3, 4, 5]).map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
-    const kindPick = w.step === 1 ? `<div class="row" style="margin:4px 0 12px">${[["new", "Créer un nouveau compte"], ["have", "J'ai déjà un compte"]].map(([k, l]) => `<button class="btn ${(w.kind || "new") === k ? "" : "light"}" data-act="wizKind" data-v="${k}">${(w.kind || "new") === k ? "✓ " : ""}${l}</button>`).join("")}</div>${have ? '<p class="muted">Compte acheté : même proxy, même GeeLark neuf, puis tu te connectes avec l\'identifiant, le mot de passe et le code 2FA du CRM.</p>' : ""}` : "";
+    const kindPick = w.step === 1 ? `<div class="row" style="margin:4px 0 12px">${[["new", "Créer un nouveau compte"], ["have", "J'ai déjà un compte"]].map(([k, l]) => `<button class="btn ${(w.kind || "new") === k ? "" : "light"}" data-act="wizKind" data-v="${k}">${(w.kind || "new") === k ? "✓ " : ""}${l}</button>`).join("")}</div>${have ? `<p class="muted">Compte acheté : même proxy, ${isAds() ? "un profil AdsPower neuf" : "un GeeLark neuf"}, puis tu te connectes avec l'identifiant, le mot de passe et le code 2FA du CRM.</p>` : ""}` : "";
     const head = `<h2>${have ? "Connecter un compte existant" : "Créer un compte"}</h2>${kindPick}${replacing ? `<div class="alert c-red">Ce compte remplace <b>@${esc(replacing.pseudo)}</b> (groupe ${esc(group(replacing.group).name)}). Va jusqu'à Metricool sans pause : les posts repartent dès que Threads est connecté.</div>${w.step === 1 ? hint("remplacement") : ""}` : ""}${bar}`;
     const nav = (canNext, label = "Étape suivante") =>
       `<div class="row" style="margin-top:16px">${w.step > 1 ? '<button class="btn ghost" data-act="wizBack">Retour</button>' : ""}<div class="spacer"></div><button class="btn" data-act="wizNext" ${canNext ? "" : "disabled"}>${label}</button></div>`;
@@ -592,6 +769,14 @@ const VIEWS = {
         <button class="btn big rot" data-act="rotate" data-wait="Changement de l'IP...">Changer l'IP</button>
         ${ip ? `<div class="alert ${ipUsed || ipWrongCc || ipDc ? "c-red" : ipSus ? "c-yellow" : "c-green"}">${ipUsed ? "Cette IP a déjà servi. Rechange-la." : ipWrongCc ? `Cette IP est en ${esc(ip.country)}, pas en ${wantCc === "GB" ? "Royaume-Uni" : "France"}. Rechange-la (ou préviens Awen si ça recommence).` : ipDc ? "IP de datacenter : Threads la repère. Rechange-la." : `Nouvelle IP : <b>${esc(ip.ip)}</b> ${esc(ip.country)} (${ago(ip.at)})${ip.q ? ` · ${esc(ip.q.why.toLowerCase())}${ip.q.isp ? ", " + esc(ip.q.isp) : ""}` : ""}${ipSus ? "<br>Marquée proxy / VPN : ça peut passer, mais rechange-la si tu peux." : ""}`}</div>` : '<div class="alert c-yellow">Pas encore d\'IP fraîche.</div>'}
         ${nav(ip && !ipUsed && !ipWrongCc && !ipDc)}</div>${sopBlock("rotation")}`;
+    if (w.step === 2 && isAds()) {
+      const pport = proxy ? proxy.port : "";
+      return `${head}<div class="card"><div class="stepnum">Étape 2 sur ${N}</div><h3>Nouveau profil AdsPower</h3>${hint("geelark")}
+        <ol><li>Ferme les autres fenêtres AdsPower.</li><li>AdsPower : bouton bleu <b>Nouveau profil</b> (jamais un ancien : 1 profil = 1 compte).</li><li><b>Nom</b> : le même nom que dans la case en bas.</li><li><b>Groupe</b> : Chloé.</li><li>Procuration : onglet <b>Proxys enregistrés</b>, puis <b>Sélectionner mandataire</b> : celui qui finit par <b class="mono">:${esc(pport)}</b>.</li><li>Ne touche pas au reste. <b>D'ACCORD</b>.</li><li>Sur la ligne du profil : <b>Ouvrir</b>. Une fenêtre de navigateur s'ouvre : c'est le téléphone du compte.</li></ol>
+        ${proxy ? `<details style="margin:8px 0"><summary class="muted">Le proxy n'est pas dans la liste ?</summary><p class="muted">Onglet « Coutume », type HTTP, puis colle :</p>${copyLine("Hôte", proxy.host) + copyLine("Port", proxy.port) + copyLine("Utilisateur", proxy.user) + copyLine("Mot de passe", proxy.pass)}</details>` : '<div class="alert c-red">Proxy pas encore réglé (demande à Awen).</div>'}
+        <label class="f">Nom du NOUVEAU profil AdsPower <small>(obligatoire : 1 profil neuf par essai)</small></label><input data-f="geelarkProfile" value="${esc(w.f.geelarkProfile || "")}" placeholder="ex : chloe 23" />
+        ${nav(true)}</div>`;
+    }
     if (w.step === 2)
       return `${head}<div class="card"><div class="stepnum">Étape 2 sur ${N}</div><h3>Nouveau profil GeeLark</h3>${hint("geelark")}
         <ol><li>Ouvre GeeLark.</li><li>Crée un <b>nouveau profil</b> (1 profil = 1 compte).</li><li>Mets le proxy avec les infos ci-dessous : type <b>${S.data.settings.socksPort ? "Socks5" : "HTTP"}</b>, puis « Check proxy ».</li><li>Advanced settings : <b>Location</b> et <b>Cloud phone language</b> sur <b>Based on IP</b>.</li><li>Create, puis Start pour allumer le téléphone.</li></ol>
@@ -607,7 +792,7 @@ const VIEWS = {
       : `<div class="alert c-yellow">Plus de compte acheté en stock : colle les infos du compte à la main, ou préviens Awen.</div>`;
     if (have && w.step === 3)
       return `${head}<div class="card"><div class="stepnum">Étape 3 sur 4</div><h3>Connecte-toi au compte</h3>${hint("connexion")}${stockBox}
-        <ol><li>Dans le téléphone GeeLark, ouvre l'appli <b>Instagram</b>.</li><li>« Se connecter » : colle l'identifiant, puis le mot de passe.</li><li>Instagram demande un code (« authentification », « code à 6 chiffres ») : copie le <b>Code 2FA</b> ci-dessous et colle-le tout de suite.</li><li>Ouvre l'appli <b>Threads</b> : « Se connecter avec Instagram », puis crée le profil Threads jusqu'au bout (« Rejoindre Threads »).</li><li>Tu dois voir le fil Threads. « Nous avons suspendu votre compte » : bouton « Ce compte ne marche pas », puis « Compte suspendu / banni ».</li></ol>
+        <ol>${isAds() ? "<li>Dans la fenêtre AdsPower du compte, va sur <b>instagram.com</b>.</li>" : "<li>Dans le téléphone GeeLark, ouvre l'appli <b>Instagram</b>.</li>"}<li>« Se connecter » : colle l'identifiant, puis le mot de passe.</li><li>Instagram demande un code (« authentification », « code à 6 chiffres ») : copie le <b>Code 2FA</b> ci-dessous et colle-le tout de suite.</li>${isAds() ? "<li>Va sur <b>threads.com</b> : « Continuer avec Instagram », puis crée le profil Threads jusqu'au bout s'il le demande.</li>" : "<li>Ouvre l'appli <b>Threads</b> : « Se connecter avec Instagram », puis crée le profil Threads jusqu'au bout (« Rejoindre Threads »).</li>"}<li>Tu dois voir le fil Threads. « Nous avons suspendu votre compte » : bouton « Ce compte ne marche pas », puis « Compte suspendu / banni ».</li></ol>
         <label class="f">Identifiant (pseudo) <button class="btn sm light" data-act="copyField" data-v="pseudo">Copier</button></label><input data-f="pseudo" value="${esc(w.f.pseudo || "")}" placeholder="pseudo sans @" autocapitalize="off" />
         <label class="f">Mot de passe <button class="btn sm light" data-act="copyField" data-v="password">Copier</button></label><input data-f="password" value="${esc(w.f.password || "")}" autocapitalize="off" />
         <label class="f">Clé 2FA <small>(donnée avec le compte : lettres et chiffres, ou lien otpauth://)</small></label><input data-f="totp" value="${esc(w.f.totp || "")}" placeholder="ex : JBSW Y3DP EHPK 3PXP" autocapitalize="off" autocomplete="off" />
@@ -620,7 +805,7 @@ const VIEWS = {
         ${nav(true)}</div>`;
     if (have && w.step === 4)
       return `${head}<div class="card"><div class="stepnum">Étape 4 sur 4</div><h3>Tu es connectée ?</h3>${hint("marche")}
-        <p>Dans l'appli <b>Threads</b> (pas seulement Instagram), tu vois le fil, et ton profil Threads s'ouvre, sans blocage ni demande de vérif ? Alors c'est bon.</p>
+        <p>${isAds() ? "Sur <b>threads.com</b>" : "Dans l'appli <b>Threads</b>"} (pas seulement Instagram), tu vois le fil, et ton profil Threads s'ouvre, sans blocage ni demande de vérif ? Alors c'est bon.</p>
         ${copyLine("Identifiant", w.f.pseudo)}${copyLine("Mot de passe", w.f.password)}
         ${w.f.totp ? `<div class="copyline"><span class="k">Code 2FA</span><span class="v"><b data-totp="__wiz" style="letter-spacing:2px;font-size:16px">······</b> <small class="muted" data-totpleft></small></span><button class="btn sm light" data-act="copyTotp" data-id="__wiz">Copier</button></div><input type="hidden" data-f="totp" value="${esc(w.f.totp)}" />` : ""}
         <div class="row" style="margin-top:14px"><button class="btn big ok" data-act="wizCreate" data-wait="Enregistrement...">Oui, je suis connectée</button></div>
@@ -751,7 +936,7 @@ const VIEWS = {
       const ph = done ? null : photoFor(a);
       return `<div class="card acc ${done ? "" : "urgent"}"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}<div class="spacer"></div>${apill(a)}</div>
         ${done ? '<div class="alert c-green">Fait aujourd\'hui.</div>' : `<ol>
-          <li>Ouvre le téléphone GeeLark du compte.</li>
+          <li>Ouvre le ${devW(a)} du compte${a.geelarkProfile ? ` (« ${esc(a.geelarkProfile)} »)` : ""}.</li>
           <li>Scrolle environ 5 minutes.</li>
           <li>Like quelques posts de la niche chinoise.</li>
           <li>Écris 2 à 3 commentaires en chinois.</li>
@@ -790,6 +975,7 @@ const VIEWS = {
       <div class="grid">${list.map((a) => `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}</div>
         <div class="row">${apill(a)}${gpill(a.group)}${spill(a.strategy)}${a.engage && a.status !== "saute" ? '<span class="pill warmpill">Warm-up tous les jours</span>' : ""}</div>
         <span class="muted">Créé ${ago(a.createdAt)} par ${esc(a.createdBy)} · IP ${esc(a.ip || "?")}</span>
+        <div class="muted" style="font-size:12px">${isAds(a) ? "AdsPower" : "GeeLark"}${a.geelarkProfile ? ` : ${esc(a.geelarkProfile)}` : ""}</div>
         ${a.notes ? `<div class="accnote">${esc(a.notes)}</div>` : ""}
         ${a.replaces ? `<span class="muted">Remplace @${esc(acc(a.replaces)?.pseudo || "?")}</span>` : ""}${a.replacedBy ? `<span class="muted">Remplacé par @${esc(acc(a.replacedBy)?.pseudo || "?")}</span>` : ""}
         <div class="row"><button class="btn sm light" data-act="copy" data-v="${esc(a.pseudo)}">Pseudo</button><button class="btn sm light" data-act="copy" data-v="${esc(a.password)}">Mot de passe</button>${a.totp ? `<button class="btn sm light" data-act="copyTotp" data-id="${a.id}">Code 2FA</button>` : ""}<button class="btn sm light" data-act="copy" data-v="${esc(a.phone)}">Numéro</button><a class="btn sm light" href="${threadsUrl(a.pseudo)}" target="_blank" rel="noopener">Profil</a></div><div class="row foot"><button class="btn sm ghost" data-act="edit" data-id="${a.id}">Modifier / notes</button>${a.status !== "saute" ? `<button class="btn sm ghost" data-act="dead" data-id="${a.id}">Sauter</button>` : ""}${isAdmin() && a.status !== "saute" && a.blogId && !a.offMc ? `<button class="btn sm ghost" data-act="offMc" data-id="${a.id}" data-wait="...">Sortir de Metricool</button>` : ""}${isAdmin() && a.status !== "saute" ? `<button class="btn sm ghost" data-act="engageToggle" data-id="${a.id}" data-v="${a.engage ? "0" : "1"}" data-wait="...">${a.engage ? "Enlever le violet" : "Mettre en violet"}</button>` : ""}</div></div>`).join("") || '<div class="card muted">Aucun compte ici.</div>'}</div>`;
@@ -846,7 +1032,7 @@ const VIEWS = {
   },
 
   sop() {
-    return `<h2>SOP</h2><p class="lead">Tout ce qu'il faut savoir. Regarde la vidéo, suis les étapes.</p>${Object.keys(SOP).filter((k) => k !== "numero").map((k, i) => sopBlock(k, i === 0)).join("")}
+    return `<h2>SOP</h2><p class="lead">Tout ce qu'il faut savoir. Regarde la vidéo, suis les étapes.</p>${(toolNow() === "adspower" ? SOP_ORDER_ADS : Object.keys(SOP).filter((k) => k !== "numero")).map((k, i) => sopBlock(k, i === 0)).join("")}
       ${S.data.settings.sopExtra ? `<div class="card sop"><b>Règles en plus</b><div style="white-space:pre-wrap;margin-top:8px">${esc(S.data.settings.sopExtra)}</div></div>` : ""}`;
   },
 
@@ -1098,6 +1284,7 @@ ${lotsCard()}
       <div class="card"><h3 style="margin-top:0">Liens</h3>
         <label class="f">Pays des numéros, proxy France <small>(décochés = la VA ne peut pas les prendre ; en proxy UK c'est toujours UK seulement)</small></label><div class="row">${ALL_SMS_COUNTRIES.map((x) => `<label style="margin-right:14px"><input type="checkbox" data-smsc="${x.id}" ${(st.smsCountries && st.smsCountries.length ? st.smsCountries.map(Number) : ALL_SMS_COUNTRIES.filter((y) => y.id !== 16).map((y) => y.id)).includes(x.id) ? "checked" : ""}/> ${esc(x.name)}</label>`).join("")}</div>
         <label class="f">Site SMS <small>(secours, si Hero SMS n'est pas branché)</small></label><input data-st="smsSiteUrl" value="${esc(st.smsSiteUrl)}" />
+        <label class="f">Où la VA crée les nouveaux comptes <small>(les comptes déjà créés gardent leur outil, modifiable sur chaque compte)</small></label><select data-st="tool"><option value="adspower" ${st.tool !== "geelark" ? "selected" : ""}>AdsPower (profil navigateur)</option><option value="geelark" ${st.tool === "geelark" ? "selected" : ""}>GeeLark (téléphone cloud)</option></select>
         <label class="f">Lien GeeLark</label><input data-st="geelarkUrl" value="${esc(st.geelarkUrl)}" />
         <label class="f">Lien Metricool</label><input data-st="metricoolUrl" value="${esc(st.metricoolUrl)}" />
         <h3>Modèle en cours</h3>
@@ -1117,7 +1304,7 @@ ${lotsCard()}
       <div class="card"><h3 style="margin-top:0">Groupes</h3><p class="muted">Un groupe par ligne : <code>id | Nom | photo(oui/non) | couleur</code></p>
         <textarea data-st="groups">${esc(st.groups.map((g) => `${g.id} | ${g.name} | ${g.withPhoto ? "oui" : "non"} | ${g.color}`).join("\n"))}</textarea></div>
       <div class="card"><h3 style="margin-top:0">Vidéos des SOP</h3><p class="muted">Lien YouTube, Loom ou Google Drive.</p>
-        ${vids.map((k) => `<label class="f">${esc(SOP[k].t)}</label><input data-vid="${k}" value="${esc(st.videos?.[k] || "")}" />`).join("")}
+        ${vids.map((k) => `<label class="f">${esc((sopData()[k] || SOP[k]).t)}</label><input data-vid="${k}" value="${esc(st.videos?.[k] || "")}" />`).join("")}
         <label class="f">Règles en plus (affichées dans SOP)</label><textarea data-st="sopExtra">${esc(st.sopExtra || "")}</textarea>
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSettings" data-wait="...">Enregistrer les réglages</button></div></div>
       <div class="card"><h3 style="margin-top:0">Accès</h3>
@@ -1157,7 +1344,7 @@ function logDetails(l) {
   if (l.added != null) out.push(`${l.added} ajouté(s)`);
   if (l.blogId) out.push("marque " + l.blogId);
   if (l.name) out.push(l.name);
-  if (l.aide) out.push(HELP[l.aide]?.t || l.aide);
+  if (l.aide) out.push(helpData()[l.aide]?.t || l.aide);
   return out.join(", ");
 }
 
@@ -1183,7 +1370,7 @@ async function planFull(accountId, days, btn, label, mode) {
 }
 const POSTING = ["actif", "shadowban", "restreint"];
 // pseudo violet = compte a warm-up 10 min tous les jours (5 comptes choisis par l'admin). Clic dessus : petit rappel 2 s.
-const WARM_TIP = "À warm-up tous les jours sur GeeLark : 10 min, 3-4 likes, 3-4 commentaires en chinois, 2 abonnements max, rien à publier.";
+const WARM_TIP = "À warm-up tous les jours, là où vit le compte (son profil AdsPower, ou son GeeLark pour les anciens) : 10 min, 3-4 likes, 3-4 commentaires en chinois, 2 abonnements max, rien à publier.";
 // Suivi des lots achetés (admin) : chaque lot = un fournisseur, un prix, et ce que deviennent ses comptes
 const CUR_SYM = { RUB: "₽", EUR: "€", USD: "$" };
 const money = (v, c) => (v || v === 0 ? `${String(Math.round(v * 100) / 100).replace(".", ",")} ${CUR_SYM[c] || c}` : "");
@@ -1282,7 +1469,7 @@ function newPseudoBox(a) {
 function warmupCard(a, withTimer) {
   if (!a) return "";
   return `<div class="card"><div class="head row"><span class="num">#${a.num}</span>${psTag(a, "b")}${gpill(a.group)}</div>${hint("warmup")}
-    <p class="muted">Même profil GeeLark, même IP. 10 min de scroll, puis le setup direct.</p><div class="timer" data-timer="${a.id}">10:00</div><div class="row"><button class="btn light" data-act="startTimer" data-id="${a.id}">Lancer le chrono 10 min</button></div>
+    <p class="muted">Même ${devW(a)}${a.geelarkProfile ? ` (« ${esc(a.geelarkProfile)} »)` : ""}, même IP. 10 min de scroll, puis le setup direct.</p><div class="timer" data-timer="${a.id}">10:00</div><div class="row"><button class="btn light" data-act="startTimer" data-id="${a.id}">Lancer le chrono 10 min</button></div>
     ${warmupTargets(a)}
     ${newPseudoBox(a)}
     <div class="checklist" data-wcheck="${a.id}">${SOP.warmup.steps.map((s) => `<label><input type="checkbox" /> ${esc(s)}</label>`).join("")}</div>
@@ -1322,7 +1509,7 @@ function emailBuyBlock() {
 function emailCard(cur) {
   return `<div class="alert c-blue"><b>E-mail</b> · ${cur.price ? cur.price.toFixed(3).replace(/0+$/, "") + " $" : ""}</div>
     ${copyLine("E-mail", cur.email)}
-    <p>Ouvre l'appli <b>Instagram</b> (pas Threads) dans le téléphone GeeLark et crée un compte normal avec cet e-mail. Le code arrive ici tout seul (en général en moins de 2 min). Une fois le compte Instagram créé, ouvre Threads et connecte-toi avec.</p>
+    <p>${isAds() ? "Dans la fenêtre AdsPower du compte, va sur <b>instagram.com</b> et « S'inscrire » avec cet e-mail. Le code arrive ici tout seul (en général en moins de 2 min). Une fois le compte Instagram créé, va sur <b>threads.com</b>, « Continuer avec Instagram »." : "Ouvre l'appli <b>Instagram</b> (pas Threads) dans le téléphone GeeLark et crée un compte normal avec cet e-mail. Le code arrive ici tout seul (en général en moins de 2 min). Une fois le compte Instagram créé, ouvre Threads et connecte-toi avec."}</p>
     ${cur.code ? `<div class="alert c-green" style="font-size:22px;font-weight:700;letter-spacing:2px">${esc(cur.code)} <button class="btn sm light" data-act="copy" data-v="${esc(cur.code)}" style="letter-spacing:0;font-size:13px">Copier</button></div>` : `<div class="alert c-yellow" data-emailwait>En attente du code…</div>`}
     <div class="row" style="margin-top:10px">${cur.code ? "" : `<button class="btn sm light" data-act="emailCode" data-wait="...">Vérifier maintenant</button><button class="btn sm bad" data-act="emailCancel" data-wait="...">Pas de code : annuler l'e-mail</button>`}</div>`;
 }
@@ -1345,10 +1532,10 @@ function mcConnectCard(a) {
   return `<div class="card acc"><div class="head"><span class="num">#${a.num}</span>${psTag(a)}</div><div class="row">${gpill(a.group)}${spill(a.strategy)}</div>
     <ol>
       <li>Copie ce lien : ${copyLine("Lien", a.mcLink)}</li>
-      <li>Ouvre-le dans le navigateur du téléphone GeeLark ${a.geelarkProfile ? `<b>« ${esc(a.geelarkProfile)} »</b>` : "<b>de ce compte</b>"}, et aucun autre. Jamais sur ton PC.</li>
-      <li>Touche <b>Connect a Threads account</b>, accepte les cookies.</li>
-      <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}${a.oldPseudo ? `<div class="alert c-yellow" style="margin-top:6px"><b>« Mot de passe incorrect » ?</b> Le pseudo n'a pas été changé dans Instagram. Dans l'appli Instagram : Profil, Modifier le profil, <b>Nom d'utilisateur</b>, colle @${esc(a.pseudo)}, valide. Puis réessaie ici. (Ancien pseudo : @${esc(a.oldPseudo)})</div>` : ""}</li>
-      <li>La page dit « Continuer en tant que @… » avec un autre pseudo que @${esc(a.pseudo)} ? <b>Annuler</b> : tu es sur le mauvais téléphone.</li><li>Accepte <b>toutes</b> les permissions. Si ça te renvoie sur Threads, ferme et refais l'étape 3.</li>
+      ${isAds(a) ? `<li>AdsPower : « Ouvrir » sur le profil ${a.geelarkProfile ? `<b>« ${esc(a.geelarkProfile)} »</b>` : "<b>de ce compte</b>"}, et aucun autre. Colle le lien dans la barre d'adresse de cette fenêtre. Jamais dans ton Chrome normal.</li>` : `<li>Ouvre-le dans le navigateur du téléphone GeeLark ${a.geelarkProfile ? `<b>« ${esc(a.geelarkProfile)} »</b>` : "<b>de ce compte</b>"}, et aucun autre. Jamais sur ton PC.</li>`}
+      <li>${isAds(a) ? "Clique" : "Touche"} <b>Connect a Threads account</b>, accepte les cookies.</li>
+      <li>Connecte-toi avec ce compte : ${copyLine("Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}${a.oldPseudo ? `<div class="alert c-yellow" style="margin-top:6px"><b>« Mot de passe incorrect » ?</b> Le pseudo n'a pas été changé dans Instagram. ${isAds(a) ? "Sur instagram.com (fenêtre AdsPower du compte) : Modifier le profil, « Voir plus dans l'Espace Comptes », ton profil, <b>Nom d'utilisateur</b>" : "Dans l'appli Instagram : Profil, Modifier le profil, <b>Nom d'utilisateur</b>"}, colle @${esc(a.pseudo)}, valide. Puis réessaie ici. (Ancien pseudo : @${esc(a.oldPseudo)})</div>` : ""}</li>
+      <li>La page dit « Continuer en tant que @… » avec un autre pseudo que @${esc(a.pseudo)} ? <b>Annuler</b> : tu es sur le mauvais ${isAds(a) ? "profil AdsPower" : "téléphone"}.</li><li>Accepte <b>toutes</b> les permissions. Si ça te renvoie sur Threads, ferme et refais l'étape 3.</li>
       <li>Reviens ici et clique le bouton vert.</li>
     </ol>
     <div class="row"><button class="btn big ok" data-act="mcVerify" data-id="${a.id}" data-wait="Vérification...">J'ai connecté Threads</button><button class="btn ghost" data-act="mcConnect" data-id="${a.id}" data-wait="...">Nouveau lien</button></div></div>`;
@@ -1391,8 +1578,8 @@ function setupWizard(a) {
   return `<h2>Setup de ${psTag(a, "span")}</h2>${hint("setup")}
     <div class="alert">${spill(strat)}<div style="margin-top:6px">${explain}</div></div>
     <div class="card"><div class="stepnum">1. Même profil, même IP</div>
-      <p>Tu restes dans le profil GeeLark <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine(a.newPseudo ? "Identifiant actuel" : "Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}</div>
-    ${a.newPseudo ? `<div class="card"><div class="stepnum">1 bis. Change le pseudo</div><p class="muted" style="margin:0 0 6px">Le pseudo se change <b>dans Instagram</b>, pas dans Threads (Threads ne change que le « Nom »).</p><ol><li>Ouvre l'appli <b>Instagram</b> du téléphone GeeLark.</li><li>Profil, puis Modifier le profil.</li><li>Touche <b>Nom d'utilisateur</b> (pas « Nom »).</li><li>Colle le nouveau pseudo, puis valide en haut à droite.</li><li>Vérifie : en haut du profil Instagram, tu lis bien @${esc(a.newPseudo)}.</li><li>Ouvre Threads : ton profil affiche aussi @${esc(a.newPseudo)}.</li></ol>${copyLine("Nouveau pseudo", a.newPseudo)}<div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="npTaken" data-id="${a.id}" data-wait="...">Déjà pris ? Un autre</button></div></div>` : ""}
+      <p>Tu restes dans le ${devW(a)} <b>${esc(a.geelarkProfile || "du compte")}</b>, juste après le warm-up. Ne change pas l'IP.</p>${copyLine(a.newPseudo ? "Identifiant actuel" : "Pseudo", a.pseudo)}${copyLine("Mot de passe", a.password)}${totpLine(a)}</div>
+    ${a.newPseudo ? `<div class="card"><div class="stepnum">1 bis. Change le pseudo</div><p class="muted" style="margin:0 0 6px">Le pseudo se change <b>dans Instagram</b>, pas dans Threads (Threads ne change que le « Nom »).</p>${isAds(a) ? `<ol><li>Dans la fenêtre AdsPower du compte, va sur <b>instagram.com</b>.</li><li>Ta photo (Profil), puis <b>Modifier le profil</b>.</li><li><b>Voir plus dans l'Espace Comptes</b>, puis clique ton profil Instagram.</li><li><b>Nom d'utilisateur</b> (pas « Nom »).</li><li>Colle le nouveau pseudo, puis <b>Terminé</b>.</li><li>Vérifie : en haut du profil Instagram, tu lis bien @${esc(a.newPseudo)}.</li><li>Va sur threads.com : ton profil affiche aussi @${esc(a.newPseudo)}.</li></ol>` : `<ol><li>Ouvre l'appli <b>Instagram</b> du téléphone GeeLark.</li><li>Profil, puis Modifier le profil.</li><li>Touche <b>Nom d'utilisateur</b> (pas « Nom »).</li><li>Colle le nouveau pseudo, puis valide en haut à droite.</li><li>Vérifie : en haut du profil Instagram, tu lis bien @${esc(a.newPseudo)}.</li><li>Ouvre Threads : ton profil affiche aussi @${esc(a.newPseudo)}.</li></ol>`}${copyLine("Nouveau pseudo", a.newPseudo)}<div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="npTaken" data-id="${a.id}" data-wait="...">Déjà pris ? Un autre</button></div></div>` : ""}
     <div class="card"><div class="stepnum">2. Photo de profil</div>
       ${s.pfp ? `<div class="thumbs" style="max-width:220px"><figure><img src="/api/media/${s.pfp}" /></figure></div><div class="row" style="margin-top:8px"><a class="btn light" href="/api/media/${s.pfp}" download>Télécharger</a><button class="btn ghost" data-act="otherPfp">Une autre</button></div>` : '<p class="muted">Pas de photo de profil dans le CRM : utilise celle donnée par Awen / Bilot.</p>'}</div>
     <div class="card"><div class="stepnum">3. Bio</div>${bank.length ? `<p class="muted">Bio tirée de la banque « ${esc((S.data.strategyLabels || {})[strat] || strat)} » (${bank.length} restantes). Copie-la telle quelle : une fois le setup fini, elle sort de la banque.</p>` : '<div class="alert c-red">Plus aucune bio dans cette banque. Préviens Awen ou Bilot (Contenu, Bios).</div>'}<textarea data-setupbio>${esc(s.bio)}</textarea>${frSlot(s.bio)}<div class="row"><button class="btn light" data-act="copyBio">Copier la bio</button>${bank.length > 1 ? '<button class="btn ghost" data-act="otherBio">Une autre</button>' : ""}</div></div>
@@ -1751,7 +1938,7 @@ const ACT = {
   },
   help(b) {
     const k = b.dataset.k;
-    const h = HELP[k];
+    const h = helpData()[k];
     if (!h) return;
     const v = helpVideo(k);
     modal(`<h3>${esc(h.t)}</h3>${v ? videoEmbed(v) : ""}<ol class="helpsteps">${h.more.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>${h.trap ? `<div class="alert c-red"><b>Piège</b> : ${esc(h.trap)}</div>` : ""}<p class="muted">Tu bloques encore ? Écris à ton manager avec une capture d'écran.</p>`);
@@ -1792,9 +1979,9 @@ const ACT = {
     readWizFields();
     if (w.step === 2) {
       const gp = String(w.f.geelarkProfile || "").trim().toLowerCase();
-      if (!gp) return toast("Écris le nom du nouveau téléphone GeeLark.", true);
+      if (!gp) return toast(isAds() ? "Écris le nom du nouveau profil AdsPower." : "Écris le nom du nouveau téléphone GeeLark.", true);
       const used = (S.data.geelarkBurned || []).includes(gp) || S.data.accounts.some((a) => String(a.geelarkProfile || "").trim().toLowerCase() === gp);
-      if (used) return toast("Ce téléphone GeeLark a déjà servi. Crée un NOUVEAU téléphone dans GeeLark et donne-lui un autre nom.", true);
+      if (used) return toast(isAds() ? "Ce nom de profil a déjà servi. Crée un NOUVEAU profil dans AdsPower et donne-lui un autre nom." : "Ce téléphone GeeLark a déjà servi. Crée un NOUVEAU téléphone dans GeeLark et donne-lui un autre nom.", true);
     }
     if (w.kind === "have" && w.step === 2 && !w.f.stockId && S.data.stock?.dispo) {
       w.step = 3;
@@ -1856,7 +2043,7 @@ const ACT = {
     if (S.wiz.kind === "have") return ACT.boughtFail();
     modal(`<h3>Ça n'a pas marché ?</h3><p>Pas grave. On note et on recommence.</p>
       <label class="f">Pourquoi ?</label><select id="failwhy"><option>« Try again later » (limite Instagram)</option><option>Compte bloqué direct</option><option>Demande de vérification</option><option>Code jamais reçu</option><option>Numéro ou e-mail refusé</option><option>Autre</option></select>
-      <div class="alert c-yellow" style="margin-top:12px"><b>Avant de recommencer :</b><br>1. Supprime ce téléphone GeeLark${S.wiz.f.geelarkProfile ? ` (« ${esc(S.wiz.f.geelarkProfile)} »)` : ""} : il est grillé pour Instagram.<br>2. Crée un <b>nouveau</b> téléphone GeeLark.<br>3. Si c'était « Try again later » : Instagram bloque les inscriptions sur ce proxy pendant quelques heures. ${ukReady() ? `Passe sur <b>${other}</b> à l'étape 1.` : "Fais une pause et réessaie plus tard."}</div>
+      <div class="alert c-yellow" style="margin-top:12px"><b>Avant de recommencer :</b><br>1. Supprime ce ${devW()}${S.wiz.f.geelarkProfile ? ` (« ${esc(S.wiz.f.geelarkProfile)} »)` : ""} : il est grillé pour Instagram.<br>2. Crée un <b>nouveau</b> ${devW()}${isAds() ? " (autre nom)" : ""}.<br>3. Si c'était « Try again later » : Instagram bloque les inscriptions sur ce proxy pendant quelques heures. ${ukReady() ? `Passe sur <b>${other}</b> à l'étape 1.` : "Fais une pause et réessaie plus tard."}</div>
       <button class="btn big bad" style="margin-top:14px" data-act="wizFailSend">Noter et recommencer</button>`);
   },
   async wizFailSend(b) {
@@ -1983,16 +2170,18 @@ const ACT = {
     readWizFields();
     const fromStock = !!S.wiz.f.stockId;
     const gp = S.wiz.f.geelarkProfile ? ` (« ${esc(S.wiz.f.geelarkProfile)} »)` : "";
+    const NEWDEV = isAds() ? "Nouveau profil AdsPower" : "Nouveau téléphone GeeLark";
+    const SAMEDEV = isAds() ? "Même profil" : "Même téléphone";
     const opt = (k, title, sub) => `<button class="btn light failopt" data-act="boughtFailPick" data-k="${k}" style="text-align:left;display:block;width:100%"><b>${title}</b><br><small class="muted">${sub}</small></button>`;
     modal(`<h3>Qu'est-ce qui ne va pas avec @${esc(S.wiz.f.pseudo || "ce compte")} ?</h3>
       <div class="col" style="display:grid;gap:8px;margin-top:10px">
-      ${opt("ban", "Compte suspendu / banni", "« Nous avons suspendu votre compte », « Compte désactivé », « Faire appel ». Nouveau téléphone GeeLark et nouvelle IP.")}
-      ${opt("pass", "Mot de passe refusé", "« Mot de passe incorrect ». Même téléphone, compte suivant.")}
-      ${opt("2fa", "Code 2FA refusé", "Le code à 6 chiffres ne passe pas. Même téléphone, compte suivant.")}
-      ${opt("verif", "Demande de vérification", "Selfie, e-mail, numéro à confirmer. Nouveau téléphone GeeLark et nouvelle IP.")}
-      ${fromStock ? opt("autre", "Autre souci", "Le compte retourne à la fin du stock. Même téléphone, compte suivant.") : opt("autre", "Autre souci", "Nouveau téléphone GeeLark et nouvelle IP.")}
+      ${opt("ban", "Compte suspendu / banni", `« Nous avons suspendu votre compte », « Compte désactivé », « Faire appel ». ${NEWDEV} et nouvelle IP.`)}
+      ${opt("pass", "Mot de passe refusé", `« Mot de passe incorrect ». ${SAMEDEV}, compte suivant.`)}
+      ${opt("2fa", "Code 2FA refusé", `Le code à 6 chiffres ne passe pas. ${SAMEDEV}, compte suivant.`)}
+      ${opt("verif", "Demande de vérification", `Selfie, e-mail, numéro à confirmer. ${NEWDEV} et nouvelle IP.`)}
+      ${fromStock ? opt("autre", "Autre souci", `Le compte retourne à la fin du stock. ${SAMEDEV}, compte suivant.`) : opt("autre", "Autre souci", `${NEWDEV} et nouvelle IP.`)}
       </div>
-      <p class="muted" style="margin-top:10px">Nouveau téléphone : supprime l'ancien${gp} dans GeeLark avant d'en créer un.</p>`);
+      <p class="muted" style="margin-top:10px">${NEWDEV} : supprime l'ancien${gp} dans ${isAds() ? "AdsPower" : "GeeLark"} avant d'en créer un.</p>`);
   },
   async boughtFailPick(b) {
     const k = b.dataset.k;
@@ -2012,7 +2201,7 @@ const ACT = {
       if (burn) {
         S.wiz = { step: 1, f: {}, kind: "have" };
         await refresh();
-        toast(next ? `Noté. Supprime ce téléphone GeeLark, change l'IP. Compte suivant prêt : @${next.user}` : "Noté. Supprime ce téléphone GeeLark et change l'IP", !next && !!w.f.stockId);
+        toast(next ? `Noté. Supprime ce ${devW()}, change l'IP. Compte suivant prêt : @${next.user}` : `Noté. Supprime ce ${devW()} et change l'IP`, !next && !!w.f.stockId);
         return;
       }
       for (const x of ["stockId", "stockOrder", "pseudo", "password", "totp", "email", "emailPassword"]) delete w.f[x];
@@ -2391,10 +2580,11 @@ const ACT = {
   },
   edit(b) {
     const a = acc(b.dataset.id);
-    const fields = [["displayName", "Nom affiché (ex : XiixiChloe)"], ["pseudo", "Pseudo (connexion Threads)"], ["password", "Mot de passe"], ["phone", "Numéro"], ["email", "Email"], ["emailPassword", "Mot de passe email"], ["totp", "Clé 2FA"], ["geelarkProfile", "Profil GeeLark"], ["link", "Lien"], ["notes", "Notes"]];
+    const fields = [["displayName", "Nom affiché (ex : XiixiChloe)"], ["pseudo", "Pseudo (connexion Threads)"], ["password", "Mot de passe"], ["phone", "Numéro"], ["email", "Email"], ["emailPassword", "Mot de passe email"], ["totp", "Clé 2FA"], ["geelarkProfile", isAds(a) ? "Profil AdsPower" : "Profil GeeLark"], ["link", "Lien"], ["notes", "Notes"]];
     modal(`<h3>${psTag(a, "span")}</h3>${fields.map(([k, l]) => k === "notes" ? `<label class="f">${l} <small>(tout ce que tu veux retenir sur ce compte)</small></label><textarea data-ed="notes">${esc(a.notes || "")}</textarea>` : `<label class="f">${l}</label><input data-ed="${k}" value="${esc(k === "displayName" ? a.displayName || nameOf(a) : a[k] || "")}" />`).join("")}
       ${isAdmin() ? `<label class="f">Groupe</label><select data-ed="group">${S.data.settings.groups.map((g) => `<option value="${g.id}" ${g.id === a.group ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select>
       <label class="f">Stratégie</label><select data-ed="strategy">${Object.entries(S.data.strategyLabels || {}).map(([k, l]) => `<option value="${k}" ${k === a.strategy ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
+      <label class="f">Où vit le compte</label><select data-ed="tool"><option value="adspower" ${isAds(a) ? "selected" : ""}>Profil AdsPower</option><option value="geelark" ${isAds(a) ? "" : "selected"}>Téléphone GeeLark</option></select>
       <label class="f">Statut</label><select data-ed="status">${Object.entries(S.data.statusLabels).map(([k, l]) => `<option value="${k}" ${k === a.status ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}
       ${totpLine(a)}<p class="muted">IP de création : ${esc(a.ip || "?")} · Marque Metricool : ${esc(a.blogId || "aucune")}</p>
       <div class="row" style="margin-top:14px"><button class="btn" data-act="saveEdit" data-id="${a.id}" data-wait="...">Enregistrer</button>${a.blogId ? `<button class="btn light" data-act="unlink" data-id="${a.id}">Délier Metricool</button>` : ""}${isAdmin() ? `<div class="spacer"></div><button class="btn sm bad" data-act="delAcc" data-id="${a.id}">Supprimer</button>` : ""}</div>`);
@@ -2581,6 +2771,7 @@ const ACT = {
       smsCountries,
       smsSiteUrl: v("smsSiteUrl").trim(),
       geelarkUrl: v("geelarkUrl").trim(),
+      tool: v("tool") === "geelark" ? "geelark" : "adspower",
       metricoolUrl: v("metricoolUrl").trim(),
       timezone: v("timezone").trim(),
       postsPerDay: Number(v("postsPerDay")) || 3,
